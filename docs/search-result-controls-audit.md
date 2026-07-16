@@ -8,7 +8,7 @@ This document inventories every behavior that can change which products are retu
 
 ### Query preparation
 
-- Strip RediSearch operators and indexing punctuation.
+- Replace RediSearch operators and indexing punctuation with spaces so token boundaries match indexed text.
 - Normalize case and whitespace, and cap the query at 200 characters.
 - Enforce a configurable minimum query length; tokens shorter than two characters are discarded.
 - Greedily expand synonym phrases up to four words.

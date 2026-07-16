@@ -40,6 +40,17 @@ class Query_Builder_Diacritics_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Query punctuation must preserve the token boundaries used by RediSearch.
+	 */
+	public function test_sanitize_query_replaces_token_separators_with_spaces() {
+		$query = $this->make_query();
+
+		$this->assertSame( 'athena t shirt green', $query->sanitize_query( 'Athena T-Shirt Green' ) );
+		$this->assertSame( 'demo 640001 xs', $query->sanitize_query( 'DEMO-640001-XS' ) );
+		$this->assertSame( 'red blue classic', $query->sanitize_query( 'Red,Blue/Classic' ) );
+	}
+
+	/**
 	 * Strict pass: a diacritic term stays a lone prefix — no ASCII union.
 	 */
 	public function test_strict_query_emits_bare_prefix_for_diacritic_term() {
