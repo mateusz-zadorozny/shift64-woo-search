@@ -126,13 +126,13 @@ class Shift64_Woo_Search_Admin {
 			'tuning'      => __( 'Tuning', 'shift64-woo-search' ),
 			'synonyms'    => __( 'Synonyms', 'shift64-woo-search' ),
 			'suggestions' => __( 'Suggestions', 'shift64-woo-search' ),
-			'catboost'    => __( 'Boost kategorii', 'shift64-woo-search' ),
+			'catboost'    => __( 'Category Boost', 'shift64-woo-search' ),
 			'stats'       => __( 'Statistics', 'shift64-woo-search' ),
 			'weights'     => __( 'Weights', 'shift64-woo-search' ),
 			'filters'     => __( 'Filters', 'shift64-woo-search' ),
 			'index'       => __( 'Index', 'shift64-woo-search' ),
 			'redis'       => __( 'Redis', 'shift64-woo-search' ),
-			'search'      => __( 'Wyszukiwanie', 'shift64-woo-search' ),
+			'search'      => __( 'Search', 'shift64-woo-search' ),
 			'frontend'    => __( 'Frontend', 'shift64-woo-search' ),
 		);
 
@@ -551,7 +551,7 @@ class Shift64_Woo_Search_Admin {
 
 			<div class="shift64-woo-search-catexclude__add">
 				<input type="text" id="s64ws-cx-input" class="regular-text"
-						placeholder="<?php esc_attr_e( 'nazwa, slug lub ID kategorii', 'shift64-woo-search' ); ?>" />
+						placeholder="<?php esc_attr_e( 'Category name, slug, or ID', 'shift64-woo-search' ); ?>" />
 				<button type="button" id="s64ws-cx-add" class="button button-primary">
 					<?php esc_html_e( 'Hide category', 'shift64-woo-search' ); ?>
 				</button>

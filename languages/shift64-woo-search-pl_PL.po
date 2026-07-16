@@ -1,0 +1,34 @@
+# Polish translation for the Shift64 Woo Search plugin.
+# This file is distributed under the same license as the Shift64 Woo Search plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Shift64 Woo Search 0.1.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/shift64-woo-search-main\n"
+"Language-Team: Polish\n"
+"Language: pl_PL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"X-Domain: shift64-woo-search\n"
+
+#: admin/class-shift64-woo-search-admin.php:129
+msgid "Category Boost"
+msgstr "Boost kategorii"
+
+#: admin/class-shift64-woo-search-admin.php:135
+msgid "Search"
+msgstr "Wyszukiwanie"
+
+#: admin/class-shift64-woo-search-admin.php:511
+#: admin/class-shift64-woo-search-admin.php:554
+msgid "Category name, slug, or ID"
+msgstr "Nazwa, slug lub ID kategorii"
+
+#. translators: %d: number of selected filter options.
+#: frontend/class-shift64-woo-search-filters.php:466
+msgid "%d selected"
+msgid_plural "%d selected"
+msgstr[0] "%d wybrano"
+msgstr[1] "%d wybrano"
+msgstr[2] "%d wybrano"
