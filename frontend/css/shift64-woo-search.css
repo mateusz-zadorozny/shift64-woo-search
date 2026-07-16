@@ -2,7 +2,7 @@
  * Shift64 Woo Search — Autocomplete Dropdown
  *
  * BEM naming, CSS custom properties.
- * Layers on top of .shift64-woo-search-field from custom-header.css.
+ * Includes a standalone search field for the shortcode and the autocomplete UI.
  */
 
 /* ================================================================
@@ -40,6 +40,79 @@
     --s64ws-section-header-size: 12px;
     --s64ws-section-header-weight: 500;
     --s64ws-section-border: var(--global-palette7, #e5e5e5);
+
+    --s64ws-field-bg: #fff;
+    --s64ws-field-border: var(--global-palette7, #d0d5dd);
+    --s64ws-field-color: var(--global-palette3, #1a1a2e);
+    --s64ws-field-focus: var(--shift64-woo-search-brand-color, #183e86);
+    --s64ws-field-radius: 8px;
+}
+
+/* ================================================================
+   Shortcode Search Field
+   ================================================================ */
+.shift64-woo-search-shortcode {
+    width: 100%;
+}
+
+.shift64-woo-search-shortcode .shift64-woo-search-field {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    overflow: visible;
+}
+
+.shift64-woo-search-shortcode .shift64-woo-search-field__input {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px 14px;
+    color: var(--s64ws-field-color);
+    background: var(--s64ws-field-bg);
+    border: 1px solid var(--s64ws-field-border);
+    border-radius: var(--s64ws-field-radius) 0 0 var(--s64ws-field-radius);
+    font: inherit;
+    line-height: 1.4;
+}
+
+.shift64-woo-search-shortcode .shift64-woo-search-field__input:focus {
+    position: relative;
+    z-index: 1;
+    border-color: var(--s64ws-field-focus);
+    outline: 2px solid color-mix(in srgb, var(--s64ws-field-focus) 25%, transparent);
+    outline-offset: 0;
+}
+
+.shift64-woo-search-shortcode .shift64-woo-search-field__submit {
+    flex: 0 0 auto;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px 18px;
+    color: #fff;
+    background: var(--s64ws-field-focus);
+    border: 1px solid var(--s64ws-field-focus);
+    border-radius: 0 var(--s64ws-field-radius) var(--s64ws-field-radius) 0;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.shift64-woo-search-shortcode .shift64-woo-search-field__submit:hover {
+    filter: brightness(0.92);
+}
+
+.shift64-woo-search-shortcode .shift64-woo-search-field__submit:focus-visible {
+    outline: 2px solid var(--s64ws-field-focus);
+    outline-offset: 2px;
+}
+
+.shift64-woo-search-shortcode .shift64-woo-search-results {
+    width: 100%;
+    min-width: 0;
 }
 
 /* ================================================================
@@ -222,7 +295,7 @@
     color: var(--s64ws-meta-color);
 }
 
-.shift64-woo-search-result__subtitle {
+.shift64-woo-search-result__category {
     font-size: var(--s64ws-meta-size);
     color: var(--global-palette6, #888);
     overflow: hidden;
@@ -303,7 +376,8 @@
    visually on top of the input and breaks text selection. The overlay still
    covers everything else, so clicks on links underneath are still blocked. */
 .shift64-woo-search-main-header__search > .shift64-woo-search-field,
-.shift64-woo-search-header-search > .shift64-woo-search-field {
+.shift64-woo-search-header-search > .shift64-woo-search-field,
+.shift64-woo-search-shortcode > .shift64-woo-search-field {
     position: relative;
     z-index: var(--s64ws-dropdown-z);
 }

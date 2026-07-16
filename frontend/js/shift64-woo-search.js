@@ -381,20 +381,17 @@
 
         html += '<div class="shift64-woo-search-result__content">';
 
-        // Split title by first comma: main title + subtitle (details after comma).
-        var commaIdx = item.title.indexOf(',');
-        var mainTitle = commaIdx !== -1 ? item.title.substring(0, commaIdx).trim() : item.title;
-        var subtitle  = commaIdx !== -1 ? item.title.substring(commaIdx + 1).trim() : '';
+        html += '<span class="shift64-woo-search-result__title">' + escapeHtml(item.title) + '</span>';
 
-        html += '<span class="shift64-woo-search-result__title">' + escapeHtml(mainTitle) + '</span>';
-
-        // Meta line (SKU | subtitle).
+        // Meta line (SKU | most specific product category).
         var metaParts = [];
         if (config.showSku !== false && item.sku) {
             metaParts.push('<span class="shift64-woo-search-result__sku">' + escapeHtml(item.sku) + '</span>');
         }
-        if (subtitle) {
-            metaParts.push('<span class="shift64-woo-search-result__subtitle">' + escapeHtml(subtitle) + '</span>');
+
+        var category = typeof item.category === 'string' ? item.category.split('|')[0].trim() : '';
+        if (config.showCategory !== false && category) {
+            metaParts.push('<span class="shift64-woo-search-result__category">' + escapeHtml(category) + '</span>');
         }
 
         if (metaParts.length > 0) {
