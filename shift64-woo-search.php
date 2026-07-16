@@ -95,6 +95,13 @@ class Shift64_Woo_Search_Plugin {
 	}
 
 	/**
+	 * Load plugin translations from /languages.
+	 */
+	public function load_textdomain() {
+		load_plugin_textdomain( 'shift64-woo-search', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+	}
+
+	/**
 	 * Re-deploy mu-plugin files after plugin update.
 	 *
 	 * @param object $upgrader WP_Upgrader instance.
@@ -290,6 +297,7 @@ class Shift64_Woo_Search_Plugin {
 	 * Initialize plugin on plugins_loaded.
 	 */
 	public function init() {
+		$this->load_textdomain();
 		$this->maybe_create_tables();
 		$this->maybe_update_mu_plugin();
 

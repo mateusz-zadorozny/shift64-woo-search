@@ -461,7 +461,13 @@ class Shift64_Woo_Search_Filters {
 		echo '<div class="shift64-woo-search-filter-modal__section-label">';
 		echo '<span class="shift64-woo-search-filter-modal__section-title">' . esc_html( $label ) . '</span>';
 		if ( $active_count > 0 ) {
-			echo '<span class="shift64-woo-search-filter-modal__section-subtitle">' . esc_html( $active_count ) . ' ' . esc_html__( 'wybrano', 'shift64-woo-search' ) . '</span>';
+			echo '<span class="shift64-woo-search-filter-modal__section-subtitle">' . esc_html(
+				sprintf(
+					/* translators: %d: number of selected filter options. */
+					_n( '%d selected', '%d selected', $active_count, 'shift64-woo-search' ),
+					$active_count
+				)
+			) . '</span>';
 		}
 		echo '</div>';
 		echo '<svg class="shift64-woo-search-filter-modal__chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
