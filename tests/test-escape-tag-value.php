@@ -1,0 +1,47 @@
+<?php
+/**
+ * Tests for Shift64_Woo_Search_Query::escape_tag_value().
+ *
+ * Regression guard for bug #4: Polish decimal separator (",") in attribute
+ * values — e.g. gramatura "26,5" — broke filters because the unescaped comma
+ * is a TAG alternation separator in RediSearch query syntax. `{26,5}` was
+ * parsed as "26 OR 5", both non-existent values → 0 results → archive
+ * intercept bailed → filter bar never rendered.
+ *
+ * @package Shift64_Woo_Search
+ */
+
+class Escape_Tag_Value_Test extends WP_UnitTestCase {
+
+	/**
+	 * Plain ASCII values pass through unchanged.
+	 */
+	public function test_plain_value_unchanged() {
+		$this->assertSame( '265', Shift64_Woo_Search_Query::escape_tag_value( '265' ) );
+		$this->assertSame( 'bialy', Shift64_Woo_Search_Query::escape_tag_value( 'bialy' ) );
+	}
+
+	/**
+	 * Spaces, hyphens, dots — already handled by the pre-bug-#4 implementation.
+	 */
+	public function test_existing_escapes_preserved() {
+		$this->assertSame( 'shift64_woo_search\\ stella', Shift64_Woo_Search_Query::escape_tag_value( 'shift64_woo_search stella' ) );
+		$this->assertSame( 'a\\-b', Shift64_Woo_Search_Query::escape_tag_value( 'a-b' ) );
+		$this->assertSame( '2\\.5', Shift64_Woo_Search_Query::escape_tag_value( '2.5' ) );
+	}
+
+	/**
+	 * Comma must be escaped — RediSearch treats `,` inside TAG `{}` as an
+	 * alternation separator.
+	 */
+	public function test_comma_escaped() {
+		$this->assertSame( '26\\,5', Shift64_Woo_Search_Query::escape_tag_value( '26,5' ) );
+	}
+
+	/**
+	 * Combinations — comma AND space (e.g. "26,5 g/m²" style values, without the slash).
+	 */
+	public function test_comma_with_space_escaped() {
+		$this->assertSame( '26\\,5\\ g', Shift64_Woo_Search_Query::escape_tag_value( '26,5 g' ) );
+	}
+}

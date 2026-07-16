@@ -1,0 +1,50 @@
+płyn do rąk,płyn do dezynfekcji,płyn antybakteryjny,środek do rąk,środek do dezynfekcji,środek antybakteryjny
+rękawica,rękawiczka
+worki, woreczki
+metalowy,stalowy,żelazny
+uchwyt=>stojak
+mocowanie=>uchwyt
+kosz nożny=>kosz pedałowy
+kosz z pedałem=>kosz pedałowy
+zapach=>aromat
+karnister,kanister,bańka
+gąbka=>zmywak
+szczota=>szczotka
+polerowany=>połysk
+wiadro,wiaderko,
+ściana tylna=>tył
+wkład węglowy=>filtr węglowy
+wkład hepa=>filtr hepa
+filtr papierowy=>worek
+koszyczek,koszyk
+podtynkowy=>wnękowy
+stal nierdzewna,nierdzewna,nierdzewka,kwasówka
+pudełko=>karton
+rola,rolka,szpula
+środek,preparat,płyn,substancja,detergent
+butelka,butla
+tabliczka=>piktogram
+dezynfekujące,antybakteryjne,antywirusowe,przeciwgrzybiczne
+biodegradowalne,ekologiczne,eko,bio
+antypoślizgowe,przyczepne
+niebieskie,granatowe
+lateks,lateksowy
+powłoka,warstwa
+wkład,wsad
+matowa,nieodblaskowa,bez połysku
+pokrywa,przykrywka,wierzch,nakrywka,wieko
+elektr,elektryczny
+anti-fingerprint,bez śladów palców
+torebka,torba,siatka
+podkładka,podstawka,podstawek
+dyspenser=>dozownik
+kij,drążek,uchwyt
+szyba,szkło
+dmuchawa,suszarka
+tworzywo sztuczne,plastik,plastyk
+odpady,śmieci
+uchylna,otwierana
+kibel,toaleta,szalet,ustęp
+spray,szpraj,sprej
+czyścik,drapak
+mocny,wytrzymały,solidny,trwały

@@ -1,0 +1,44 @@
+{
+    "branches": ["main"],
+    "plugins": [
+        "@semantic-release/commit-analyzer",
+        "@semantic-release/release-notes-generator",
+        [
+            "@semantic-release/changelog",
+            {
+                "changelogFile": "CHANGELOG.md"
+            }
+        ],
+        [
+            "@semantic-release/exec",
+            {
+                "prepareCmd": "bash build-release.sh ${nextRelease.version}"
+            }
+        ],
+        [
+            "@semantic-release/git",
+            {
+                "assets": [
+                    "CHANGELOG.md",
+                    "shift64-woo-search.php",
+                    "mu-plugins/shift64-woo-search-bootstrap.php",
+                    "readme.txt",
+                    "package.json",
+                    "package-lock.json"
+                ],
+                "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+            }
+        ],
+        [
+            "@semantic-release/github",
+            {
+                "assets": [
+                    {
+                        "path": "shift64-woo-search.zip",
+                        "label": "shift64-woo-search.zip"
+                    }
+                ]
+            }
+        ]
+    ]
+}

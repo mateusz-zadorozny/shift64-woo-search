@@ -1,0 +1,27 @@
+{
+  "name": "shift64-woo-search",
+  "version": "0.1.0",
+  "description": "Shift64 Woo Search — WooCommerce + RediSearch plugin",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "lint:changed": "{ git diff --name-only --diff-filter=ACM; git ls-files --others --exclude-standard; } | sort -u | grep '.php$' | xargs -r ./vendor/bin/phpcs",
+    "fix:changed": "{ git diff --name-only --diff-filter=ACM; git ls-files --others --exclude-standard; } | sort -u | grep '.php$' | xargs -r ./vendor/bin/phpcbf || true",
+    "lc": "npm run lint:changed",
+    "fc": "npm run fix:changed"
+  },
+  "lint-staged": {
+    "*.php": [
+      "sh -c 'vendor/bin/phpcbf \"$@\" || true' --",
+      "sh -c 'vendor/bin/phpcs \"$@\"' --"
+    ]
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "semantic-release": "^25.0.0"
+  }
+}

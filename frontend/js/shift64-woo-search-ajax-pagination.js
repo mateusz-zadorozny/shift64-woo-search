@@ -1,0 +1,399 @@
+/**
+ * Shift64 Woo Search — AJAX Pagination + Faceted Filters (Vanilla JS)
+ *
+ * Intercepts pagination link clicks and filter checkbox changes on product
+ * search pages, fetches the target page via fetch(), extracts the product
+ * grid + pagination + result count + filters from the response HTML, and
+ * swaps them in the DOM without a full page reload.
+ *
+ * Uses history.pushState() for URL updates and back/forward support.
+ *
+ * @package Shift64_Woo_Search
+ */
+(function () {
+    'use strict';
+
+    // Selectors — Kadence + WooCommerce defaults.
+    var SELECTORS = {
+        productWrap:    '.kwt-products-wrap',
+        pagination:     'nav.woocommerce-pagination',
+        resultCount:    '.woocommerce-result-count',
+        ordering:       '.woocommerce-ordering',
+        filters:        '.shift64-woo-search-filters',
+        filterCheckbox: '.shift64-woo-search-filter__checkbox'
+    };
+
+    var isLoading = false;
+
+    function init() {
+        // Only activate on product search pages with a product wrap.
+        if (!document.querySelector(SELECTORS.productWrap)) return;
+
+        delegate();
+    }
+
+    /**
+     * Event delegation — listen for clicks on pagination links,
+     * ordering changes, filter changes, and popstate.
+     */
+    function delegate() {
+        // Pill dropdown toggle.
+        document.addEventListener('click', function (e) {
+            var pill = e.target.closest('.shift64-woo-search-filter__pill');
+            if (pill) {
+                var filter = pill.closest('.shift64-woo-search-filter');
+                var wasOpen = filter.classList.contains('shift64-woo-search-filter--open');
+
+                // Close all dropdowns.
+                document.querySelectorAll('.shift64-woo-search-filter--open').forEach(function (el) {
+                    el.classList.remove('shift64-woo-search-filter--open');
+                });
+
+                // Toggle the clicked one.
+                if (!wasOpen) {
+                    filter.classList.add('shift64-woo-search-filter--open');
+                }
+                return;
+            }
+
+            // Click outside any dropdown — close all.
+            if (!e.target.closest('.shift64-woo-search-filter__dropdown')) {
+                document.querySelectorAll('.shift64-woo-search-filter--open').forEach(function (el) {
+                    el.classList.remove('shift64-woo-search-filter--open');
+                });
+            }
+        });
+
+        // Pagination links.
+        document.addEventListener('click', function (e) {
+            var link = e.target.closest(SELECTORS.productWrap + ' a.page-numbers');
+            if (!link || isLoading) return;
+
+            e.preventDefault();
+            loadPage(link.href);
+        });
+
+        // Ordering select — capture phase fires BEFORE WooCommerce's jQuery
+        // handler, which calls form.submit() (bypasses native submit event).
+        // stopPropagation prevents WooCommerce from triggering the form submit.
+        document.addEventListener('change', function (e) {
+            if (!e.target.matches(SELECTORS.ordering + ' select.orderby')) return;
+            if (isLoading) return;
+
+            e.stopPropagation();
+
+            var form = e.target.closest('form');
+            if (!form) return;
+
+            var params = new URLSearchParams(new FormData(form));
+            params.set('paged', '1');
+
+            // Preserve filter params from current URL.
+            var currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.forEach(function (val, key) {
+                if (key.indexOf('filter_') === 0) {
+                    params.set(key, val);
+                }
+            });
+
+            var base = window.location.pathname.replace(/\/page\/\d+\/?/, '/');
+            loadPage(base + '?' + params.toString());
+        }, true); // true = capture phase
+
+        // Filter checkboxes — delegated to document for dynamically replaced content.
+        document.addEventListener('change', function (e) {
+            if (!e.target.matches(SELECTORS.filterCheckbox)) return;
+            if (isLoading) return;
+
+            applyFilters();
+        });
+
+        // Clear all filters button.
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('#shift64-woo-search-filters-clear')) return;
+            if (isLoading) return;
+
+            var url = new URL(window.location.href);
+            stripFilterParams(url);
+            loadPage(url.toString());
+        });
+
+        // ── Mobile: open filter modal ──
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('#shift64-woo-search-mobile-filter-open')) return;
+            var modal = document.getElementById('shift64-woo-search-filter-modal');
+            if (modal) {
+                modal.classList.add('shift64-woo-search-filter-modal--open');
+                document.body.classList.add('shift64-woo-search-modal-open');
+            }
+        });
+
+        // Mobile: close filter modal (X button or backdrop).
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.shift64-woo-search-filter-modal__close') || e.target.closest('.shift64-woo-search-filter-modal__backdrop')) {
+                closeFilterModal();
+            }
+        });
+
+        // ── Mobile: open sort sheet ──
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('#shift64-woo-search-mobile-sort-open')) return;
+            var sheet = document.getElementById('shift64-woo-search-sort-sheet');
+            if (sheet) {
+                sheet.classList.add('shift64-woo-search-sort-sheet--open');
+                document.body.classList.add('shift64-woo-search-modal-open');
+            }
+        });
+
+        // Mobile: close sort sheet (X button or backdrop).
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.shift64-woo-search-sort-sheet__close') || e.target.closest('.shift64-woo-search-sort-sheet__backdrop')) {
+                closeSortSheet();
+            }
+        });
+
+        // ── Mobile: accordion toggle ──
+        document.addEventListener('click', function (e) {
+            var toggle = e.target.closest('.shift64-woo-search-filter-modal__section-toggle');
+            if (!toggle) return;
+            var section = toggle.closest('.shift64-woo-search-filter-modal__section');
+            if (section) {
+                section.classList.toggle('shift64-woo-search-filter-modal__section--open');
+            }
+        });
+
+        // ── Mobile: apply filters button ──
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.shift64-woo-search-filter-modal__apply')) return;
+            if (isLoading) return;
+
+            applyMobileFilters();
+        });
+
+        // ── Mobile: clear filters button ──
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.shift64-woo-search-filter-modal__clear')) return;
+            if (isLoading) return;
+
+            closeFilterModal();
+            var url = new URL(window.location.href);
+            stripFilterParams(url);
+            loadPage(url.toString());
+        });
+
+        // ── Mobile: sort radio change ──
+        document.addEventListener('change', function (e) {
+            if (!e.target.matches('.shift64-woo-search-sort-sheet__radio')) return;
+            if (isLoading) return;
+
+            var value = e.target.value;
+            closeSortSheet();
+
+            var url = new URL(window.location.href);
+            url.searchParams.set('orderby', value);
+            url.searchParams.delete('paged');
+            url.pathname = url.pathname.replace(/\/page\/\d+\/?/, '/');
+
+            // Preserve filter params.
+            loadPage(url.toString());
+        });
+
+        // Handle browser back/forward — only for search pages.
+        window.addEventListener('popstate', function () {
+            if (!document.querySelector(SELECTORS.productWrap)) return;
+            loadPage(window.location.href, true);
+        });
+    }
+
+    /**
+     * Remove all filter_* params, paged param, and /page/N/ from a URL object.
+     */
+    function stripFilterParams(url) {
+        var keysToRemove = [];
+        url.searchParams.forEach(function (val, key) {
+            if (key.indexOf('filter_') === 0) {
+                keysToRemove.push(key);
+            }
+        });
+        keysToRemove.forEach(function (key) {
+            url.searchParams.delete(key);
+        });
+        url.searchParams.delete('paged');
+        url.pathname = url.pathname.replace(/\/page\/\d+\/?/, '/');
+    }
+
+    /**
+     * Read all checked filter checkboxes, build URL params, and load the page.
+     */
+    function applyFilters() {
+        var url = new URL(window.location.href);
+        stripFilterParams(url);
+
+        // Build new filter params from checked checkboxes.
+        var filterMap = {};
+        document.querySelectorAll(SELECTORS.filterCheckbox + ':checked').forEach(function (cb) {
+            var taxonomy = cb.getAttribute('data-taxonomy');
+            var slug = cb.getAttribute('data-slug');
+            var paramKey = 'filter_' + taxonomy;
+            if (!filterMap[paramKey]) {
+                filterMap[paramKey] = [];
+            }
+            filterMap[paramKey].push(slug);
+        });
+
+        for (var key in filterMap) {
+            if (filterMap.hasOwnProperty(key)) {
+                url.searchParams.set(key, filterMap[key].join(','));
+            }
+        }
+
+        loadPage(url.toString());
+    }
+
+    /**
+     * Close the mobile filter modal and unlock body scroll.
+     */
+    function closeFilterModal() {
+        var modal = document.getElementById('shift64-woo-search-filter-modal');
+        if (modal) {
+            modal.classList.remove('shift64-woo-search-filter-modal--open');
+        }
+        document.body.classList.remove('shift64-woo-search-modal-open');
+    }
+
+    /**
+     * Close the mobile sort bottom sheet and unlock body scroll.
+     */
+    function closeSortSheet() {
+        var sheet = document.getElementById('shift64-woo-search-sort-sheet');
+        if (sheet) {
+            sheet.classList.remove('shift64-woo-search-sort-sheet--open');
+        }
+        document.body.classList.remove('shift64-woo-search-modal-open');
+    }
+
+    /**
+     * Read mobile modal checkboxes, build filter URL, close modal, and load page.
+     */
+    function applyMobileFilters() {
+        closeFilterModal();
+
+        var url = new URL(window.location.href);
+        stripFilterParams(url);
+
+        // Build filter params from mobile modal checkboxes.
+        var filterMap = {};
+        document.querySelectorAll('.shift64-woo-search-filter-modal__checkbox:checked').forEach(function (cb) {
+            var taxonomy = cb.getAttribute('data-taxonomy');
+            var slug = cb.getAttribute('data-slug');
+            var paramKey = 'filter_' + taxonomy;
+            if (!filterMap[paramKey]) {
+                filterMap[paramKey] = [];
+            }
+            filterMap[paramKey].push(slug);
+        });
+
+        for (var key in filterMap) {
+            if (filterMap.hasOwnProperty(key)) {
+                url.searchParams.set(key, filterMap[key].join(','));
+            }
+        }
+
+        loadPage(url.toString());
+    }
+
+    /**
+     * Fetch a page and swap in the product grid, pagination, result count,
+     * and filter sidebar.
+     *
+     * @param {string}  url        Target URL.
+     * @param {boolean} skipPush   If true, don't pushState (used for popstate).
+     */
+    function loadPage(url, skipPush) {
+        isLoading = true;
+        var wrap = document.querySelector(SELECTORS.productWrap);
+
+        // Visual loading feedback on product wrap.
+        if (wrap) {
+            wrap.style.opacity = '0.5';
+            wrap.style.pointerEvents = 'none';
+            wrap.style.transition = 'opacity 0.2s';
+        }
+
+        // Also dim filters during loading.
+        var filtersEl = document.querySelector(SELECTORS.filters);
+        if (filtersEl) {
+            filtersEl.classList.add('shift64-woo-search-filters--loading');
+        }
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                // Detect WooCommerce single-result redirect (302 → product page).
+                if (res.redirected) {
+                    throw new Error('redirected');
+                }
+                return res.text();
+            })
+            .then(function (html) {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+
+                // Swap entire product wrap (includes ordering, grid,
+                // result count, pagination, and filters — all inside
+                // .kwt-products-wrap).
+                var newWrap = doc.querySelector(SELECTORS.productWrap);
+                wrap = document.querySelector(SELECTORS.productWrap);
+
+                // Guard: if response doesn't contain a product grid
+                // (e.g. redirected to a single product page), fall back
+                // to full page navigation.
+                if (!newWrap) {
+                    throw new Error('missing product wrap');
+                }
+
+                if (wrap) {
+                    wrap.innerHTML = newWrap.innerHTML;
+                }
+
+                // Update URL.
+                if (!skipPush) {
+                    history.pushState(null, '', url);
+                }
+
+                // Scroll to top of product grid.
+                var scrollTarget = document.querySelector(SELECTORS.productWrap);
+                if (scrollTarget) {
+                    scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                // Restore interactive state.
+                wrap = document.querySelector(SELECTORS.productWrap);
+                if (wrap) {
+                    wrap.style.opacity = '';
+                    wrap.style.pointerEvents = '';
+                }
+
+                // Ensure mobile modals are closed and body scroll unlocked
+                // after AJAX swap (safety net).
+                document.body.classList.remove('shift64-woo-search-modal-open');
+
+                isLoading = false;
+            })
+            .catch(function (err) {
+                // On error, fall back to normal navigation.
+                isLoading = false;
+                console.warn('Shift64 AJAX pagination failed:', err);
+                window.location.href = url;
+            });
+    }
+
+    // Boot.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
