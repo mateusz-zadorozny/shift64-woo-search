@@ -1,0 +1,32 @@
+---
+title: Requirements
+description: Runtime and service requirements for Shift64 Woo Search.
+---
+
+Shift64 Woo Search is a WordPress plugin for WooCommerce. It uses Redis and RediSearch for retrieval; WooCommerce remains responsible for product rendering and business rules.
+
+## Required
+
+- WordPress 6.0 or later.
+- PHP 8.3 or later.
+- An active WooCommerce installation.
+- The PHP `redis` extension (phpredis).
+- A Redis deployment with the RediSearch module, such as Redis Stack.
+
+The plugin does not bundle Redis or RediSearch. Configure a reachable Redis service before indexing products.
+
+## Initial configuration
+
+After activating WooCommerce and Shift64 Woo Search, configure Redis and create the product index:
+
+```bash
+wp shift64-woo-search setup
+wp shift64-woo-search reindex
+wp shift64-woo-search health
+```
+
+The setup command records the Redis connection settings and generates the configuration used by the lightweight autocomplete endpoint. Do not commit the generated configuration file.
+
+## Documentation-site requirements
+
+To work on this Starlight site, install the dependencies in the `docs` directory with `npm install`. No documentation-site environment variables are required yet. If one is added, keep the value in `docs/.env` and commit only a redacted `docs/.env.example`.
