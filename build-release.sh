@@ -23,11 +23,14 @@ TMPDIR=$(mktemp -d)
 PLUGIN_DIR="${TMPDIR}/${DIR_NAME}"
 mkdir -p "${PLUGIN_DIR}"
 
+# The Astro Starlight site is development documentation, not plugin runtime code.
 rsync -a \
   --exclude='.git' \
   --exclude='.github' \
 	--exclude='.circleci' \
   --exclude='.claude' \
+  --exclude='.agents' \
+  --exclude='.ai' \
   --exclude='.husky' \
   --exclude='.playwright-mcp' \
 	--exclude='.vscode' \
@@ -52,7 +55,7 @@ rsync -a \
   --exclude='.env.example' \
   --exclude='tests' \
   --exclude='bin' \
-	--exclude='docs' \
+  --exclude='docs' \
   --exclude='test-results' \
   --exclude='playwright-report' \
   --exclude='playwright.config.*' \
