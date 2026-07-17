@@ -77,10 +77,6 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 			$size_data    = $this->ensure_attribute( 'Size', 'size', $this->get_sizes() );
 			$combinations = $this->build_combinations( $this->count );
 
-			if ( $this->count > count( $combinations ) ) {
-				WP_CLI::error( 'Requested product count exceeds the number of unique name combinations.' );
-			}
-
 			$progress = \WP_CLI\Utils\make_progress_bar( 'Generating demo products', $this->count );
 			$created  = 0;
 			$skipped  = 0;
@@ -322,18 +318,35 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 
 			$base_price = (float) $data['garment']['price'];
 			foreach ( $size_data['terms'] as $size_name => $size_term ) {
+				$variation_sku = $sku . strtoupper( $size_term->slug );
+				if ( wc_get_product_id_by_sku( $variation_sku ) ) {
+					WP_CLI::warning( sprintf( 'Skipping variation with duplicate SKU "%s".', $variation_sku ) );
+					continue;
+				}
+
 				$variation = new WC_Product_Variation();
 				$variation->set_parent_id( $product_id );
 				$variation->set_status( 'publish' );
-				$variation->set_sku( $sku . strtoupper( $size_term->slug ) );
-				$variation->set_attributes( array( $size_data['taxonomy'] => $size_term->slug ) );
-				$variation->set_regular_price( wc_format_decimal( $base_price, 2 ) );
-				$variation->set_manage_stock( true );
-				$variation->set_stock_quantity( mt_rand( 3, 40 ) );
-				$variation->set_stock_status( 'instock' );
-				$variation->set_description( sprintf( '%s in size %s.', $product->get_name(), $size_name ) );
-				$variation->update_meta_data( self::GENERATED_META_KEY, 'yes' );
-				$variation->save();
+
+				try {
+					$variation->set_sku( $variation_sku );
+					$variation->set_attributes( array( $size_data['taxonomy'] => $size_term->slug ) );
+					$variation->set_regular_price( wc_format_decimal( $base_price, 2 ) );
+					$variation->set_manage_stock( true );
+					$variation->set_stock_quantity( mt_rand( 3, 40 ) );
+					$variation->set_stock_status( 'instock' );
+					$variation->set_description( sprintf( '%s in size %s.', $product->get_name(), $size_name ) );
+					$variation->update_meta_data( self::GENERATED_META_KEY, 'yes' );
+					$variation->save();
+				} catch ( WC_Data_Exception $exception ) {
+					if ( 'product_invalid_sku' !== $exception->getErrorCode() ) {
+						throw $exception;
+					}
+
+					WP_CLI::warning( sprintf( 'Skipping variation with duplicate SKU "%s".', $variation_sku ) );
+					continue;
+				}
+
 				++$this->variation_count;
 			}
 

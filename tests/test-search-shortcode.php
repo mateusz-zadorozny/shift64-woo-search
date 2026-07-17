@@ -59,4 +59,31 @@ class Shift64_Woo_Search_Shortcode_Test extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '&amp;amp;', $html );
 		$this->assertStringNotContainsString( '&amp;quot;', $html );
 	}
+
+	/**
+	 * Rendering the shortcode directly ensures its configured assets are queued.
+	 */
+	public function test_shortcode_enqueues_its_assets() {
+		$original_host = get_option( 'shift64_woo_search_redis_host', null );
+		update_option( 'shift64_woo_search_redis_host', '127.0.0.1' );
+		wp_dequeue_style( 'shift64-woo-search' );
+		wp_dequeue_script( 'shift64-woo-search' );
+
+		$frontend = new Shift64_Woo_Search_Frontend();
+		$frontend->render_search_shortcode();
+
+		$style_enqueued  = wp_style_is( 'shift64-woo-search', 'enqueued' );
+		$script_enqueued = wp_script_is( 'shift64-woo-search', 'enqueued' );
+
+		wp_dequeue_style( 'shift64-woo-search' );
+		wp_dequeue_script( 'shift64-woo-search' );
+		if ( null === $original_host ) {
+			delete_option( 'shift64_woo_search_redis_host' );
+		} else {
+			update_option( 'shift64_woo_search_redis_host', $original_host );
+		}
+
+		$this->assertTrue( $style_enqueued );
+		$this->assertTrue( $script_enqueued );
+	}
 }

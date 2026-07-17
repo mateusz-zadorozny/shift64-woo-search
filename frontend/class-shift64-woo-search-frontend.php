@@ -15,6 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shift64_Woo_Search_Frontend {
 
 	/**
+	 * Whether the primary search assets were enqueued by this instance.
+	 *
+	 * @var bool
+	 */
+	private $assets_enqueued = false;
+
+	/**
 	 * Register frontend hooks.
 	 */
 	public function __construct() {
@@ -34,6 +41,8 @@ class Shift64_Woo_Search_Frontend {
 	 */
 	public function render_search_shortcode( $atts = array() ) {
 		static $instance = 0;
+
+		$this->enqueue_assets();
 
 		$atts = shortcode_atts(
 			array(
@@ -78,11 +87,17 @@ class Shift64_Woo_Search_Frontend {
 	 * Enqueue search JS and CSS on the frontend.
 	 */
 	public function enqueue_assets() {
+		if ( $this->assets_enqueued ) {
+			return;
+		}
+
 		// Only load if Redis is configured.
 		$host = get_option( 'shift64_woo_search_redis_host', '' );
 		if ( empty( $host ) ) {
 			return;
 		}
+
+		$this->assets_enqueued = true;
 
 		wp_enqueue_style(
 			'shift64-woo-search',

@@ -49,6 +49,8 @@ class Query_Builder_Diacritics_Test extends WP_UnitTestCase {
 		$this->assertSame( 'demo 640001 xs', $query->sanitize_query( 'DEMO-640001-XS' ) );
 		$this->assertSame( 'red blue classic', $query->sanitize_query( 'Red,Blue/Classic' ) );
 		$this->assertSame( 'demo_640001_xs', $query->sanitize_query( 'DEMO_640001_XS' ) );
+		$this->assertSame( 'alpha beta gamma delta epsilon zeta', $query->sanitize_query( 'Alpha"Beta$Gamma[Delta]<Epsilon>Zeta' ) );
+		$this->assertSame( 'alpha beta gamma delta epsilon zeta eta theta', $query->sanitize_query( 'Alpha\'Beta#Gamma%Delta^Epsilon&Zeta+Eta=Theta' ) );
 	}
 
 	/**
