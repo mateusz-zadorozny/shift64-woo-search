@@ -37,6 +37,8 @@ Create an isolated Astro Starlight documentation site for Shift64 Woo Search, wi
 
 ## Progress
 
+PR: #8
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Documentation foundation
