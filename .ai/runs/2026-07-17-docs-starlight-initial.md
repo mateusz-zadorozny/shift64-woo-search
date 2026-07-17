@@ -40,8 +40,8 @@ Create an isolated Astro Starlight documentation site for Shift64 Woo Search, wi
 
 ### Phase 1: Documentation foundation
 
-- [ ] 1.1 Add the Starlight configuration, scripts, content collection, and site ignore rules.
-- [ ] 1.2 Add the introduction, runtime requirements, and initial contributor guidance.
+- [x] 1.1 Add the Starlight configuration, scripts, content collection, and site ignore rules. — 984c51f
+- [x] 1.2 Add the introduction, runtime requirements, and initial contributor guidance. — 984c51f
 
 ### Phase 2: Release safety and verification
 
