@@ -134,8 +134,8 @@ One file, one addition: an `env:` block on the `release` job in
 
 ### Phase 1: Disable git hooks in the Release job
 
-- [ ] 1.1 Add HUSKY=0 to the release job environment
+- [x] 1.1 Add HUSKY=0 to the release job environment — 2853e20
 
 ### Phase 2: Verify
 
-- [ ] 2.1 Workflow YAML valid, env scoped to release job, gate green
+- [x] 2.1 Workflow YAML valid, env scoped to release job, gate green — 2853e20
