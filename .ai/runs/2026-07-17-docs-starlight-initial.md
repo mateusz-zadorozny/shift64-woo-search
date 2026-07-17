@@ -21,6 +21,7 @@ Create an isolated Astro Starlight documentation site for Shift64 Woo Search, wi
 
 - Documentation requirements can become stale when plugin metadata changes; future runtime changes must update the Requirements page in the same commit.
 - The documentation site uses its own npm dependencies and lockfile; its generated output and local environment files must remain untracked.
+- Full PHPUnit validation requires the local WordPress test database at `127.0.0.1:3307`; it was unavailable during this isolated run.
 
 ## Implementation Plan
 
@@ -45,5 +46,5 @@ Create an isolated Astro Starlight documentation site for Shift64 Woo Search, wi
 
 ### Phase 2: Release safety and verification
 
-- [ ] 2.1 Mark the documentation directory as export-ignored and confirm the existing release builder excludes it.
-- [ ] 2.2 Build the static documentation site and inspect the final diff.
+- [x] 2.1 Mark the documentation directory as export-ignored and confirm the existing release builder excludes it. — ce65dc0
+- [x] 2.2 Build the static documentation site and inspect the final diff. — ce65dc0
