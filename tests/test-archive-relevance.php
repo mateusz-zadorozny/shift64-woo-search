@@ -44,7 +44,10 @@ class Archive_Relevance_Test extends WP_UnitTestCase {
 
 		$archive = ( new ReflectionClass( Shift64_Woo_Search_Archive::class ) )->newInstanceWithoutConstructor();
 		$method  = new ReflectionMethod( Shift64_Woo_Search_Archive::class, 'ft_search_relevance' );
-		$method->setAccessible( true );
+		// Required before PHP 8.1; deprecated as a no-op in PHP 8.5.
+		if ( PHP_VERSION_ID < 80100 ) {
+			$method->setAccessible( true );
+		}
 
 		$result = $method->invoke(
 			$archive,

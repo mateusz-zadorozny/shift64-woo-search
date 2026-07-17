@@ -16,7 +16,10 @@ class Filter_Category_Exclusions_Test extends WP_UnitTestCase {
 
 		$filters = new Shift64_Woo_Search_Filters();
 		$method  = new ReflectionMethod( Shift64_Woo_Search_Filters::class, 'get_excluded_category_ids' );
-		$method->setAccessible( true );
+		// Required before PHP 8.1; deprecated as a no-op in PHP 8.5.
+		if ( PHP_VERSION_ID < 80100 ) {
+			$method->setAccessible( true );
+		}
 
 		$result = $method->invoke( $filters );
 		sort( $result );
