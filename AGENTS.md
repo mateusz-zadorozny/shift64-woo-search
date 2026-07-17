@@ -39,6 +39,6 @@ Source MU-plugin files live in `mu-plugins/` and are deployed on activation, plu
 - Constants: `SHIFT64_WOO_SEARCH_*`
 - Text domain and plugin slug: `shift64-woo-search`
 - Redis keys: `{prefix}:product:{id}`; product index: `{prefix}_product_idx`
-- Minimum runtime: WordPress 6.0 and PHP 7.4
+- Minimum runtime: WordPress 6.0 and PHP 8.3
 
 Redis and RediSearch remain the only search backend in this repository. Do not add Elasticsearch or Elastica.
