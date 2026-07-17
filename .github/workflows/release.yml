@@ -97,6 +97,13 @@ jobs:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      # Git hooks are a local development aid. This job installs Node dependencies
+      # but not Composer ones, so the pre-commit hook's lint-staged rules cannot
+      # find vendor/bin/phpcs and abort the version-bump commit that
+      # @semantic-release/git makes. PHPCS already ran in the `test` job this job
+      # depends on, so re-linting a machine-generated commit adds nothing.
+      HUSKY: 0
     steps:
       - name: Checkout
         uses: actions/checkout@v6
