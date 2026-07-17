@@ -100,9 +100,9 @@ Deliberately out of scope; each is filed or noted separately:
 
 ### Phase 1: Remove the redundant calls
 
-- [ ] 1.1 Remove setAccessible() from test-sync-category-delete.php reflection helpers
-- [ ] 1.2 Remove setAccessible() from test-archive-relevance.php and test-filter-category-exclusions.php
+- [x] 1.1 Remove setAccessible() from test-sync-category-delete.php reflection helpers — 9a2a77b
+- [x] 1.2 Remove setAccessible() from test-archive-relevance.php and test-filter-category-exclusions.php — 9a2a77b
 
 ### Phase 2: Verify
 
-- [ ] 2.1 Full validation gate green on PHP 8.5
+- [x] 2.1 Full validation gate green on PHP 8.5 — 9a2a77b
