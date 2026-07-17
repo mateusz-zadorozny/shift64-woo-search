@@ -354,7 +354,8 @@ class Shift64_Woo_Search_Query {
 		// Replace RediSearch operators and indexing punctuation with spaces.
 		// Removing them outright would incorrectly join tokens: "T-Shirt"
 		// would become "tshirt", while RediSearch indexes it as "t" + "shirt".
-		$query = preg_replace( '/[@{}\(\)|~\*\\\\,\.;:!?\-\/_]+/u', ' ', $query );
+		// Underscores intentionally remain because RediSearch preserves them.
+		$query = preg_replace( '/[@{}\(\)|~\*\\\\,\.;:!?\-\/]+/u', ' ', $query );
 		// Collapse whitespace, trim.
 		$query = preg_replace( '/\s+/', ' ', trim( $query ) );
 		// Lowercase.

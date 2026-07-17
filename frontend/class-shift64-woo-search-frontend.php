@@ -58,7 +58,7 @@ class Shift64_Woo_Search_Frontend {
 					id="<?php echo esc_attr( $input_id ); ?>"
 					class="shift64-woo-search-field__input"
 					name="s"
-					value="<?php echo esc_attr( get_search_query() ); ?>"
+					value="<?php echo esc_attr( get_search_query( false ) ); ?>"
 					placeholder="<?php echo esc_attr( $atts['placeholder'] ); ?>"
 					autocomplete="off"
 					enterkeyhint="search"

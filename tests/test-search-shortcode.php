@@ -42,4 +42,21 @@ class Shift64_Woo_Search_Shortcode_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Search &lt;catalog&gt;', $html );
 		$this->assertStringNotContainsString( '<strong>Go</strong>', $html );
 	}
+
+	/**
+	 * The current search query is escaped exactly once in the form value.
+	 */
+	public function test_search_query_value_is_not_double_escaped() {
+		$original_search_query = get_query_var( 's' );
+		set_query_var( 's', 'Rock & "Roll"' );
+
+		$frontend = new Shift64_Woo_Search_Frontend();
+		$html     = $frontend->render_search_shortcode();
+
+		set_query_var( 's', $original_search_query );
+
+		$this->assertStringContainsString( 'value="Rock &amp; &quot;Roll&quot;"', $html );
+		$this->assertStringNotContainsString( '&amp;amp;', $html );
+		$this->assertStringNotContainsString( '&amp;quot;', $html );
+	}
 }

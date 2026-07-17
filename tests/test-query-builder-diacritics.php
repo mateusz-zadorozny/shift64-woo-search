@@ -48,6 +48,7 @@ class Query_Builder_Diacritics_Test extends WP_UnitTestCase {
 		$this->assertSame( 'athena t shirt green', $query->sanitize_query( 'Athena T-Shirt Green' ) );
 		$this->assertSame( 'demo 640001 xs', $query->sanitize_query( 'DEMO-640001-XS' ) );
 		$this->assertSame( 'red blue classic', $query->sanitize_query( 'Red,Blue/Classic' ) );
+		$this->assertSame( 'demo_640001_xs', $query->sanitize_query( 'DEMO_640001_XS' ) );
 	}
 
 	/**
