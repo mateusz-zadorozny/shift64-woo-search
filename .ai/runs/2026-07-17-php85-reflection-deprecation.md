@@ -34,18 +34,37 @@ is pinned to `7.4.0`, and PHPUnit 9.6 requires only `php >=7.3`. On PHP < 8.1
 suite on a supported version — which would have argued for a `PHP_VERSION_ID < 80100`
 guard instead.
 
-Two findings overturned that:
+**The maintainer's stated target is PHP 8.3+**, and CI runs exactly 8.3, 8.4, and 8.5.
+That settles it: on every version this project targets, `setAccessible()` is dead code.
+A version guard would add branching for versions the project does not support. So the
+calls go, unconditionally.
 
-1. **The maintainer's stated target is PHP 8.3+.**
-2. **The declared 7.4 floor is already false.**
-   `includes/class-shift64-woo-search-archive.php:1091` calls `str_starts_with()`,
-   a PHP 8.0 function. On PHP 7.4 the plugin fatals with "Call to undefined function".
-   The plugin has not supported 7.4 for some time; nothing detects this because
-   `.phpcs.xml.dist` carries no PHPCompatibility ruleset.
+### A rejected argument, recorded so it is not reused
 
-Against a real floor of 8.3, `setAccessible()` is unconditionally dead. A version guard
-would add branching for versions that cannot run this plugin at all. Unconditional
-removal it is.
+An earlier draft of this plan offered a second justification: that the declared 7.4
+floor was *already* false, because `includes/class-shift64-woo-search-archive.php:1091`
+calls `str_starts_with()` (PHP 8.0), which would fatal on 7.4.
+
+**That argument is wrong and must not be relied on.** WordPress core polyfills
+`str_starts_with()` — `wp-includes/compat.php`, `if ( ! function_exists( 'str_starts_with' ) )`,
+`@since 5.9.0` — and `compat.php` is required at `wp-settings.php:36`, *before* the
+SHORTINIT bail at line 169. The polyfill is therefore present in every execution
+context this plugin runs in, including the endpoint. The declared WP minimum is 6.0, so
+the polyfill is always available. `PHPCompatibilityWP` recognizes WP core polyfills and
+would not have flagged this either.
+
+The 7.4 declaration is **unverified**, not **disproven**: nothing in CI exercises it.
+That distinction matters for the follow-up below — raising the declared minimum is a
+deliberate product decision under `BACKWARD_COMPATIBILITY.md` §10, not the correction of
+an already-broken state.
+
+### What this change does introduce
+
+Removing the calls gives the **test suite** an undeclared PHP 8.1+ floor: a contributor
+on 7.4 or 8.0 now gets a `ReflectionException` instead of a passing suite. Nothing
+declares or checks that. This widens the declared-floor-vs-CI gap already documented in
+`BACKWARD_COMPATIBILITY.md` §10 rather than opening a new one, and it is the follow-up's
+job to close it.
 
 ## Scope
 
@@ -61,24 +80,34 @@ Remove all 5 `setAccessible()` calls:
 
 Deliberately out of scope; each is filed or noted separately:
 
-- **Correcting the declared minimum** (7.4 → 8.3) in the plugin header, `readme.txt`,
-  and `composer.json` `require` + `config.platform`. Changing `config.platform` forces
-  a `composer.lock` re-resolve that can move dependency versions — that churn must not
+- **Raising the declared minimum** (7.4 → 8.3) in the plugin header, `readme.txt`, and
+  `composer.json` `require` + `config.platform`. Changing `config.platform` forces a
+  `composer.lock` re-resolve that can move dependency versions — that churn must not
   ride along with a CI fix, or a green CI stops being evidence that *this* fix worked.
-  It also touches a surface `BACKWARD_COMPATIBILITY.md` protects. Follow-up issue.
-- **Adding PHPCompatibility to `.phpcs.xml.dist`** with `testVersion 8.3-`, which would
-  have caught the `str_starts_with()` drift. Same follow-up.
+  It is also a break under `BACKWARD_COMPATIBILITY.md` §10 ("Breaking: raising any
+  minimum"), so it needs its own PR, its own changelog entry, and a deliberate decision —
+  not a drive-by. Follow-up issue.
+- **Adding PHPCompatibility to `.phpcs.xml.dist`** with a `testVersion` matching whatever
+  minimum that follow-up settles on, so the declared floor is machine-checked instead of
+  trusted. Same follow-up.
 - **Deduplicating the three near-identical reflection helpers** in
   `test-sync-category-delete.php`. Unrelated refactor.
 
 ## Risks
 
 - Low. Test-only change; no plugin source is touched, so no user-facing surface moves.
-- If any environment still ran PHP < 8.1, these tests would break there. Established
-  above as impossible: the plugin already fatals on < 8.0, and the target is 8.3+.
-- The full local gate cannot fully mirror CI, which runs the suite against a PHP
-  matrix with a real MySQL service. Verified locally on PHP 8.5.3 — the exact version
-  that was failing — which is the version this fix is about.
+- On PHP < 8.1 these tests now throw `ReflectionException`. Accepted: the target is
+  8.3+ and CI runs 8.3/8.4/8.5. Note this is a real (if out-of-target) consequence, not
+  an impossibility — see "What this change does introduce" above.
+- The local gate cannot fully mirror CI, which runs the suite against a PHP matrix with
+  a fresh MySQL service. Verified locally on PHP 8.5.3 — the exact version that was
+  failing.
+- The local WP test database is not clean (it emits `Table … doesn't exist` and `Table
+  definition has changed` errors). Two of roughly twenty local runs failed and were not
+  reproducible across twelve consecutive subsequent runs; both occurred while the main
+  checkout and this worktree were touching the same test database. Treated as local
+  environment noise, not a property of this change, which only deletes no-ops. CI
+  provisions a fresh database per run.
 
 ## Implementation Plan
 
