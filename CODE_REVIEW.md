@@ -73,24 +73,26 @@ registered as `nopriv` is Critical unless the PR explains, convincingly, why it 
 | Redis doc key | `{prefix}:product:{id}` |
 | Redis index | `{prefix}_product_idx` |
 
-## PHP 7.4 is the floor, and CI does not check it
+## PHP 8.3 is the floor, and phpcs checks it
 
-The plugin header, `readme.txt`, and `composer.json` all declare **PHP 7.4** as the minimum,
-and `composer.config.platform` pins resolution to `7.4.0`. The CI matrix, however, only runs
-**8.3, 8.4, and 8.5**. Nothing in the pipeline will catch PHP 8-only syntax.
+The plugin header, `readme.txt`, and `composer.json` all declare **PHP 8.3** as the minimum,
+`composer.config.platform` pins resolution to `8.3.0`, and the CI matrix runs **8.3, 8.4,
+and 8.5**. The floor is machine-checked: `.phpcs.xml.dist` runs `PHPCompatibilityWP` with
+`testVersion 8.3-`, so `vendor/bin/phpcs` flags syntax that breaks on any supported version.
 
-That makes this a reviewer's job. Reject on sight, in plugin and mu-plugin code:
+The reviewer's job is what the sniffs cannot see:
 
-- constructor property promotion, `match`, enums, readonly properties, `never`, intersection
-  and DNF types, `#[Attributes]`, first-class callable syntax `f(...)`;
-- named arguments;
-- nullsafe chains beyond what 7.4 allows, and any 8.x-only stdlib function
-  (`str_contains`, `str_starts_with`, `array_is_list`, …) without a polyfill.
+- `.phpcs.xml.dist` excludes `mu-plugins/`, `tests/`, and `bin/` — compatibility issues there
+  reach neither phpcs nor the compat sniffs. Read those diffs with the floor in mind.
+- A stdlib function newer than 8.3 (or a feature from 8.4+) in any excluded path is a Major
+  finding, same as it would be in scanned code.
 
-Arrow functions, typed properties, spread, and null coalescing assignment are fine — those are 7.4.
+`PHPCompatibilityWP` is polyfill-aware: it will not flag functions WordPress core polyfills
+(such as `str_contains` and `array_is_list`), which is correct — those are safe on 8.3.
 
-If a PR genuinely needs PHP 8, that is a `BACKWARD_COMPATIBILITY.md` decision and a header
-bump, not a quiet change.
+If a PR genuinely needs a floor above 8.3, that is a `BACKWARD_COMPATIBILITY.md` decision, a
+bump of all declarations plus `testVersion` together, and a prominent changelog entry — not a
+quiet change.
 
 ## Redis and the index
 
@@ -128,7 +130,7 @@ calls — the admin screen saves through AJAX. So:
 | Severity | Means | Examples in this repo |
 |---|---|---|
 | **Critical** | Merge blocker; exploitable or destroys data | Missing nonce/capability on an AJAX handler; unprepared `$wpdb` query; unescaped input into a Redis command; a `nopriv` endpoint |
-| **Major** | Merge blocker; breaks behavior or a contract | WP API call inside the SHORTINIT endpoint; endpoint reads a constant that config.php never defines; rate limiter bypassed; PHP 8 syntax; breaking a documented surface without the deprecation path |
+| **Major** | Merge blocker; breaks behavior or a contract | WP API call inside the SHORTINIT endpoint; endpoint reads a constant that config.php never defines; rate limiter bypassed; syntax above the PHP 8.3 floor; breaking a documented surface without the deprecation path |
 | **Minor** | Should fix, does not block | Missing escaping on low-risk output; a missing test for a branch; naming drift |
 | **Nit** | Optional | Formatting the linter did not catch, wording, comment style |
 

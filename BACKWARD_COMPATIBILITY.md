@@ -177,15 +177,16 @@ keys are free, removals and renames are not.
 ## 10. Runtime requirements
 
 Declared in three places that must agree: the plugin header, `readme.txt`, and `composer.json`
-(with `config.platform` pinned to `7.4.0`).
+(with `config.platform` pinned to `8.3.0`).
 
 - **WordPress 6.0** minimum
-- **PHP 7.4** minimum
+- **PHP 8.3** minimum (raised from 7.4 in #5; CI tests 8.3/8.4/8.5)
 - Redis Stack, or Redis with RediSearch, plus the PHP Redis extension
 
 **Breaking:** raising any minimum. **Required path:** bump all three declarations together,
 say so prominently in the changelog, and treat it as a minor bump at least — on `1.0.0+`, a major.
 
-Note the live gap: **CI tests only PHP 8.3, 8.4, and 8.5. Nothing verifies the declared 7.4
-floor.** Until that is fixed, "it passes CI" is not evidence that the plugin runs on its own
-stated minimum — the reviewer is the only check. See `CODE_REVIEW.md`.
+The PHP floor is machine-checked: `.phpcs.xml.dist` runs the `PHPCompatibilityWP` standard with
+`testVersion 8.3-`, so `vendor/bin/phpcs` (locally and in CI) flags code that does not run on
+every supported PHP version. Keep `testVersion`, the three declarations, and the CI matrix in
+agreement whenever any of them changes. See `CODE_REVIEW.md`.

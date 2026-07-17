@@ -7,7 +7,7 @@
  * Text Domain: shift64-woo-search
  * Domain Path: /languages
  * Requires at least: 6.0
- * Requires PHP: 7.4
+ * Requires PHP: 8.3
  *
  * @package Shift64_Woo_Search
  */
