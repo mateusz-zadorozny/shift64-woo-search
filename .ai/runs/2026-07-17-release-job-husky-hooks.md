@@ -107,15 +107,66 @@ One file, one addition: an `env:` block on the `release` job in
 
 - **Medium.** This touches the release pipeline. A wrong change here publishes a bad
   release rather than merely failing a check.
-- **Merging this fires a real release.** A `0.1.1` patch is pending from the two `fix:`
-  commits already on `main`. The first successful run will tag `v0.1.1`, commit version
-  bumps, build the ZIP, and publish a GitHub release. That is the intended outcome, but
-  it is not reversible in the way a normal merge is — the reviewer must expect it.
 - The release path cannot be fully exercised before merge: `semantic-release` only runs
   on push to `main`. Confidence rests on the local reproduction plus the fact that
   `semantic-release` already got as far as the git commit unaided.
 - No partial release state exists to collide with — verified: no tags, no releases,
   versions still `0.1.0`, `CHANGELOG.md` untouched.
+
+### BLOCKER: merging this publishes 1.0.0, not 0.1.1
+
+**An earlier draft of this plan said a `0.1.1` patch was pending. That is wrong, and the
+error is the reason this PR must not merge as-is.**
+
+The actual CI log from run `29582568658` — the same log that diagnosed the husky failure:
+
+```
+[semantic-release] › ℹ  No git tag version found on branch main
+[@semantic-release/commit-analyzer] › ℹ  Analysis of 6 commits complete: patch release
+[semantic-release] › ℹ  There is no previous release, the next release version is 1.0.0
+...
+Command failed with exit code 1: git commit -m chore(release): 1.0.0 [skip ci]
+```
+
+The mechanism, in `node_modules/semantic-release/lib/get-next-version.js`:
+
+```js
+} else {
+  version = branch.type === "prerelease" ? `${FIRST_RELEASE}-…` : FIRST_RELEASE;  // "1.0.0"
+  logger.log(`There is no previous release, the next release version is ${version}`);
+}
+```
+
+When `lastRelease.version` is empty, the computed `patch` type is **discarded**.
+`FIRST_RELEASE` is hardcoded to `1.0.0` (`lib/definitions/constants.js:3`). There are no
+tags on the remote, so `lastRelease` is empty. `fix:` commits do **not** yield `0.1.1` on
+a repository that has never released; the first release is always `1.0.0`.
+
+This collides head-on with the project's own governing documents:
+
+- `CONTRIBUTING.md`: "The `0.x` line is for product validation. `1.0.0` marks the stable
+  public contract for configuration, hooks, storage keys, CLI commands, blocks,
+  shortcodes, and migrations."
+- `BACKWARD_COMPATIBILITY.md`: "The plugin is at `0.1.0`, so breaking changes are
+  permitted… From `1.0.0` on, every rule below hardens into a major-version requirement."
+
+So merging would silently promote a deliberately pre-1.0 plugin to a stable public
+contract: tag `v1.0.0`, `Stable tag: 1.0.0` in `readme.txt`,
+`SHIFT64_WOO_SEARCH_VERSION = 1.0.0`, a `1.0.0` CHANGELOG entry, and a published GitHub
+release. Irreversibly, as a side effect of a CI fix.
+
+**This is a decision for the maintainer, not for this PR.** Two coherent paths:
+
+1. **Ship 0.1.1 (keeps the stated 0.x intent).** Before merging, push a `v0.1.0` tag on
+   `c821b5b` ("chore: initialize Shift64 Woo Search 0.1.0", reachable from `origin/main`).
+   `.releaserc.json` sets no `tagFormat`, so the default `v${version}` matches.
+   `semantic-release` then finds `lastRelease` = 0.1.0, applies the `patch` it already
+   computes, and ships `0.1.1`.
+2. **Accept 1.0.0** — only as a conscious decision to declare the public contract stable,
+   which contradicts CONTRIBUTING.md as currently written and would mean updating it.
+
+The `HUSKY: 0` change itself is correct and independently reviewed as sound. It is the
+release semantics behind it that are not ready.
 
 ## Implementation Plan
 
