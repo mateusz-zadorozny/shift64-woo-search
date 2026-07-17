@@ -44,7 +44,6 @@ class Archive_Relevance_Test extends WP_UnitTestCase {
 
 		$archive = ( new ReflectionClass( Shift64_Woo_Search_Archive::class ) )->newInstanceWithoutConstructor();
 		$method  = new ReflectionMethod( Shift64_Woo_Search_Archive::class, 'ft_search_relevance' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke(
 			$archive,

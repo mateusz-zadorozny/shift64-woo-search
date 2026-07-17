@@ -52,7 +52,6 @@ class Sync_Category_Delete_Test extends WP_UnitTestCase {
 	private function get_descendants_buffer() {
 		$reflection = new ReflectionClass( 'Shift64_Woo_Search_Sync' );
 		$property   = $reflection->getProperty( 'deleted_category_descendants' );
-		$property->setAccessible( true );
 		return $property->getValue();
 	}
 
@@ -62,7 +61,6 @@ class Sync_Category_Delete_Test extends WP_UnitTestCase {
 	private function reset_descendants_buffer() {
 		$reflection = new ReflectionClass( 'Shift64_Woo_Search_Sync' );
 		$property   = $reflection->getProperty( 'deleted_category_descendants' );
-		$property->setAccessible( true );
 		$property->setValue( null, array() );
 	}
 
@@ -74,7 +72,6 @@ class Sync_Category_Delete_Test extends WP_UnitTestCase {
 	private function seed_descendants_buffer( $value ) {
 		$reflection = new ReflectionClass( 'Shift64_Woo_Search_Sync' );
 		$property   = $reflection->getProperty( 'deleted_category_descendants' );
-		$property->setAccessible( true );
 		$property->setValue( null, $value );
 	}
 

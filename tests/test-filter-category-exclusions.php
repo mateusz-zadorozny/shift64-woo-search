@@ -16,7 +16,6 @@ class Filter_Category_Exclusions_Test extends WP_UnitTestCase {
 
 		$filters = new Shift64_Woo_Search_Filters();
 		$method  = new ReflectionMethod( Shift64_Woo_Search_Filters::class, 'get_excluded_category_ids' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $filters );
 		sort( $result );
