@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.3.0...v0.4.0) (2026-07-17)
+
+
+### Features
+
+* **docs:** add initial Starlight site ([#8](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/8)) ([7231934](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/723193497595352032146977611706192921f048))
+
 # [0.3.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.2.0...v0.3.0) (2026-07-17)
 
 
