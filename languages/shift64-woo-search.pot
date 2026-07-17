@@ -2,20 +2,20 @@
 # This file is distributed under the same license as the Shift64 Woo Search plugin.
 msgid ""
 msgstr ""
-"Project-Id-Version: Shift64 Woo Search 0.1.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/shift64-woo-search-main\n"
+"Project-Id-Version: Shift64 Woo Search 0.4.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/shift64-woo-search\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-16T15:31:58+00:00\n"
+"POT-Creation-Date: 2026-07-17T19:29:25+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: shift64-woo-search\n"
 
 #. Plugin Name of the plugin
-#: shift64-woo-search.php
+#: shift64-woo-search.php:3
 #: admin/class-shift64-woo-search-admin.php:70
 #: admin/class-shift64-woo-search-admin.php:71
 #: admin/class-shift64-woo-search-admin.php:146
@@ -25,12 +25,12 @@ msgid "Shift64 Woo Search"
 msgstr ""
 
 #. Description of the plugin
-#: shift64-woo-search.php
+#: shift64-woo-search.php:4
 msgid "Custom WooCommerce search engine powered by RediSearch. Ultra-fast autocomplete and full-text search."
 msgstr ""
 
 #. Author of the plugin
-#: shift64-woo-search.php
+#: shift64-woo-search.php:6
 msgid "Mateusz Zadorożny"
 msgstr ""
 
@@ -80,6 +80,9 @@ msgstr ""
 
 #: admin/class-shift64-woo-search-admin.php:135
 #: admin/class-shift64-woo-search-admin.php:186
+#: frontend/class-shift64-woo-search-frontend.php:51
+#: frontend/class-shift64-woo-search-frontend.php:108
+#: includes/class-shift64-woo-search-blocks.php:205
 msgid "Search"
 msgstr ""
 
@@ -899,23 +902,50 @@ msgid_plural "%d selected"
 msgstr[0] ""
 msgstr[1] ""
 
-#: frontend/class-shift64-woo-search-frontend.php:58
+#: frontend/class-shift64-woo-search-frontend.php:50
+#: frontend/class-shift64-woo-search-frontend.php:107
+#: includes/class-shift64-woo-search-blocks.php:200
+msgid "Search products..."
+msgstr ""
+
+#: frontend/class-shift64-woo-search-frontend.php:52
+#: frontend/class-shift64-woo-search-frontend.php:109
+#: includes/class-shift64-woo-search-blocks.php:210
+msgid "Search products"
+msgstr ""
+
+#: frontend/class-shift64-woo-search-frontend.php:110
+#: includes/class-shift64-woo-search-blocks.php:227
+msgid "Open product search"
+msgstr ""
+
+#: frontend/class-shift64-woo-search-frontend.php:111
+#: includes/class-shift64-woo-search-blocks.php:232
+msgid "Close search"
+msgstr ""
+
+#: frontend/class-shift64-woo-search-frontend.php:112
+#: includes/class-shift64-woo-search-blocks.php:237
+msgid "Clear search"
+msgstr ""
+
+#: frontend/class-shift64-woo-search-frontend.php:240
 msgid "No products found"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:59
+#: frontend/class-shift64-woo-search-frontend.php:241
 msgid "See all results"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:60
+#: frontend/class-shift64-woo-search-frontend.php:242
 msgid "SEARCH SUGGESTIONS"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:61
+#: frontend/class-shift64-woo-search-frontend.php:243
 msgid "CATEGORIES"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:62
+#: frontend/class-shift64-woo-search-frontend.php:244
 msgid "PRODUCTS"
 msgstr ""
 
@@ -944,21 +974,94 @@ msgstr ""
 msgid "Search results for: \"%s\""
 msgstr ""
 
+#: includes/class-shift64-woo-search-blocks.php:49
+msgid "Shift64 Product Search"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:52
+msgid "A product search form with Shift64 autocomplete."
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:55
+#: includes/class-shift64-woo-search-blocks.php:77
+msgid "products"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:56
+msgid "WooCommerce"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:71
+msgid "Shift64 Modal Product Search"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:74
+msgid "A compact search icon that opens the Shift64 product search modal."
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:78
+msgid "modal"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:198
+msgid "Placeholder"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:203
+msgid "Search button text"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:208
+msgid "Accessible search label"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:225
+msgid "Open button label"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:230
+msgid "Close button label"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:235
+msgid "Clear button label"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:240
+msgid "Search icon"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:305
+msgid "Pill"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:309
+msgid "Minimal"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:323
+msgid "Soft background"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:327
+msgid "Outline"
+msgstr ""
+
 #: shift64-woo-search.php:37
 msgid "Shift64 Woo Search requires WooCommerce to be active."
 msgstr ""
 
-#: shift64-woo-search.php:505
-#: shift64-woo-search.php:518
+#: shift64-woo-search.php:509
+#: shift64-woo-search.php:522
 msgid "Shift64 Woo Search:"
 msgstr ""
 
-#: shift64-woo-search.php:506
+#: shift64-woo-search.php:510
 msgid "Redis connection not configured. Run: wp shift64-woo-search setup"
 msgstr ""
 
 #. translators: %1$s: Redis host, %2$s: Redis port.
-#: shift64-woo-search.php:522
+#: shift64-woo-search.php:526
 #, php-format
 msgid "Cannot connect to Redis at %1$s:%2$s. Search will fall back to default WooCommerce search."
 msgstr ""

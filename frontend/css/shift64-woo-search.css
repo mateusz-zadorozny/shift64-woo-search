@@ -86,19 +86,27 @@
     outline-offset: 0;
 }
 
+.shift64-woo-search-shortcode .shift64-woo-search-field__input::placeholder {
+    color: currentColor;
+    opacity: 0.62;
+}
+
 .shift64-woo-search-shortcode .shift64-woo-search-field__submit {
     flex: 0 0 auto;
     min-height: 44px;
     margin: 0;
     padding: 10px 18px;
-    color: #fff;
-    background: var(--s64ws-field-focus);
-    border: 1px solid var(--s64ws-field-focus);
+    border: 1px solid transparent;
     border-radius: 0 var(--s64ws-field-radius) var(--s64ws-field-radius) 0;
     cursor: pointer;
     font: inherit;
     font-weight: 600;
     line-height: 1.4;
+}
+
+:where(.shift64-woo-search-shortcode .shift64-woo-search-field__submit) {
+    color: var(--s64ws-button-color, #fff);
+    background: var(--s64ws-button-bg, var(--s64ws-field-focus));
 }
 
 .shift64-woo-search-shortcode .shift64-woo-search-field__submit:hover {
@@ -113,6 +121,259 @@
 .shift64-woo-search-shortcode .shift64-woo-search-results {
     width: 100%;
     min-width: 0;
+}
+
+/* ================================================================
+   Search Blocks
+   ================================================================ */
+.shift64-woo-search-block {
+    box-sizing: border-box;
+}
+
+.shift64-woo-search-block--form {
+    width: 100%;
+}
+
+.shift64-woo-search-block.has-text-color {
+    --s64ws-field-color: currentColor;
+}
+
+.shift64-woo-search-block.is-style-pill {
+    --s64ws-field-radius: 999px;
+}
+
+.shift64-woo-search-block.is-style-minimal .shift64-woo-search-field__input {
+    background: transparent;
+    border-width: 0 0 1px;
+    border-radius: 0;
+}
+
+:where(.shift64-woo-search-block.is-style-minimal .shift64-woo-search-field__submit) {
+    color: currentColor;
+    background: transparent;
+}
+
+.shift64-woo-search-block.is-style-minimal .shift64-woo-search-field__submit {
+    border-width: 0 0 1px;
+    border-radius: 0;
+}
+
+.shift64-woo-search-block--modal.is-style-soft .shift64-woo-search-modal__trigger {
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.shift64-woo-search-block--modal.is-style-outline .shift64-woo-search-modal__trigger {
+    border: 1px solid currentColor;
+}
+
+/* ================================================================
+   Modal Search Shortcode
+   ================================================================ */
+.shift64-woo-search-modal-shortcode {
+    display: inline-flex;
+    line-height: 1;
+}
+
+.shift64-woo-search-modal__trigger,
+.shift64-woo-search-modal__close {
+    appearance: none;
+    display: inline-grid;
+    place-items: center;
+    margin: 0;
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    box-shadow: none;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.shift64-woo-search-modal__trigger {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    line-height: 0;
+}
+
+/* ServerSideRender keeps the real modal closed on the site while showing a
+   contained preview inside the editor canvas. */
+.editor-styles-wrapper .shift64-woo-search-block--modal .shift64-woo-search-modal[hidden] {
+    position: relative;
+    inset: auto;
+    z-index: auto;
+    display: flex;
+    margin-top: 12px;
+    padding: 64px 24px 24px;
+    overflow: visible;
+}
+
+.editor-styles-wrapper .shift64-woo-search-block--modal .shift64-woo-search-modal__dialog {
+    width: min(760px, 100%);
+    margin: 0 auto;
+    animation: none;
+}
+
+.editor-styles-wrapper .shift64-woo-search-block--modal .shift64-woo-search-modal__close {
+    top: -52px;
+}
+
+.shift64-woo-search-modal__trigger:hover {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.shift64-woo-search-modal__trigger:focus-visible,
+.shift64-woo-search-modal__close:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+}
+
+.shift64-woo-search-modal[hidden] {
+    display: none;
+}
+
+.shift64-woo-search-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.83);
+    animation: s64ws-modal-fade-in 0.18s ease-out;
+}
+
+.shift64-woo-search-modal__dialog {
+    position: relative;
+    width: min(760px, 100%);
+    margin: clamp(64px, 12vh, 136px) auto 40px;
+    animation: s64ws-modal-dialog-in 0.22s ease-out;
+}
+
+.shift64-woo-search-modal__close {
+    position: absolute;
+    top: -54px;
+    right: 0;
+    width: 44px;
+    height: 44px;
+    color: #fff;
+}
+
+.shift64-woo-search-modal__search .shift64-woo-search-field__input {
+    min-height: 56px;
+    padding: 13px 54px 13px 18px;
+    font-size: 18px;
+}
+
+.shift64-woo-search-modal__search .shift64-woo-search-field {
+    display: block;
+}
+
+.shift64-woo-search-modal__search .shift64-woo-search-field__controls {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+}
+
+.shift64-woo-search-modal__search .shift64-woo-search-field__input-wrap {
+    position: relative;
+    display: flex;
+    flex: 1 1 0%;
+    width: auto;
+    min-width: 0;
+}
+
+.shift64-woo-search-modal__search input[type="search"]::-webkit-search-cancel-button {
+    display: none;
+    appearance: none;
+}
+
+.shift64-woo-search-modal__search .shift64-woo-search-field__clear {
+    appearance: none;
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+    padding: 0;
+    color: var(--s64ws-meta-color);
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    box-shadow: none;
+    cursor: pointer;
+    line-height: 0;
+    transform: translateY(-50%);
+}
+
+.shift64-woo-search-modal__search .shift64-woo-search-field__clear:hover {
+    color: var(--s64ws-field-color);
+    background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.shift64-woo-search-modal__search .shift64-woo-search-field__clear[hidden] {
+    display: none;
+}
+
+.shift64-woo-search-modal__search .shift64-woo-search-field__submit {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    align-self: stretch !important;
+    flex: 0 0 auto;
+    width: 58px;
+    height: auto !important;
+    min-height: 56px;
+    padding: 0;
+    line-height: 0;
+}
+
+.shift64-woo-search-modal__trigger > svg,
+.shift64-woo-search-modal__close > svg,
+.shift64-woo-search-modal__search .shift64-woo-search-field__clear > svg,
+.shift64-woo-search-modal__search .shift64-woo-search-field__submit > svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: block;
+    margin: 0;
+    transform: translate(-50%, -50%);
+}
+
+.shift64-woo-search-modal__search .shift64-woo-search-results {
+    max-height: min(65vh, var(--s64ws-dropdown-max-height));
+}
+
+/* The modal itself provides click-outside handling and the backdrop. */
+.shift64-woo-search-modal .shift64-woo-search-results__overlay {
+    display: none !important;
+}
+
+body.shift64-woo-search-modal-open {
+    overflow: hidden;
+}
+
+@keyframes s64ws-modal-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes s64ws-modal-dialog-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ================================================================
@@ -397,6 +658,14 @@
         min-width: 0;
         max-width: none;
     }
+
+    .shift64-woo-search-modal {
+        padding: 18px;
+    }
+
+    .shift64-woo-search-modal__dialog {
+        margin-top: 60px;
+    }
 }
 
 /* ================================================================
@@ -410,6 +679,11 @@
     }
 
     .shift64-woo-search-section {
+        animation: none;
+    }
+
+    .shift64-woo-search-modal,
+    .shift64-woo-search-modal__dialog {
         animation: none;
     }
 }
