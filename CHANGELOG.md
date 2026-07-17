@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.2.0...v0.3.0) (2026-07-17)
+
+
+### Features
+
+* **core:** initial product search foundation ([#1](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/1)) ([7bf9fc5](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/7bf9fc5b61541a9d0e9c2776466dc0159d1fe9d5))
+
 # [0.2.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.1.0...v0.2.0) (2026-07-17)
 
 
