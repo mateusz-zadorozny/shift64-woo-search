@@ -15,21 +15,89 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shift64_Woo_Search_Frontend {
 
 	/**
+	 * Whether the primary search assets were enqueued by this instance.
+	 *
+	 * @var bool
+	 */
+	private $assets_enqueued = false;
+
+	/**
 	 * Register frontend hooks.
 	 */
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_shortcode( 'shift64_woo_search', array( $this, 'render_search_shortcode' ) );
+	}
+
+	/**
+	 * Render a product search form compatible with the default autocomplete selector.
+	 *
+	 * The form remains a regular WooCommerce product search when JavaScript or Redis
+	 * is unavailable. The default input class lets the autocomplete script enhance it
+	 * without any additional selector configuration.
+	 *
+	 * @param array<string, string> $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function render_search_shortcode( $atts = array() ) {
+		static $instance = 0;
+
+		$this->enqueue_assets();
+
+		$atts = shortcode_atts(
+			array(
+				'placeholder' => __( 'Search products...', 'shift64-woo-search' ),
+				'button'      => __( 'Search', 'shift64-woo-search' ),
+				'label'       => __( 'Search products', 'shift64-woo-search' ),
+			),
+			$atts,
+			'shift64_woo_search'
+		);
+
+		++$instance;
+		$input_id = 'shift64-woo-search-input-' . $instance;
+
+		ob_start();
+		?>
+		<div class="shift64-woo-search-shortcode">
+			<form role="search" method="get" class="shift64-woo-search-field" action="<?php echo esc_url( home_url( '/' ) ); ?>">
+				<label class="screen-reader-text" for="<?php echo esc_attr( $input_id ); ?>"><?php echo esc_html( $atts['label'] ); ?></label>
+				<input
+					type="search"
+					id="<?php echo esc_attr( $input_id ); ?>"
+					class="shift64-woo-search-field__input"
+					name="s"
+					value="<?php echo esc_attr( get_search_query( false ) ); ?>"
+					placeholder="<?php echo esc_attr( $atts['placeholder'] ); ?>"
+					autocomplete="off"
+					enterkeyhint="search"
+					aria-autocomplete="list"
+					aria-expanded="false"
+				>
+				<input type="hidden" name="post_type" value="product">
+				<button type="submit" class="shift64-woo-search-field__submit"><?php echo esc_html( $atts['button'] ); ?></button>
+			</form>
+		</div>
+		<?php
+
+		return (string) ob_get_clean();
 	}
 
 	/**
 	 * Enqueue search JS and CSS on the frontend.
 	 */
 	public function enqueue_assets() {
+		if ( $this->assets_enqueued ) {
+			return;
+		}
+
 		// Only load if Redis is configured.
 		$host = get_option( 'shift64_woo_search_redis_host', '' );
 		if ( empty( $host ) ) {
 			return;
 		}
+
+		$this->assets_enqueued = true;
 
 		wp_enqueue_style(
 			'shift64-woo-search',

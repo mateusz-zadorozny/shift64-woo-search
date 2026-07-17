@@ -404,8 +404,8 @@ class Shift64_Woo_Search_CLI {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp shift64-woo-search test "shift64_woo_search big nine"
-	 *     wp shift64-woo-search test "MER-BN-300" --mode=full
+	 *     wp shift64-woo-search test "Athena T-Shirt Green"
+	 *     wp shift64-woo-search test "DEMO640001" --mode=full
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.

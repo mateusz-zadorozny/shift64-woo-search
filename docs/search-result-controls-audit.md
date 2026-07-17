@@ -8,7 +8,7 @@ This document inventories every behavior that can change which products are retu
 
 ### Query preparation
 
-- Strip RediSearch operators and indexing punctuation.
+- Replace RediSearch operators and indexing punctuation with spaces so token boundaries match indexed text.
 - Normalize case and whitespace, and cap the query at 200 characters.
 - Enforce a configurable minimum query length; tokens shorter than two characters are discarded.
 - Greedily expand synonym phrases up to four words.
@@ -145,12 +145,15 @@ The following behaviors require a schema version and rebuild when changed:
 
 - category ancestors in TAG and TEXT fields;
 - searchable category text;
-- variation SKUs and historical catalog numbers;
+- historical catalog numbers;
 - searchable attribute labels, values, and normalized units;
 - ASCII-normalized title field;
 - field weights.
 
 Published status, catalog visibility, and explicit product exclusion are policies, not ordinary ranking toggles. A zero title weight currently does not fully disable title influence because `title_ascii` keeps a minimum weight of one; this must be fixed before promising true field disablement.
+
+Product variations and their SKUs are intentionally excluded from retrieval.
+The search index represents parent products only.
 
 ## Category and query suggestions
 

@@ -47,6 +47,22 @@ wp shift64-woo-search test "search phrase"
 wp shift64-woo-search health
 ```
 
+## Search form shortcode
+
+Use the shortcode below in classic themes, widgets, or page-builder content:
+
+```text
+[shift64_woo_search]
+```
+
+It renders a native WooCommerce product search form and uses the plugin's default
+`.shift64-woo-search-field__input` selector for autocomplete. The visible copy can
+be customized per instance:
+
+```text
+[shift64_woo_search placeholder="Find products..." button="Go" label="Search the catalog"]
+```
+
 ## Development commands
 
 ```bash

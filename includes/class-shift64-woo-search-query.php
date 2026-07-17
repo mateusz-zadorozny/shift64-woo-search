@@ -351,9 +351,12 @@ class Shift64_Woo_Search_Query {
 	 * @return string
 	 */
 	public function sanitize_query( $query ) {
-		// Strip RediSearch special characters and punctuation that RediSearch
-		// treats as token separators during indexing (commas, periods, etc.).
-		$query = preg_replace( '/[@{}\(\)|~\*\\\\,\.;:!?]/', '', $query );
+		// Replace RediSearch operators and indexing punctuation with spaces.
+		// Removing them outright would incorrectly join tokens: "T-Shirt"
+		// would become "tshirt", while RediSearch indexes it as "t" + "shirt".
+		// Underscores intentionally remain because RediSearch preserves them.
+		$separators = ',.<>{}[]"\'`:;!@#$%^&*()-+=~\\/?|';
+		$query      = preg_replace( '/[' . preg_quote( $separators, '/' ) . ']+/u', ' ', $query );
 		// Collapse whitespace, trim.
 		$query = preg_replace( '/\s+/', ' ', trim( $query ) );
 		// Lowercase.

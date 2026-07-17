@@ -23,6 +23,7 @@ Features include:
 * Product, category, attribute, and SKU search.
 * Search statistics and diagnostic tools.
 * WP-CLI commands for setup, indexing, tests, and health checks.
+* A `[shift64_woo_search]` product search form shortcode for classic themes.
 
 The plugin requires Redis Stack, or another Redis server with RediSearch, and the PHP Redis extension.
 
