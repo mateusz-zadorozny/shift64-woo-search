@@ -1,0 +1,13 @@
+# Dependencies and generated Astro/Starlight output.
+node_modules/
+dist/
+.astro/
+
+# Local deployment and development state.
+.vercel/
+.wrangler/
+
+# Documentation-site secrets and machine-specific settings.
+.env
+.env.*
+!.env.example
