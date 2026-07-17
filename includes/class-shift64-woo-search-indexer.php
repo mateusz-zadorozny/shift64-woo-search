@@ -255,22 +255,10 @@ class Shift64_Woo_Search_Indexer {
 			}
 		}
 
-		// Variation SKUs for variable products.
+		// Index only the parent product SKU. Variations are intentionally excluded
+		// from product retrieval, even when they have their own WooCommerce SKUs.
 		$sku      = $product->get_sku();
 		$sku_text = $sku;
-		if ( $product->is_type( 'variable' ) ) {
-			$children       = $product->get_children();
-			$variation_skus = array();
-			foreach ( $children as $child_id ) {
-				$child_product = wc_get_product( $child_id );
-				if ( $child_product && $child_product->get_sku() ) {
-					$variation_skus[] = $child_product->get_sku();
-				}
-			}
-			if ( ! empty( $variation_skus ) ) {
-				$sku_text = $sku . ' ' . implode( ' ', $variation_skus );
-			}
-		}
 
 		// Old catalog number — append to sku_text so it is searchable with the same weight.
 		$old_number = get_post_meta( $product->get_id(), 'old_number', true );

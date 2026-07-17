@@ -6,6 +6,7 @@
  *
  * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=48 mode=variable seed=6464
  * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=48 mode=mixed seed=6464 reset
+ * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=48 variation-skus
  *
  * The generator creates one parent product per color. Color is a visible
  * global attribute, while size is the variation attribute. A generated name
@@ -44,6 +45,9 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 		/** @var bool Whether to delete previously generated products first. */
 		private $reset;
 
+		/** @var bool Whether generated variations receive their own SKUs. */
+		private $variation_skus;
+
 		/** @var int Number of variations created during the current run. */
 		private $variation_count = 0;
 
@@ -53,13 +57,15 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 		 * @param int    $count Parent product count.
 		 * @param string $mode  Product mode.
 		 * @param int    $seed  Random seed.
-		 * @param bool   $reset Delete previous demo products first.
+		 * @param bool   $reset          Delete previous demo products first.
+		 * @param bool   $variation_skus Whether variations receive deterministic SKUs.
 		 */
-		public function __construct( $count, $mode, $seed, $reset ) {
-			$this->count = $count;
-			$this->mode  = $mode;
-			$this->seed  = $seed;
-			$this->reset = $reset;
+		public function __construct( $count, $mode, $seed, $reset, $variation_skus ) {
+			$this->count          = $count;
+			$this->mode           = $mode;
+			$this->seed           = $seed;
+			$this->reset          = $reset;
+			$this->variation_skus = $variation_skus;
 		}
 
 		/**
@@ -318,8 +324,8 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 
 			$base_price = (float) $data['garment']['price'];
 			foreach ( $size_data['terms'] as $size_name => $size_term ) {
-				$variation_sku = $sku . strtoupper( $size_term->slug );
-				if ( wc_get_product_id_by_sku( $variation_sku ) ) {
+				$variation_sku = $this->variation_skus ? $sku . strtoupper( $size_term->slug ) : '';
+				if ( '' !== $variation_sku && wc_get_product_id_by_sku( $variation_sku ) ) {
 					WP_CLI::warning( sprintf( 'Skipping variation with duplicate SKU "%s".', $variation_sku ) );
 					continue;
 				}
@@ -329,7 +335,9 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 				$variation->set_status( 'publish' );
 
 				try {
-					$variation->set_sku( $variation_sku );
+					if ( '' !== $variation_sku ) {
+						$variation->set_sku( $variation_sku );
+					}
 					$variation->set_attributes( array( $size_data['taxonomy'] => $size_term->slug ) );
 					$variation->set_regular_price( wc_format_decimal( $base_price, 2 ) );
 					$variation->set_manage_stock( true );
@@ -339,7 +347,7 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 					$variation->update_meta_data( self::GENERATED_META_KEY, 'yes' );
 					$variation->save();
 				} catch ( WC_Data_Exception $exception ) {
-					if ( 'product_invalid_sku' !== $exception->getErrorCode() ) {
+					if ( '' === $variation_sku || 'product_invalid_sku' !== $exception->getErrorCode() ) {
 						throw $exception;
 					}
 
@@ -502,14 +510,15 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
  * Parse eval-file arguments.
  *
  * @param array $raw_args Arguments exposed by WP-CLI to eval-file.
- * @return array{count:int,mode:string,seed:int,reset:bool}
+ * @return array{count:int,mode:string,seed:int,reset:bool,variation_skus:bool}
  */
 function shift64_woo_search_parse_demo_product_args( $raw_args ) {
 	$options = array(
-		'count' => 48,
-		'mode'  => 'variable',
-		'seed'  => 6464,
-		'reset' => false,
+		'count'          => 48,
+		'mode'           => 'variable',
+		'seed'           => 6464,
+		'reset'          => false,
+		'variation_skus' => false,
 	);
 
 	foreach ( $raw_args as $raw_arg ) {
@@ -521,8 +530,12 @@ function shift64_woo_search_parse_demo_product_args( $raw_args ) {
 			$options['reset'] = true;
 			continue;
 		}
+		if ( 'variation-skus' === $arg ) {
+			$options['variation_skus'] = true;
+			continue;
+		}
 		if ( false === strpos( $arg, '=' ) ) {
-			WP_CLI::error( sprintf( 'Unknown argument "%s". Use count=N, mode=variable|simple|mixed, seed=N, or reset.', $raw_arg ) );
+			WP_CLI::error( sprintf( 'Unknown argument "%s". Use count=N, mode=variable|simple|mixed, seed=N, reset, or variation-skus.', $raw_arg ) );
 		}
 
 		list( $key, $value ) = array_map( 'trim', explode( '=', $arg, 2 ) );
@@ -555,6 +568,7 @@ $shift64_demo_runner   = new Shift64_Woo_Search_Demo_Product_Generator(
 	$shift64_demo_options['count'],
 	$shift64_demo_options['mode'],
 	$shift64_demo_options['seed'],
-	$shift64_demo_options['reset']
+	$shift64_demo_options['reset'],
+	$shift64_demo_options['variation_skus']
 );
 $shift64_demo_runner->run();
