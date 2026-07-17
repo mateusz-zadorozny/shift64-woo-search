@@ -2,12 +2,12 @@
 /**
  * Plugin Name: Shift64 Woo Search
  * Description: Custom WooCommerce search engine powered by RediSearch. Ultra-fast autocomplete and full-text search.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: Mateusz Zadorożny
  * Text Domain: shift64-woo-search
  * Domain Path: /languages
  * Requires at least: 6.0
- * Requires PHP: 7.4
+ * Requires PHP: 8.3
  *
  * @package Shift64_Woo_Search
  */
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constants.
-define( 'SHIFT64_WOO_SEARCH_VERSION', '0.1.0' );
+define( 'SHIFT64_WOO_SEARCH_VERSION', '0.2.0' );
 define( 'SHIFT64_WOO_SEARCH_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SHIFT64_WOO_SEARCH_URL', plugin_dir_url( __FILE__ ) );
 
@@ -92,6 +92,13 @@ class Shift64_Woo_Search_Plugin {
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
 		add_action( 'upgrader_process_complete', array( $this, 'on_upgrade' ), 10, 2 );
+	}
+
+	/**
+	 * Load plugin translations from /languages.
+	 */
+	public function load_textdomain() {
+		load_plugin_textdomain( 'shift64-woo-search', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 	}
 
 	/**
@@ -290,6 +297,7 @@ class Shift64_Woo_Search_Plugin {
 	 * Initialize plugin on plugins_loaded.
 	 */
 	public function init() {
+		$this->load_textdomain();
 		$this->maybe_create_tables();
 		$this->maybe_update_mu_plugin();
 

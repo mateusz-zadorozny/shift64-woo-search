@@ -11,3 +11,7 @@ vendor/
 *.zip
 .claude/
 .playwright-mcp/
+
+# Agent pipeline: generated per run, not source.
+.ai/qa/artifacts_*/
+.ai/qa/test-env.json

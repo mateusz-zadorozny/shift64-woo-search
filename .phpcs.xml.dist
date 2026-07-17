@@ -21,6 +21,10 @@
 	<config name="minimum_supported_wp_version" value="6.0"/>
 	<rule ref="WordPress"/>
 
+	<!-- Rules: PHP compatibility — enforce the declared PHP 8.3 minimum -->
+	<config name="testVersion" value="8.3-"/>
+	<rule ref="PHPCompatibilityWP"/>
+
 	<!-- Disable Yoda conditions -->
 	<rule ref="WordPress.PHP.YodaConditions">
 		<severity>0</severity>
