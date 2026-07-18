@@ -138,32 +138,79 @@
     --s64ws-field-color: currentColor;
 }
 
-.shift64-woo-search-block.is-style-pill {
+.shift64-woo-search-block.is-style-pill,
+.shift64-woo-search-block--modal.has-modal-search-style-pill,
+.shift64-woo-search-modal--block.has-modal-search-style-pill {
     --s64ws-field-radius: 999px;
 }
 
-.shift64-woo-search-block.is-style-minimal .shift64-woo-search-field__input {
+.shift64-woo-search-block.is-style-minimal .shift64-woo-search-field__input,
+.shift64-woo-search-block--modal.has-modal-search-style-minimal .shift64-woo-search-modal__search .shift64-woo-search-field__input,
+.shift64-woo-search-modal--block.has-modal-search-style-minimal .shift64-woo-search-modal__search .shift64-woo-search-field__input {
     background: transparent;
     border-width: 0 0 1px;
     border-radius: 0;
 }
 
-:where(.shift64-woo-search-block.is-style-minimal .shift64-woo-search-field__submit) {
+:where(
+    .shift64-woo-search-block.is-style-minimal .shift64-woo-search-field__submit,
+    .shift64-woo-search-block--modal.has-modal-search-style-minimal .shift64-woo-search-modal__search .shift64-woo-search-field__submit,
+    .shift64-woo-search-modal--block.has-modal-search-style-minimal .shift64-woo-search-modal__search .shift64-woo-search-field__submit
+) {
     color: currentColor;
     background: transparent;
 }
 
-.shift64-woo-search-block.is-style-minimal .shift64-woo-search-field__submit {
+.shift64-woo-search-block.is-style-minimal .shift64-woo-search-field__submit,
+.shift64-woo-search-block--modal.has-modal-search-style-minimal .shift64-woo-search-modal__search .shift64-woo-search-field__submit,
+.shift64-woo-search-modal--block.has-modal-search-style-minimal .shift64-woo-search-modal__search .shift64-woo-search-field__submit {
     border-width: 0 0 1px;
     border-radius: 0;
 }
 
-:where(.shift64-woo-search-block--modal.is-style-soft .shift64-woo-search-modal__trigger) {
-    background: color-mix(in srgb, currentColor 10%, transparent);
+.shift64-woo-search-block--modal .shift64-woo-search-modal__trigger {
+    border: 1px solid transparent;
+    border-radius: var(--s64ws-trigger-radius, 50px);
 }
 
-.shift64-woo-search-block--modal.is-style-outline .shift64-woo-search-modal__trigger {
-    border: 1px solid currentColor;
+.shift64-woo-search-block--modal .shift64-woo-search-modal__trigger > svg {
+    width: var(--s64ws-trigger-icon-size, 24px);
+    height: var(--s64ws-trigger-icon-size, 24px);
+}
+
+.shift64-woo-search-block--modal.has-trigger-style-icon .shift64-woo-search-modal__trigger {
+    color: var(--s64ws-trigger-icon-color, currentColor);
+    background: transparent;
+}
+
+.shift64-woo-search-block--modal.has-trigger-style-icon .shift64-woo-search-modal__trigger:hover {
+    color: var(--s64ws-trigger-icon-hover-color, var(--s64ws-trigger-icon-color, currentColor));
+    background: var(--s64ws-trigger-surface-hover-color, color-mix(in srgb, currentColor 8%, transparent));
+}
+
+.shift64-woo-search-block--modal.has-trigger-style-background .shift64-woo-search-modal__trigger {
+    color: var(--s64ws-trigger-icon-color, #fff);
+    background: var(--s64ws-trigger-surface-color, var(--shift64-woo-search-brand-color, #183e86));
+}
+
+.shift64-woo-search-block--modal.has-trigger-style-background .shift64-woo-search-modal__trigger:hover {
+    color: var(--s64ws-trigger-icon-hover-color, var(--s64ws-trigger-icon-color, #fff));
+    background: var(
+        --s64ws-trigger-surface-hover-color,
+        color-mix(in srgb, var(--s64ws-trigger-surface-color, var(--shift64-woo-search-brand-color, #183e86)) 82%, #000)
+    );
+}
+
+.shift64-woo-search-block--modal.has-trigger-style-outline .shift64-woo-search-modal__trigger {
+    color: var(--s64ws-trigger-icon-color, currentColor);
+    background: transparent;
+    border-color: var(--s64ws-trigger-surface-color, currentColor);
+}
+
+.shift64-woo-search-block--modal.has-trigger-style-outline .shift64-woo-search-modal__trigger:hover {
+    color: var(--s64ws-trigger-icon-hover-color, var(--s64ws-trigger-icon-color, currentColor));
+    background: transparent;
+    border-color: var(--s64ws-trigger-surface-hover-color, var(--s64ws-trigger-surface-color, currentColor));
 }
 
 /* ================================================================
@@ -199,11 +246,21 @@
 
 /* ServerSideRender keeps the real modal closed on the site. Editors can opt
    into a contained preview while working on the modal's content and styles. */
+.editor-styles-wrapper .shift64-woo-search-block--modal.is-preview-open .shift64-woo-search-modal-shortcode {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+}
+
 .editor-styles-wrapper .shift64-woo-search-block--modal.is-preview-open .shift64-woo-search-modal[hidden] {
     position: relative;
     inset: auto;
     z-index: auto;
     display: flex;
+    align-self: stretch;
+    box-sizing: border-box;
+    width: 100%;
     margin-top: 12px;
     padding: 64px 24px 24px;
     overflow: visible;
@@ -217,10 +274,6 @@
 
 .editor-styles-wrapper .shift64-woo-search-block--modal .shift64-woo-search-modal__close {
     top: -52px;
-}
-
-.shift64-woo-search-modal__trigger:hover {
-    background: color-mix(in srgb, currentColor 8%, transparent);
 }
 
 .shift64-woo-search-modal__trigger:focus-visible,
@@ -242,7 +295,7 @@
     justify-content: center;
     padding: 24px;
     overflow-y: auto;
-    background: rgba(0, 0, 0, 0.83);
+    background: var(--s64ws-modal-background, rgba(0, 0, 0, 0.83));
     animation: s64ws-modal-fade-in 0.18s ease-out;
 }
 
@@ -268,7 +321,7 @@
     font-size: 18px;
 }
 
-.shift64-woo-search-block--modal .shift64-woo-search-modal__search .shift64-woo-search-field__input {
+.shift64-woo-search-modal--block .shift64-woo-search-modal__search .shift64-woo-search-field__input {
     font-size: inherit;
     line-height: inherit;
 }
