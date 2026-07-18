@@ -60,6 +60,10 @@ class Shift64_Woo_Search_Sync {
 		add_action( 'pre_delete_term', array( $this, 'on_pre_category_delete' ), 10, 2 );
 		add_action( 'delete_product_cat', array( $this, 'on_category_delete' ), 10, 4 );
 
+		// Brand edit/deletion — reindex affected products and refresh the blob.
+		add_action( 'edited_product_brand', array( $this, 'on_brand_change' ), 10, 2 );
+		add_action( 'delete_product_brand', array( $this, 'on_brand_change' ), 10, 2 );
+
 		// CSV import.
 		add_action( 'woocommerce_product_import_inserted_product_object', array( $this, 'on_product_import' ), 10, 2 );
 	}
@@ -110,6 +114,55 @@ class Shift64_Woo_Search_Sync {
 	 */
 	public function on_stock_change( $product_id, $stock_status, $product ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$this->upsert_product( $product_id );
+	}
+
+	/**
+	 * Handle a brand being edited or deleted.
+	 *
+	 * Reindexes the products still assigned to the term (on delete the
+	 * assignment is already gone, so this is a no-op there and the affected
+	 * hashes stay stale until the next rebuild — the same trade-off categories
+	 * make) and always refreshes the {prefix}:brands blob, which must reflect a
+	 * rename or removal immediately even when no product changed.
+	 *
+	 * @param int $term_id Term ID.
+	 * @param int $tt_id   Term taxonomy ID (unused, required by hook).
+	 */
+	public function on_brand_change( $term_id, $tt_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		$redis = Shift64_Woo_Search_Redis::get_instance();
+		if ( ! $redis->is_available() ) {
+			return;
+		}
+
+		$term = get_term( $term_id, 'product_brand' );
+		if ( $term && ! is_wp_error( $term ) ) {
+			$product_ids = get_posts(
+				array(
+					'post_type'      => 'product',
+					'post_status'    => 'publish',
+					'fields'         => 'ids',
+					'posts_per_page' => -1,
+					// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- term-scoped reindex, runs on a term edit only.
+					'tax_query'      => array(
+						array(
+							'taxonomy'         => 'product_brand',
+							'field'            => 'term_id',
+							'terms'            => (int) $term_id,
+							'include_children' => true,
+						),
+					),
+				)
+			);
+
+			if ( ! empty( $product_ids ) ) {
+				$indexer = new Shift64_Woo_Search_Indexer( $redis );
+				foreach ( $product_ids as $product_id ) {
+					$indexer->index_product( $product_id );
+				}
+			}
+		}
+
+		Shift64_Woo_Search_Indexer::cache_brands_to_redis( $redis );
 	}
 
 	/**

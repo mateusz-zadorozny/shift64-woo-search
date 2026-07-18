@@ -54,6 +54,9 @@ class Shift64_Woo_Search_Filters {
 		if ( 'yes' === get_option( 'shift64_woo_search_filter_categories_enabled', 'yes' ) && ! empty( $facet_data['categories'] ) ) {
 			$has_any_filter = true;
 		}
+		if ( ! $has_any_filter && 'yes' === get_option( 'shift64_woo_search_filter_brands_enabled', 'no' ) && ! empty( $facet_data['brands'] ) ) {
+			$has_any_filter = true;
+		}
 		if ( ! $has_any_filter ) {
 			foreach ( $facet_data as $field_name => $values ) {
 				if ( 0 !== strpos( $field_name, 'attr_' ) ) {
@@ -102,6 +105,25 @@ class Shift64_Woo_Search_Filters {
 					'taxonomy' => 'product_cat',
 				);
 			}
+		}
+
+		// Brand filter — sits between categories and attributes. Needs its own
+		// block because the attribute loop below only picks up attr_* keys.
+		if ( 'yes' === get_option( 'shift64_woo_search_filter_brands_enabled', 'no' ) && ! empty( $facet_data['brands'] ) ) {
+			$this->render_filter_group(
+				'product_brand',
+				__( 'Brand', 'shift64-woo-search' ),
+				$facet_data['brands'],
+				isset( $active_filters['brand'] ) ? $active_filters['brand'] : array(),
+				'product_brand'
+			);
+			$filter_groups[] = array(
+				'key'      => 'product_brand',
+				'label'    => __( 'Brand', 'shift64-woo-search' ),
+				'values'   => $facet_data['brands'],
+				'active'   => isset( $active_filters['brand'] ) ? $active_filters['brand'] : array(),
+				'taxonomy' => 'product_brand',
+			);
 		}
 
 		// Attribute filters — iterate in $facet_data order so the per-category

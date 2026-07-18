@@ -993,6 +993,21 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			}
 		}
 
+		// Brand filter. Unknown slugs are ignored, same as categories.
+		if ( ! empty( $_GET['filter_product_brand'] ) && taxonomy_exists( 'product_brand' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only URL filter.
+			$brands      = array_map( 'sanitize_text_field', explode( ',', sanitize_text_field( wp_unslash( $_GET['filter_product_brand'] ) ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$brand_names = array();
+			foreach ( $brands as $slug ) {
+				$term = get_term_by( 'slug', $slug, 'product_brand' );
+				if ( $term ) {
+					$brand_names[] = $term->name;
+				}
+			}
+			if ( ! empty( $brand_names ) ) {
+				$filters['brand'] = $brand_names;
+			}
+		}
+
 		// Attribute filters.
 		$filter_attrs = Shift64_Woo_Search_Schema::get_filter_attributes();
 		foreach ( $filter_attrs as $taxonomy ) {

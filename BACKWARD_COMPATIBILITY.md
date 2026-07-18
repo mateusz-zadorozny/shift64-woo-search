@@ -22,7 +22,7 @@ every search box on the storefront and cached by nothing.
 |---|---|
 | Path | `content_url( '/mu-plugins/shift64-woo-search/endpoint.php' )` |
 | Params | `q` (string), `mode` (`autocomplete` \| `full` \| `suggestions`), `limit` (int) |
-| Success | JSON `{success, count, query, time_ms, results, suggestions, categories}` |
+| Success | JSON `{success, count, query, time_ms, results, suggestions, categories, brands}` |
 | Degraded | `fallback: /?s=…&post_type=product` when Redis is unavailable |
 | Throttled | HTTP 429 + `Retry-After: 1` |
 
@@ -31,6 +31,12 @@ response key; changing the URL; removing the `fallback` behavior; returning a ne
 the frontend does not handle.
 
 **Not breaking:** adding a new optional param with a safe default; adding a new response key.
+
+`brands` (autocomplete mode) is **always present**, including in the empty/focus shapes and when
+`SHIFT64_WOO_SEARCH_BRAND_SUGGEST` is off — it is `[]` there. The response shape must not vary
+with a toggle; the frontend hides the section on emptiness alone. Each product row also carries
+`brand`: a pipe-separated string like `category`, `''` for brandless products, whose first
+segment is guaranteed to be a directly-assigned brand rather than an inherited parent.
 
 **Required path:** the bundled frontend JS and the endpoint ship together, so they can change
 together — but third-party code and cached pages call this URL too. Keep an old param accepted
@@ -65,6 +71,7 @@ the sharpest surface here: a rename does not fail, it silently orphans live data
 | `{prefix}_product_idx` | the RediSearch index |
 | `{prefix}:product:{id}` | product hash (`FT.CREATE … ON HASH PREFIX 1 {prefix}:product:`) |
 | `{prefix}:categories` | precomputed category blob (JSON) |
+| `{prefix}:brands` | precomputed brand blob (JSON, same shape as `categories`) |
 | `{prefix}:suggestions` | suggestions list (JSON) |
 | `{prefix}:synonyms` | synonyms (JSON) |
 | `{prefix}:rl:{md5(ip)}` | rate-limit counter (ephemeral) |
@@ -74,13 +81,21 @@ the sharpest surface here: a rename does not fail, it silently orphans live data
 `shift64_woo_search_redis_prefix` option, else `shift64_woo_search`.
 
 **Breaking:** renaming any key pattern or the index; changing an indexed field's name, type, or
-weight; changing the JSON shape of the `categories` / `suggestions` / `synonyms` blobs.
+weight; changing the JSON shape of the `categories` / `brands` / `suggestions` / `synonyms` blobs.
 
 **Required path:** a schema change must ship with a rebuild trigger — bump
 `shift64_woo_search_db_version` and drive `FT.DROPINDEX … DD` plus reindex, or route through the
 self-heal path. A PR that changes the schema and leaves existing installs on a stale index is
 broken, not merely incompatible. The ephemeral keys (`rl:`, `_heal_lock`) are exempt: they
 expire on their own.
+
+The `shift64_woo_search_db_version` check in `shift64-woo-search.php` carries a version→action
+map for exactly this. A version mapped to `rebuild` schedules the shared full rebuild
+(`Shift64_Woo_Search_Rebuild::run()`); a version mapped to `blobs` only refreshes the endpoint's
+JSON blobs, which is the right (and far cheaper) action when a release adds a blob without
+touching the index schema. Note that `ensure_index_healthy()` checks index existence and doc
+count only — it does **not** detect field-level drift, so a new field always needs the rebuild
+mapping.
 
 ## 4. The generated mu-plugin config
 
@@ -122,7 +137,8 @@ Every setting is its own top-level `wp_option` (there is no settings array, and 
 `_redis_auth_enabled`), search behavior (`_min_query`, `_autocomplete_limit`, `_full_limit`,
 `_outofstock_mode`, `_fuzzy_level`, `_logic`, `_strategy`, `_fallback_*`, `_token_reduction_*`,
 `_diacritics_normalization`, `_rate_limit`, …), filters/facets/index (`_filter_attributes`,
-`_filter_categories_*`, `_weights`, `_category_boosts`, `_category_suggest_exclude`), and
+`_filter_categories_*`, `_filter_brands_enabled`, `_brand_suggest_enabled`, `_weights`,
+`_category_boosts`, `_category_suggest_exclude`), and
 archive/frontend (`_archive_enabled`, `_taxonomy_archive_scopes`, `_price_sort_mode`, `_debounce`,
 `_input_selector`, `_additional_selectors`, `_button_selector`).
 
@@ -173,6 +189,11 @@ in `shift64_woo_search_config`.
 
 **Required path:** treat `shift64_woo_search_config` as the endpoint's response shape — additive
 keys are free, removals and renames are not.
+
+`showBrand` (bool, hardcoded `true`) and `brandsHeaderText` were added alongside the brand
+surfaces, mirroring `showCategory` / `categoriesHeaderText`. Like `showCategory`, `showBrand` is
+deliberately not option-backed: the JS guards on `config.showBrand !== false`, so a brandless
+product simply renders no label.
 
 ## 10. Runtime requirements
 

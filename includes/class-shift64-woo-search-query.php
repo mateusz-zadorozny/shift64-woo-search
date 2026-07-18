@@ -897,10 +897,11 @@ class Shift64_Woo_Search_Query {
 	 * Build the filter parts shared by all query types.
 	 *
 	 * Supports static exclusions (stock, visibility, excluded flag) and dynamic
-	 * filters (category, per-attribute TAG fields for faceted search).
+	 * filters (category, brand, per-attribute TAG fields for faceted search).
 	 *
 	 * @param array $filters Additional filters. Keys: 'category' (string|array),
-	 *                       'attr_{taxonomy}' (array of term names).
+	 *                       'brand' (string|array), 'attr_{taxonomy}' (array of
+	 *                       term names).
 	 * @return array
 	 */
 	public function build_filter_parts( $filters = array() ) {
@@ -923,6 +924,15 @@ class Shift64_Woo_Search_Query {
 			$cat_values = (array) $filters['category'];
 			$escaped    = array_map( array( __CLASS__, 'escape_tag_value' ), $cat_values );
 			$parts[]    = '@categories:{' . implode( '|', $escaped ) . '}';
+		}
+
+		// Filter: brand (supports single string or array of names). The indexed
+		// TAG value carries the ancestor chain, so filtering on a parent brand
+		// also matches products assigned only to one of its sub-brands.
+		if ( ! empty( $filters['brand'] ) ) {
+			$brand_values = (array) $filters['brand'];
+			$escaped      = array_map( array( __CLASS__, 'escape_tag_value' ), $brand_values );
+			$parts[]      = '@brands:{' . implode( '|', $escaped ) . '}';
 		}
 
 		// Filter: dynamic per-attribute TAG fields.
@@ -1837,6 +1847,7 @@ class Shift64_Woo_Search_Query {
 				'image'     => $r['image_url'] ?? '',
 				'url'       => $r['permalink'] ?? '',
 				'category'  => $r['categories'] ?? '',
+				'brand'     => $r['brands'] ?? '',
 				'score'     => $r['_score'] ?? 0,
 				'raw_score' => $r['_raw_score'] ?? $r['_score'] ?? 0,
 			);
@@ -1962,6 +1973,36 @@ class Shift64_Woo_Search_Query {
 	 * @return array Array of ['value' => string, 'count' => int], sorted by count DESC.
 	 */
 	public function execute_category_facet( $base_query, $limit = 10000 ) {
+		return $this->execute_multi_value_tag_facet( $base_query, 'categories', $limit );
+	}
+
+	/**
+	 * Compute brand facet counts from matched documents.
+	 *
+	 * Same constraint as categories: a product can carry several brands plus
+	 * their ancestor chains in one pipe-separated TAG value, which rules out
+	 * FT.AGGREGATE GROUPBY. Each brand is counted once per product.
+	 *
+	 * @param string $base_query FT query string (terms + filters, excluding the brand filter itself).
+	 * @param int    $limit      Max matched documents to inspect.
+	 * @return array Array of ['value' => string, 'count' => int], sorted by count DESC.
+	 */
+	public function execute_brand_facet( $base_query, $limit = 10000 ) {
+		return $this->execute_multi_value_tag_facet( $base_query, 'brands', $limit );
+	}
+
+	/**
+	 * Count individual values of a pipe-separated multi-value TAG field.
+	 *
+	 * Shared by the category and brand facets — see execute_category_facet()
+	 * for why this cannot be an FT.AGGREGATE GROUPBY.
+	 *
+	 * @param string $base_query FT query string (terms + filters, excluding this dimension's own filter).
+	 * @param string $field      Index field to read and split, e.g. 'categories' or 'brands'.
+	 * @param int    $limit      Max matched documents to inspect.
+	 * @return array Array of ['value' => string, 'count' => int], sorted by count DESC.
+	 */
+	private function execute_multi_value_tag_facet( $base_query, $field, $limit = 10000 ) {
 		$index_name   = $this->redis->get_index_name();
 		$parts        = preg_split( '/\s+/', trim( $base_query ) );
 		$has_positive = false;
@@ -1983,7 +2024,7 @@ class Shift64_Woo_Search_Query {
 			$base_query,
 			'RETURN',
 			'1',
-			'categories',
+			$field,
 			'LIMIT',
 			'0',
 			(string) max( 1, (int) $limit ),
@@ -2004,20 +2045,20 @@ class Shift64_Woo_Search_Query {
 				continue;
 			}
 
-			$categories = '';
-			$fc         = count( $fields );
+			$raw_value = '';
+			$fc        = count( $fields );
 			for ( $j = 0; $j < $fc - 1; $j += 2 ) {
-				if ( 'categories' === $fields[ $j ] ) {
-					$categories = (string) $fields[ $j + 1 ];
+				if ( $field === $fields[ $j ] ) {
+					$raw_value = (string) $fields[ $j + 1 ];
 					break;
 				}
 			}
 
-			if ( '' === $categories ) {
+			if ( '' === $raw_value ) {
 				continue;
 			}
 
-			$values = array_filter( array_map( 'trim', explode( '|', $categories ) ) );
+			$values = array_filter( array_map( 'trim', explode( '|', $raw_value ) ) );
 			$values = array_unique( $values );
 			foreach ( $values as $value ) {
 				if ( ! isset( $counts[ $value ] ) ) {

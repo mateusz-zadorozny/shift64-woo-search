@@ -33,9 +33,14 @@ class Shift64_Woo_Search_Taxonomy_Archive implements Shift64_Woo_Search_Facet_Co
 	 * @var array
 	 */
 	private static $scope_map = array(
-		'product_cat' => array(
+		'product_cat'   => array(
 			'filter_key'       => 'category',
 			'redis_field'      => 'categories',
+			'facet_dimensions' => array( 'attr_pa_*' ),
+		),
+		'product_brand' => array(
+			'filter_key'       => 'brand',
+			'redis_field'      => 'brands',
 			'facet_dimensions' => array( 'attr_pa_*' ),
 		),
 	);
@@ -87,7 +92,16 @@ class Shift64_Woo_Search_Taxonomy_Archive implements Shift64_Woo_Search_Facet_Co
 	 * @return array
 	 */
 	public static function get_scope_map() {
-		return self::$scope_map;
+		// product_brand is WooCommerce core only from 9.4 onwards, and can be
+		// deregistered. Hide the scope (and with it the admin checkbox) rather
+		// than offering an archive that cannot exist.
+		return array_filter(
+			self::$scope_map,
+			static function ( $taxonomy ) {
+				return 'product_cat' === $taxonomy || taxonomy_exists( $taxonomy );
+			},
+			ARRAY_FILTER_USE_KEY
+		);
 	}
 
 	/**
@@ -100,7 +114,10 @@ class Shift64_Woo_Search_Taxonomy_Archive implements Shift64_Woo_Search_Facet_Co
 	 * @return bool
 	 */
 	public function is_scope_enabled( $taxonomy ) {
-		if ( ! isset( self::$scope_map[ $taxonomy ] ) ) {
+		// Through the accessor, so a scope whose taxonomy is not registered stays
+		// off even if a stale option value still lists it.
+		$scope_map = self::get_scope_map();
+		if ( ! isset( $scope_map[ $taxonomy ] ) ) {
 			return false;
 		}
 

@@ -175,17 +175,7 @@ class Shift64_Woo_Search_Indexer {
 		}
 		$categories = array_values( array_unique( $categories ) );
 
-		// Brands (pa_brand taxonomy or custom).
-		$brands      = array();
-		$brand_terms = get_the_terms( $product->get_id(), 'product_brand' );
-		if ( ! $brand_terms || is_wp_error( $brand_terms ) ) {
-			$brand_terms = get_the_terms( $product->get_id(), 'pa_brand' );
-		}
-		if ( $brand_terms && ! is_wp_error( $brand_terms ) ) {
-			foreach ( $brand_terms as $term ) {
-				$brands[] = $term->name;
-			}
-		}
+		$brands = self::collect_brand_names( $product->get_id() );
 
 		// Tags.
 		$tags      = array();
@@ -292,6 +282,7 @@ class Shift64_Woo_Search_Indexer {
 				'categories'      => implode( '|', $categories ),
 				'categories_text' => implode( ' ', $categories ),
 				'brands'          => implode( '|', $brands ),
+				'brands_text'     => implode( ' ', $brands ),
 				'tags'            => implode( '|', $tags ),
 				'attributes'      => implode( ', ', $attributes_parts ),
 				'image_url'       => (string) $image_url,
@@ -449,6 +440,109 @@ class Shift64_Woo_Search_Indexer {
 		$redis->raw_command( 'SET', $key, wp_json_encode( $categories, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
 
 		return count( $categories );
+	}
+
+	/**
+	 * Collect the brand names to index for a product, ancestors included.
+	 *
+	 * Reads WooCommerce core's product_brand (hierarchical since WC 9.4) and
+	 * falls back to the legacy pa_brand attribute taxonomy. Like categories, the
+	 * ancestor chain is indexed so a parent-brand filter also matches products
+	 * assigned only to one of its sub-brands.
+	 *
+	 * Ordering is a contract, not a detail: every directly-assigned brand comes
+	 * first, and only then the inherited ancestors. The autocomplete row label
+	 * renders the first segment, which must therefore be a brand the product is
+	 * really assigned to — never an ancestor it merely inherits.
+	 *
+	 * @param int $product_id Product ID.
+	 * @return array<int,string> Ordered, de-duplicated brand names.
+	 */
+	public static function collect_brand_names( $product_id ) {
+		$taxonomy = 'product_brand';
+		$terms    = get_the_terms( $product_id, $taxonomy );
+		if ( ! $terms || is_wp_error( $terms ) ) {
+			$taxonomy = 'pa_brand';
+			$terms    = get_the_terms( $product_id, $taxonomy );
+		}
+
+		if ( ! $terms || is_wp_error( $terms ) ) {
+			return array();
+		}
+
+		$assigned  = array();
+		$ancestors = array();
+		foreach ( $terms as $term ) {
+			$assigned[] = $term->name;
+			foreach ( get_ancestors( $term->term_id, $taxonomy, 'taxonomy' ) as $ancestor_id ) {
+				$ancestor = get_term( $ancestor_id, $taxonomy );
+				if ( $ancestor && ! is_wp_error( $ancestor ) ) {
+					$ancestors[] = $ancestor->name;
+				}
+			}
+		}
+
+		return array_values( array_unique( array_merge( $assigned, $ancestors ) ) );
+	}
+
+	/**
+	 * Cache all WooCommerce product brands to Redis as JSON.
+	 *
+	 * Stores at {prefix}:brands in the same shape as {prefix}:categories, so the
+	 * SHORTINIT endpoint can rank both blobs with the same scoring core. Unlike
+	 * categories there are no per-brand boost or exclusion options yet; boost is
+	 * emitted as a fixed 1.0 default (i.e. never written) purely for shape parity.
+	 *
+	 * @param Shift64_Woo_Search_Redis $redis Redis connection instance.
+	 * @return int Number of brands cached.
+	 */
+	public static function cache_brands_to_redis( $redis ) {
+		// Stores on WooCommerce < 9.4 (or with the taxonomy deregistered) have no
+		// product_brand at all. Write an empty blob rather than bailing, so the
+		// endpoint sees a definitive "no brands" instead of a stale list.
+		if ( ! taxonomy_exists( 'product_brand' ) ) {
+			$key = $redis->get_prefix() . ':brands';
+			$redis->raw_command( 'SET', $key, wp_json_encode( array() ) );
+			return 0;
+		}
+
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'product_brand',
+				'hide_empty' => true,
+				'fields'     => 'all',
+			)
+		);
+
+		// Same contract as the category blob: a WP_Error means a transient query
+		// failure and must not clobber a previously-valid list, whereas an empty
+		// result is a real "this store has no brands" and must be written.
+		if ( is_wp_error( $terms ) ) {
+			return 0;
+		}
+
+		$brands = array();
+		if ( ! empty( $terms ) ) {
+			foreach ( $terms as $term ) {
+				$url = get_term_link( $term, 'product_brand' );
+				if ( is_wp_error( $url ) ) {
+					continue;
+				}
+				$brands[] = array(
+					'name'       => $term->name,
+					'name_ascii' => self::strip_diacritics( mb_strtolower( $term->name ) ),
+					'slug'       => $term->slug,
+					'url'        => $url,
+					'count'      => (int) $term->count,
+				);
+			}
+		}
+
+		// Write even when empty — clears stale JSON when the last brand is deleted.
+		$key = $redis->get_prefix() . ':brands';
+		$redis->raw_command( 'SET', $key, wp_json_encode( $brands, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+
+		return count( $brands );
 	}
 
 	/**

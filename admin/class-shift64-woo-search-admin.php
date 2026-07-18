@@ -716,6 +716,7 @@ class Shift64_Woo_Search_Admin {
 		$labels   = array(
 			'title'           => __( 'Title', 'shift64-woo-search' ),
 			'sku_text'        => __( 'SKU', 'shift64-woo-search' ),
+			'brands_text'     => __( 'Brands', 'shift64-woo-search' ),
 			'categories_text' => __( 'Categories', 'shift64-woo-search' ),
 			'short_desc'      => __( 'Short Description', 'shift64-woo-search' ),
 			'attributes'      => __( 'Attributes', 'shift64-woo-search' ),
@@ -835,6 +836,38 @@ class Shift64_Woo_Search_Admin {
 							/>
 							<p class="description">
 								<?php esc_html_e( 'Comma-separated product category slugs or IDs to hide from the Category facet. No index rebuild required.', 'shift64-woo-search' ); ?>
+							</p>
+						</td>
+					</tr>
+				</table>
+
+				<h3><?php esc_html_e( 'Brand Filter', 'shift64-woo-search' ); ?></h3>
+				<table class="form-table">
+					<?php $brands_available = taxonomy_exists( 'product_brand' ); ?>
+					<tr>
+						<th>
+							<label for="shift64_woo_search_filter_brands_enabled"><?php esc_html_e( 'Show Brand Filter', 'shift64-woo-search' ); ?></label>
+						</th>
+						<td>
+							<label>
+								<?php if ( $brands_available ) : ?>
+									<input type="hidden" name="shift64_woo_search_filter_brands_enabled" value="no" />
+								<?php endif; ?>
+								<input
+									type="checkbox"
+									id="shift64_woo_search_filter_brands_enabled"
+									name="shift64_woo_search_filter_brands_enabled"
+									value="yes"
+									<?php checked( get_option( 'shift64_woo_search_filter_brands_enabled', 'no' ), 'yes' ); ?>
+									<?php disabled( ! $brands_available ); ?> />
+								<?php esc_html_e( 'Enabled', 'shift64-woo-search' ); ?>
+							</label>
+							<p class="description">
+								<?php if ( $brands_available ) : ?>
+									<?php esc_html_e( 'Display the product brand filter on search results pages.', 'shift64-woo-search' ); ?>
+								<?php else : ?>
+									<?php esc_html_e( 'Unavailable: this store has no product_brand taxonomy. WooCommerce provides it from version 9.4 onwards.', 'shift64-woo-search' ); ?>
+								<?php endif; ?>
 							</p>
 						</td>
 					</tr>
@@ -1089,6 +1122,7 @@ class Shift64_Woo_Search_Admin {
 				$this->render_checkbox_field( 'shift64_woo_search_diacritics_normalization', __( 'Diacritics Normalization', 'shift64-woo-search' ), 'yes', __( 'Match Polish chars without diacritics (ł→l, ó→o, etc). Requires rebuild.', 'shift64-woo-search' ) );
 				$this->render_checkbox_field( 'shift64_woo_search_fuzzy_synonyms', __( 'Fuzzy Synonyms', 'shift64-woo-search' ), 'no', __( 'Match synonyms even with typos or partial input (prefix + Levenshtein).', 'shift64-woo-search' ) );
 				$this->render_checkbox_field( 'shift64_woo_search_category_suggest_fuzzy', __( 'Category Suggestion Fuzzy', 'shift64-woo-search' ), 'no', __( 'Allow typo-tolerant matching in the autocomplete category section. Uses conservative Levenshtein distance 1 on category-name tokens; no index rebuild required.', 'shift64-woo-search' ) );
+				$this->render_checkbox_field( 'shift64_woo_search_brand_suggest_enabled', __( 'Brand Suggestions', 'shift64-woo-search' ), 'yes', __( 'Show a Brands section in the autocomplete dropdown. The section hides itself on stores that have no brands.', 'shift64-woo-search' ) );
 				?>
 			</table>
 
@@ -1900,6 +1934,7 @@ class Shift64_Woo_Search_Admin {
 			'shift64_woo_search_diacritics_normalization',
 			'shift64_woo_search_fuzzy_synonyms',
 			'shift64_woo_search_category_suggest_fuzzy',
+			'shift64_woo_search_brand_suggest_enabled',
 			'shift64_woo_search_archive_enabled',
 			'shift64_woo_search_price_sort_mode',
 			'shift64_woo_search_rate_limit',
@@ -1977,6 +2012,14 @@ class Shift64_Woo_Search_Admin {
 			update_option( 'shift64_woo_search_filter_categories_enabled', sanitize_text_field( wp_unslash( $_POST['shift64_woo_search_filter_categories_enabled'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 
+		// Brand filter toggle. Absent from the POST when the taxonomy is missing
+		// (the checkbox renders disabled and its hidden companion is omitted),
+		// so the stored value is left alone rather than silently reset.
+		if ( isset( $_POST['shift64_woo_search_filter_brands_enabled'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified above.
+			$brands_enabled = sanitize_text_field( wp_unslash( $_POST['shift64_woo_search_filter_brands_enabled'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			update_option( 'shift64_woo_search_filter_brands_enabled', 'yes' === $brands_enabled ? 'yes' : 'no' );
+		}
+
 		$excluded_categories = array();
 		if ( isset( $_POST['shift64_woo_search_filter_categories_excluded'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified above.
 			$raw = sanitize_text_field( wp_unslash( $_POST['shift64_woo_search_filter_categories_excluded'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -2001,7 +2044,7 @@ class Shift64_Woo_Search_Admin {
 	private function refresh_category_cache() {
 		$redis = Shift64_Woo_Search_Redis::get_instance();
 		if ( $redis->is_available() ) {
-			Shift64_Woo_Search_Indexer::cache_categories_to_redis( $redis );
+			Shift64_Woo_Search_Rebuild::cache_blobs( $redis );
 		}
 	}
 
@@ -2229,7 +2272,7 @@ class Shift64_Woo_Search_Admin {
 			}
 			Shift64_Woo_Search_Synonyms::sync_to_redis( $redis );
 			Shift64_Woo_Search_Suggestions::sync_to_redis( $redis );
-			Shift64_Woo_Search_Indexer::cache_categories_to_redis( $redis );
+			Shift64_Woo_Search_Rebuild::cache_blobs( $redis );
 			$plugin = Shift64_Woo_Search_Plugin::get_instance();
 			$plugin->install_mu_plugin();
 			$plugin->generate_mu_plugin_config();

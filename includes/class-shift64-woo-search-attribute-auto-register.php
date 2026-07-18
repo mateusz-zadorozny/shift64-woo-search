@@ -108,14 +108,13 @@ class Shift64_Woo_Search_Attribute_Auto_Register {
 	}
 
 	/**
-	 * Cron handler: drop + create the index with the updated schema, sync
-	 * synonyms / suggestions / category cache, reindex all products,
-	 * regenerate the SHORTINIT config.
+	 * Cron handler: run the shared rebuild sequence
+	 * (Shift64_Woo_Search_Rebuild::run()), which the WP-CLI rebuild command also
+	 * uses, so a schema or blob addition is wired in exactly once.
 	 *
-	 * Mirrors the body of Shift64_Woo_Search_CLI::rebuild() minus the WP_CLI
-	 * progress bar (replaced with error_log on failure) and minus halt-on-error
-	 * (we want partial recovery rather than a stuck cron). A transient lock
-	 * keeps a long rebuild from overlapping with the next scheduled run.
+	 * The differences from the CLI caller live here: failures are logged rather
+	 * than fatal (we want partial recovery rather than a stuck cron), and a
+	 * transient lock keeps a long rebuild from overlapping with the next run.
 	 */
 	public function run_rebuild() {
 		// Lock — bail out if another rebuild is already in flight.
@@ -142,40 +141,16 @@ class Shift64_Woo_Search_Attribute_Auto_Register {
 				@set_time_limit( 1800 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 			}
 
-			// Drop existing index (preserves product hashes — different prefix).
-			if ( Shift64_Woo_Search_Schema::index_exists( $redis ) ) {
-				Shift64_Woo_Search_Schema::drop_index( $redis );
-			}
+			$result = Shift64_Woo_Search_Rebuild::run( $redis );
 
-			if ( ! Shift64_Woo_Search_Schema::create_index( $redis ) ) {
+			if ( ! $result['success'] ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( '[Shift64 Woo Search Auto Rebuild] FT.CREATE failed.' );
+				error_log( '[Shift64 Woo Search Auto Rebuild] ' . $result['error'] );
 				return;
 			}
 
-			// Sister-data sync (matches the CLI rebuild's sequence).
-			if ( class_exists( 'Shift64_Woo_Search_Synonyms' ) ) {
-				Shift64_Woo_Search_Synonyms::sync_to_redis( $redis );
-			}
-			if ( class_exists( 'Shift64_Woo_Search_Suggestions' ) ) {
-				Shift64_Woo_Search_Suggestions::sync_to_redis( $redis );
-			}
-			Shift64_Woo_Search_Indexer::cache_categories_to_redis( $redis );
-
-			$indexer = new Shift64_Woo_Search_Indexer( $redis );
-			$count   = $indexer->reindex_all();
-
-			// Refresh the SHORTINIT config so the autocomplete endpoint sees
-			// the new attribute fields. Mirrors CLI rebuild.
-			if ( class_exists( 'Shift64_Woo_Search_Plugin' ) && method_exists( 'Shift64_Woo_Search_Plugin', 'get_instance' ) ) {
-				$plugin = Shift64_Woo_Search_Plugin::get_instance();
-				if ( method_exists( $plugin, 'generate_mu_plugin_config' ) ) {
-					$plugin->generate_mu_plugin_config();
-				}
-			}
-
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( sprintf( '[Shift64 Woo Search Auto Rebuild] OK — %d products reindexed.', (int) $count ) );
+			error_log( sprintf( '[Shift64 Woo Search Auto Rebuild] OK — %d products reindexed.', (int) $result['indexed'] ) );
 		} catch ( \Throwable $e ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( '[Shift64 Woo Search Auto Rebuild] Exception: ' . $e->getMessage() );
