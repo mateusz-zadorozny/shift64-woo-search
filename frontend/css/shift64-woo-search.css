@@ -158,7 +158,7 @@
     border-radius: 0;
 }
 
-.shift64-woo-search-block--modal.is-style-soft .shift64-woo-search-modal__trigger {
+:where(.shift64-woo-search-block--modal.is-style-soft .shift64-woo-search-modal__trigger) {
     background: color-mix(in srgb, currentColor 10%, transparent);
 }
 
@@ -197,9 +197,9 @@
     line-height: 0;
 }
 
-/* ServerSideRender keeps the real modal closed on the site while showing a
-   contained preview inside the editor canvas. */
-.editor-styles-wrapper .shift64-woo-search-block--modal .shift64-woo-search-modal[hidden] {
+/* ServerSideRender keeps the real modal closed on the site. Editors can opt
+   into a contained preview while working on the modal's content and styles. */
+.editor-styles-wrapper .shift64-woo-search-block--modal.is-preview-open .shift64-woo-search-modal[hidden] {
     position: relative;
     inset: auto;
     z-index: auto;
@@ -266,6 +266,11 @@
     min-height: 56px;
     padding: 13px 54px 13px 18px;
     font-size: 18px;
+}
+
+.shift64-woo-search-block--modal .shift64-woo-search-modal__search .shift64-woo-search-field__input {
+    font-size: inherit;
+    line-height: inherit;
 }
 
 .shift64-woo-search-modal__search .shift64-woo-search-field {

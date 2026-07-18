@@ -79,7 +79,7 @@ class Shift64_Woo_Search_Blocks {
 				),
 				'textdomain'      => 'shift64-woo-search',
 				'attributes'      => $this->get_modal_attributes(),
-				'supports'        => $this->get_block_supports(),
+				'supports'        => $this->get_block_supports( false, true ),
 				'styles'          => $this->get_modal_styles(),
 				'style'           => 'shift64-woo-search',
 				'render_callback' => array( $this, 'render_modal_search_block' ),
@@ -90,7 +90,7 @@ class Shift64_Woo_Search_Blocks {
 	/**
 	 * Render the regular search block through the shortcode renderer.
 	 *
-	 * @param array<string, string> $attributes Block attributes.
+	 * @param array<string, mixed> $attributes Block attributes.
 	 * @return string
 	 */
 	public function render_search_block( $attributes ) {
@@ -164,9 +164,27 @@ class Shift64_Woo_Search_Blocks {
 	 * @return string
 	 */
 	public function render_modal_search_block( $attributes ) {
+		$html = $this->frontend->render_search_modal_shortcode( $attributes );
+		$html = str_replace(
+			array(
+				'class="shift64-woo-search-modal__trigger"',
+				'class="shift64-woo-search-field__submit"',
+			),
+			array(
+				'class="shift64-woo-search-modal__trigger wp-element-button"',
+				'class="shift64-woo-search-field__submit wp-element-button"',
+			),
+			$html
+		);
+
+		$class_name = 'shift64-woo-search-block shift64-woo-search-block--modal';
+		if ( ! empty( $attributes['preview'] ) ) {
+			$class_name .= ' is-preview-open';
+		}
+
 		return $this->wrap_block(
-			$this->frontend->render_search_modal_shortcode( $attributes ),
-			'shift64-woo-search-block shift64-woo-search-block--modal'
+			$html,
+			$class_name
 		);
 	}
 
@@ -242,6 +260,11 @@ class Shift64_Woo_Search_Blocks {
 					'enum'    => array( 'default', 'alternative' ),
 					'default' => 'default',
 				),
+				'preview'       => array(
+					'label'   => __( 'Show modal preview in editor', 'shift64-woo-search' ),
+					'type'    => 'boolean',
+					'default' => false,
+				),
 			)
 		);
 	}
@@ -250,9 +273,10 @@ class Shift64_Woo_Search_Blocks {
 	 * Native block design tools plus WordPress 7 PHP-only registration.
 	 *
 	 * @param bool $apply_colors_to_field Whether input colors are rendered on the field.
+	 * @param bool $button_colors_only    Whether to hide wrapper color controls.
 	 * @return array<string, mixed>
 	 */
-	private function get_block_supports( $apply_colors_to_field = false ) {
+	private function get_block_supports( $apply_colors_to_field = false, $button_colors_only = false ) {
 		global $wp_version;
 
 		$supports = array(
@@ -266,6 +290,7 @@ class Shift64_Woo_Search_Blocks {
 			),
 			'color'      => array(
 				'background' => true,
+				'button'     => true,
 				'gradients'  => true,
 				'text'       => true,
 			),
@@ -281,8 +306,9 @@ class Shift64_Woo_Search_Blocks {
 			),
 		);
 
-		if ( $apply_colors_to_field ) {
-			$supports['color']['button']                          = true;
+		if ( $button_colors_only ) {
+			$supports['color'] = array( 'button' => true );
+		} elseif ( $apply_colors_to_field ) {
 			$supports['color']['__experimentalSkipSerialization'] = array( 'text', 'background', 'gradients' );
 		}
 

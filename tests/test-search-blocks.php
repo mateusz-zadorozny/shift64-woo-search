@@ -94,6 +94,35 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'aria-label="Open catalog"', $html );
 		$this->assertStringContainsString( 'aria-label="Close catalog"', $html );
 		$this->assertStringContainsString( 'M544 513L397.2 364.2', $html );
+		$this->assertStringContainsString( 'shift64-woo-search-modal__trigger wp-element-button', $html );
+		$this->assertStringContainsString( 'shift64-woo-search-field__submit wp-element-button', $html );
+	}
+
+	/**
+	 * Native button colors target both primary buttons in the modal block.
+	 */
+	public function test_modal_block_applies_native_button_colors() {
+		$html = do_blocks(
+			'<!-- wp:shift64-woo-search/modal-search {"style":{"elements":{"button":{"color":{"text":"#ffffff","background":"#cc2244"}}}}} /-->'
+		);
+		$css  = wp_style_engine_get_stylesheet_from_context( 'block-supports' );
+
+		$this->assertMatchesRegularExpression( '/wp-elements-[a-f0-9]+/', $html );
+		$this->assertStringContainsString( 'shift64-woo-search-modal__trigger wp-element-button', $html );
+		$this->assertStringContainsString( 'shift64-woo-search-field__submit wp-element-button', $html );
+		$this->assertStringContainsString( 'background-color:#cc2244', $css );
+		$this->assertStringContainsString( 'color:#ffffff', $css );
+	}
+
+	/**
+	 * The modal preview is closed by default and can be enabled in the editor.
+	 */
+	public function test_modal_block_preview_is_opt_in() {
+		$closed = do_blocks( '<!-- wp:shift64-woo-search/modal-search /-->' );
+		$open   = do_blocks( '<!-- wp:shift64-woo-search/modal-search {"preview":true} /-->' );
+
+		$this->assertStringNotContainsString( 'is-preview-open', $closed );
+		$this->assertStringContainsString( 'shift64-woo-search-block--modal is-preview-open', $open );
 	}
 
 	/**
@@ -103,12 +132,14 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 		global $wp_version;
 
 		$block = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/search' );
+		$modal = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
 
 		if ( version_compare( $wp_version, '7.0', '>=' ) ) {
 			$this->assertTrue( $block->supports['autoRegister'] );
 			$this->assertTrue( $block->attributes['placeholder']['autoGenerateControl'] );
 			$this->assertTrue( $block->attributes['button']['autoGenerateControl'] );
 			$this->assertTrue( $block->attributes['label']['autoGenerateControl'] );
+			$this->assertTrue( $modal->attributes['preview']['autoGenerateControl'] );
 		} else {
 			$this->assertArrayNotHasKey( 'autoRegister', $block->supports );
 		}
@@ -120,7 +151,7 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	public function test_block_attributes_have_editor_labels() {
 		$block = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
 
-		foreach ( array( 'placeholder', 'button', 'label', 'trigger_label', 'close_label', 'clear_label', 'icon' ) as $attribute ) {
+		foreach ( array( 'placeholder', 'button', 'label', 'trigger_label', 'close_label', 'clear_label', 'icon', 'preview' ) as $attribute ) {
 			$this->assertNotEmpty( $block->attributes[ $attribute ]['label'] );
 		}
 
@@ -143,8 +174,13 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	 */
 	public function test_search_block_color_supports_target_field_and_button() {
 		$search = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/search' );
+		$modal  = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
 
 		$this->assertTrue( $search->supports['color']['button'] );
+		$this->assertTrue( $modal->supports['color']['button'] );
+		$this->assertArrayNotHasKey( 'text', $modal->supports['color'] );
+		$this->assertArrayNotHasKey( 'background', $modal->supports['color'] );
+		$this->assertArrayNotHasKey( 'gradients', $modal->supports['color'] );
 		$this->assertSame(
 			array( 'text', 'background', 'gradients' ),
 			$search->supports['color']['__experimentalSkipSerialization']
