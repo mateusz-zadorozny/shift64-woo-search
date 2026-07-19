@@ -8,7 +8,7 @@ This repository currently contains the `0.x` development line. The first public,
 
 - WordPress 6.0 or newer
 - WooCommerce
-- PHP 7.4 or newer with the `redis` extension
+- PHP 8.3 or newer with the `redis` extension
 - Redis Stack or another Redis deployment with the RediSearch module
 
 ## Search flow
@@ -47,12 +47,31 @@ wp shift64-woo-search test "search phrase"
 wp shift64-woo-search health
 ```
 
-## Search form shortcode
+## Search blocks
 
-Use the shortcode below in classic themes, widgets, or page-builder content:
+On WordPress 7.0 or newer, the editor exposes two server-rendered blocks without
+a plugin-specific editor bundle:
+
+- **Shift64 Product Search** — the full search field and submit button.
+- **Shift64 Modal Product Search** — a compact magnifier that opens the full-screen search.
+
+Both blocks provide inspector controls for their text and accessibility labels.
+The modal block also provides a choice of bundled search icons. Native block
+controls cover colors, typography, spacing, borders, alignment, and style
+variations. The editor uses the same PHP renderers as the frontend, including a
+contained open-modal preview.
+
+The blocks remain registered for server-side rendering on WordPress 6.x, but the
+automatic inserter and inspector UI require WordPress 7.0.
+
+## Search shortcodes
+
+Both renderers remain available as permanent shortcodes for classic themes,
+widgets, existing content, and page builders:
 
 ```text
 [shift64_woo_search]
+[shift64_woo_search_modal]
 ```
 
 It renders a native WooCommerce product search form and uses the plugin's default
@@ -61,6 +80,7 @@ be customized per instance:
 
 ```text
 [shift64_woo_search placeholder="Find products..." button="Go" label="Search the catalog"]
+[shift64_woo_search_modal placeholder="Find products..." button="Go" label="Search the catalog" trigger_label="Open product search" close_label="Close search" clear_label="Clear search" icon="alternative"]
 ```
 
 ## Development commands

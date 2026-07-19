@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Shift64 Woo Search
  * Description: Custom WooCommerce search engine powered by RediSearch. Ultra-fast autocomplete and full-text search.
- * Version: 0.4.0
+ * Version: 0.5.0
  * Author: Mateusz Zadorożny
  * Text Domain: shift64-woo-search
  * Domain Path: /languages
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constants.
-define( 'SHIFT64_WOO_SEARCH_VERSION', '0.4.0' );
+define( 'SHIFT64_WOO_SEARCH_VERSION', '0.5.0' );
 define( 'SHIFT64_WOO_SEARCH_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SHIFT64_WOO_SEARCH_URL', plugin_dir_url( __FILE__ ) );
 
@@ -58,6 +58,7 @@ require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-archiv
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-attribute-auto-register.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-taxonomy-archive.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'frontend/class-shift64-woo-search-frontend.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-blocks.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'frontend/class-shift64-woo-search-filters.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'admin/class-shift64-woo-search-admin.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'cli/class-shift64-woo-search-cli.php';
@@ -328,9 +329,12 @@ class Shift64_Woo_Search_Plugin {
 			new Shift64_Woo_Search_Admin();
 		}
 
-		// Frontend autocomplete and search.
+		// Shared shortcode renderers and dynamic blocks must also exist in the editor.
+		$frontend = new Shift64_Woo_Search_Frontend();
+		new Shift64_Woo_Search_Blocks( $frontend );
+
+		// Frontend autocomplete and search integrations.
 		if ( ! is_admin() ) {
-			new Shift64_Woo_Search_Frontend();
 			new Shift64_Woo_Search_Archive();
 			new Shift64_Woo_Search_Taxonomy_Archive();
 			new Shift64_Woo_Search_Filters();

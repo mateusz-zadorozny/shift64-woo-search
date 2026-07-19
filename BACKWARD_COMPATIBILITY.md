@@ -170,13 +170,23 @@ hash, not an IP — keep it that way.
 
 - `[shift64_woo_search_breadcrumbs]` — no attributes
   (`includes/class-shift64-woo-search-archive.php:99`)
+- `[shift64_woo_search]` — attributes: `placeholder`, `button`, `label`
+- `[shift64_woo_search_modal]` — attributes: `placeholder`, `button`, `label`,
+  `trigger_label`, `close_label`, `clear_label`, `icon`
 
 It lives in user content, which means a rename breaks pages the user wrote by hand and cannot be
 migrated by us. Treat the tag as permanent; if it must change, register the old tag as an alias
 and keep it.
 
-No blocks are registered (`register_block_type()` appears nowhere), despite the roadmap
-mentioning a search block. When blocks arrive, block names become a surface on this list.
+Registered dynamic block names:
+
+- `shift64-woo-search/search`
+- `shift64-woo-search/modal-search`
+
+Block names and attribute keys are persistent content APIs. The blocks share their PHP
+renderers with the shortcodes, so neither interface may be removed when the other changes.
+WordPress 7.0+ automatically exposes them in the editor through `autoRegister`; WordPress
+6.x keeps server-side rendering and shortcode compatibility.
 
 ## 9. Frontend assets
 

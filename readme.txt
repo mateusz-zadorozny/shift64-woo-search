@@ -4,7 +4,7 @@ Tags: woocommerce, search, redis, redisearch, autocomplete
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.3
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,7 +23,9 @@ Features include:
 * Product, category, attribute, and SKU search.
 * Search statistics and diagnostic tools.
 * WP-CLI commands for setup, indexing, tests, and health checks.
+* Shift64 Product Search and Shift64 Modal Product Search blocks on WordPress 7.0+.
 * A `[shift64_woo_search]` product search form shortcode for classic themes.
+* A `[shift64_woo_search_modal]` compact modal search shortcode for classic themes.
 
 The plugin requires Redis Stack, or another Redis server with RediSearch, and the PHP Redis extension.
 

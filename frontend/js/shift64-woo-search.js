@@ -14,14 +14,163 @@
 
     // ── State ──────────────────────────────────────────────────
     var instances = [];
+    var modalSearches = [];
 
     // ── Init ───────────────────────────────────────────────────
     function init() {
+        var modals = document.querySelectorAll('[data-shift64-woo-search-modal]');
+        modals.forEach(function (modal) {
+            modalSearches.push(new Shift64WooSearchModal(modal));
+        });
+
         var inputs = document.querySelectorAll(config.selectors);
         inputs.forEach(function (input) {
             instances.push(new Shift64WooSearch(input));
         });
     }
+
+    // ── Modal Controller ─────────────────────────────
+    function Shift64WooSearchModal(modal) {
+        this.modal = modal;
+        this.container = modal.closest('.shift64-woo-search-modal-shortcode');
+        this.trigger = this.container ? this.container.querySelector('[data-shift64-woo-search-modal-trigger]') : null;
+        this.closeButton = modal.querySelector('[data-shift64-woo-search-modal-close]');
+        this.clearButton = modal.querySelector('[data-shift64-woo-search-clear]');
+        this.input = modal.querySelector('.shift64-woo-search-field__input');
+        this.isOpen = false;
+
+        if (!this.trigger || !this.closeButton || !this.input) return;
+        this.removeAutopArtifacts();
+        document.body.appendChild(this.modal);
+        this.bindEvents();
+        this.syncClearButton();
+    }
+
+    Shift64WooSearchModal.prototype.removeAutopArtifacts = function () {
+        this.container.querySelectorAll('br').forEach(function (breakElement) {
+            breakElement.remove();
+        });
+
+        this.modal.querySelectorAll('p').forEach(function (paragraph) {
+            while (paragraph.firstChild) {
+                paragraph.parentNode.insertBefore(paragraph.firstChild, paragraph);
+            }
+            paragraph.remove();
+        });
+    };
+
+    Shift64WooSearchModal.prototype.bindEvents = function () {
+        var self = this;
+
+        this.trigger.addEventListener('click', function () {
+            self.open();
+        });
+
+        this.closeButton.addEventListener('click', function () {
+            self.close();
+        });
+
+        this.input.addEventListener('input', function () {
+            self.syncClearButton();
+        });
+
+        if (this.clearButton) {
+            this.clearButton.addEventListener('click', function () {
+                self.input.value = '';
+                self.input.dispatchEvent(new Event('input', { bubbles: true }));
+                self.input.focus();
+            });
+        }
+
+        this.modal.addEventListener('click', function (event) {
+            if (event.target === self.modal) {
+                self.close();
+            }
+        });
+
+        this.modal.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                self.close();
+                return;
+            }
+
+            if (event.key === 'Tab') {
+                self.trapFocus(event);
+            }
+        });
+    };
+
+    Shift64WooSearchModal.prototype.open = function () {
+        var self = this;
+        if (this.isOpen) return;
+
+        modalSearches.forEach(function (modalSearch) {
+            if (modalSearch !== self && modalSearch.isOpen) {
+                modalSearch.close(false);
+            }
+        });
+
+        this.isOpen = true;
+        this.modal.hidden = false;
+        this.trigger.setAttribute('aria-expanded', 'true');
+        document.body.classList.add('shift64-woo-search-modal-open');
+        this.syncClearButton();
+
+        window.setTimeout(function () {
+            self.input.focus();
+        }, 0);
+    };
+
+    Shift64WooSearchModal.prototype.close = function (restoreFocus) {
+        if (!this.isOpen) return;
+
+        this.isOpen = false;
+        this.modal.hidden = true;
+        this.trigger.setAttribute('aria-expanded', 'false');
+        this.input.blur();
+        this.input.dispatchEvent(new Event('shift64WooSearchClose'));
+
+        var dropdown = this.modal.querySelector('.shift64-woo-search-results');
+        if (dropdown) {
+            dropdown.classList.remove('shift64-woo-search-results--visible');
+        }
+        this.input.setAttribute('aria-expanded', 'false');
+
+        var hasOpenModal = modalSearches.some(function (modalSearch) {
+            return modalSearch.isOpen;
+        });
+        if (!hasOpenModal) {
+            document.body.classList.remove('shift64-woo-search-modal-open');
+        }
+
+        if (restoreFocus !== false) {
+            this.trigger.focus();
+        }
+    };
+
+    Shift64WooSearchModal.prototype.trapFocus = function (event) {
+        var focusable = this.modal.querySelectorAll(
+            'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusable.length) return;
+
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    };
+
+    Shift64WooSearchModal.prototype.syncClearButton = function () {
+        if (!this.clearButton) return;
+        this.clearButton.hidden = !this.input.value;
+    };
 
     // ── Constructor ────────────────────────────────────────────
     function Shift64WooSearch(input) {
@@ -46,6 +195,7 @@
         // Use the outer search wrapper as positioning context — .shift64-woo-search-field
         // has overflow:hidden (for border-radius) which clips the dropdown.
         var wrapper = this.input.closest('.shift64-woo-search-main-header__search, .shift64-woo-search-header-search')
+            || this.input.closest('.shift64-woo-search-shortcode')
             || this.input.closest('.shift64-woo-search-field')
             || this.input.parentElement;
         wrapper.style.position = 'relative';
@@ -81,6 +231,10 @@
 
         this.input.addEventListener('keydown', function (e) {
             self.onKeydown(e);
+        });
+
+        this.input.addEventListener('shift64WooSearchClose', function () {
+            self.close();
         });
 
         this.input.addEventListener('focus', function () {
@@ -429,11 +583,13 @@
     Shift64WooSearch.prototype.show = function () {
         this.dropdown.classList.add('shift64-woo-search-results--visible');
         this.overlay.classList.add('shift64-woo-search-results__overlay--visible');
+        this.input.setAttribute('aria-expanded', 'true');
     };
 
     Shift64WooSearch.prototype.close = function () {
         this.dropdown.classList.remove('shift64-woo-search-results--visible');
         this.overlay.classList.remove('shift64-woo-search-results__overlay--visible');
+        this.input.setAttribute('aria-expanded', 'false');
         this.activeIndex = -1;
         // Collapse wrapper back when input is empty.
         if (!this.input.value.trim()) {

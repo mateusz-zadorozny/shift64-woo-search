@@ -27,6 +27,7 @@ class Shift64_Woo_Search_Frontend {
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_shortcode( 'shift64_woo_search', array( $this, 'render_search_shortcode' ) );
+		add_shortcode( 'shift64_woo_search_modal', array( $this, 'render_search_modal_shortcode' ) );
 	}
 
 	/**
@@ -80,8 +81,121 @@ class Shift64_Woo_Search_Frontend {
 		</div>
 		<?php
 
-		return (string) ob_get_clean();
+		$html = (string) ob_get_clean();
+		$html = preg_replace( '/>\s+</', '><', $html );
+
+		return is_string( $html ) ? $html : '';
 	}
+
+	/**
+	 * Render a compact search trigger that opens the product search in a modal.
+	 *
+	 * This variant is intended for headers and other narrow layouts. The form uses
+	 * the same input selector and native WooCommerce fallback as the regular search
+	 * shortcode, so the existing autocomplete script enhances it automatically.
+	 *
+	 * @param array<string, string> $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function render_search_modal_shortcode( $atts = array() ) {
+		static $instance = 0;
+
+		$this->enqueue_assets();
+
+		$atts = shortcode_atts(
+			array(
+				'placeholder'   => __( 'Search products...', 'shift64-woo-search' ),
+				'button'        => __( 'Search', 'shift64-woo-search' ),
+				'label'         => __( 'Search products', 'shift64-woo-search' ),
+				'trigger_label' => __( 'Open product search', 'shift64-woo-search' ),
+				'close_label'   => __( 'Close search', 'shift64-woo-search' ),
+				'clear_label'   => __( 'Clear search', 'shift64-woo-search' ),
+				'icon'          => 'default',
+			),
+			$atts,
+			'shift64_woo_search_modal'
+		);
+
+		++$instance;
+		$modal_id = 'shift64-woo-search-modal-' . $instance;
+		$input_id = 'shift64-woo-search-modal-input-' . $instance;
+		$title_id = 'shift64-woo-search-modal-title-' . $instance;
+
+		$icon_variant     = in_array( $atts['icon'], array( 'default', 'alternative' ), true ) ? $atts['icon'] : 'default';
+		$search_icon_path = 'alternative' === $icon_variant
+			? 'M544 513L397.2 364.2C417.2 336.3 429.1 302 429.1 265C429.1 171.9 354.4 96.1 262.6 96.1C170.7 96 96 171.8 96 264.9C96 358 170.7 433.8 262.5 433.8C302.3 433.8 338.8 419.6 367.5 395.9L513.5 544L544 513zM262.5 394.8C191.9 394.8 134.4 336.5 134.4 264.9C134.4 193.3 191.9 135 262.5 135C333.1 135 390.6 193.3 390.6 264.9C390.6 336.5 333.2 394.8 262.5 394.8z'
+			: 'M480 272C480 317.9 465.1 360.3 440 394.7L566.6 521.4C579.1 533.9 579.1 554.2 566.6 566.7C554.1 579.2 533.8 579.2 521.3 566.7L394.7 440C360.3 465.1 317.9 480 272 480C157.1 480 64 386.9 64 272C64 157.1 157.1 64 272 64C386.9 64 480 157.1 480 272zM272 416C351.5 416 416 351.5 416 272C416 192.5 351.5 128 272 128C192.5 128 128 192.5 128 272C128 351.5 192.5 416 272 416z';
+
+		ob_start();
+		?>
+		<div class="shift64-woo-search-modal-shortcode">
+			<button
+				type="button"
+				class="shift64-woo-search-modal__trigger"
+				aria-label="<?php echo esc_attr( $atts['trigger_label'] ); ?>"
+				aria-controls="<?php echo esc_attr( $modal_id ); ?>"
+				aria-expanded="false"
+				aria-haspopup="dialog"
+				data-shift64-woo-search-modal-trigger
+			>
+				<svg class="shift64-woo-search-icon shift64-woo-search-icon--search" aria-hidden="true" focusable="false" viewBox="0 0 640 640" width="24" height="24" fill="currentColor">
+					<path d="<?php echo esc_attr( $search_icon_path ); ?>"></path>
+				</svg>
+			</button>
+
+			<div id="<?php echo esc_attr( $modal_id ); ?>" class="shift64-woo-search-modal" data-shift64-woo-search-modal hidden>
+				<div class="shift64-woo-search-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr( $title_id ); ?>">
+					<h2 id="<?php echo esc_attr( $title_id ); ?>" class="screen-reader-text"><?php echo esc_html( $atts['label'] ); ?></h2>
+					<button type="button" class="shift64-woo-search-modal__close" aria-label="<?php echo esc_attr( $atts['close_label'] ); ?>" data-shift64-woo-search-modal-close>
+						<svg class="shift64-woo-search-icon shift64-woo-search-icon--close" aria-hidden="true" focusable="false" viewBox="0 0 640 640" width="24" height="24" fill="currentColor">
+							<path d="M183.1 137.4C170.6 124.9 150.3 124.9 137.8 137.4C125.3 149.9 125.3 170.2 137.8 182.7L275.2 320L137.9 457.4C125.4 469.9 125.4 490.2 137.9 502.7C150.4 515.2 170.7 515.2 183.2 502.7L320.5 365.3L457.9 502.6C470.4 515.1 490.7 515.1 503.2 502.6C515.7 490.1 515.7 469.8 503.2 457.3L365.8 320L503.1 182.6C515.6 170.1 515.6 149.8 503.1 137.3C490.6 124.8 470.3 124.8 457.8 137.3L320.5 274.7L183.1 137.4z"></path>
+						</svg>
+					</button>
+
+					<div class="shift64-woo-search-shortcode shift64-woo-search-modal__search">
+						<form role="search" method="get" class="shift64-woo-search-field" action="<?php echo esc_url( home_url( '/' ) ); ?>">
+							<label class="screen-reader-text" for="<?php echo esc_attr( $input_id ); ?>"><?php echo esc_html( $atts['label'] ); ?></label>
+							<div class="shift64-woo-search-field__controls">
+								<div class="shift64-woo-search-field__input-wrap">
+									<input
+										type="search"
+										id="<?php echo esc_attr( $input_id ); ?>"
+										class="shift64-woo-search-field__input"
+										name="s"
+										value="<?php echo esc_attr( get_search_query( false ) ); ?>"
+										placeholder="<?php echo esc_attr( $atts['placeholder'] ); ?>"
+										autocomplete="off"
+										enterkeyhint="search"
+										aria-autocomplete="list"
+										aria-expanded="false"
+									>
+									<button type="button" class="shift64-woo-search-field__clear" aria-label="<?php echo esc_attr( $atts['clear_label'] ); ?>" data-shift64-woo-search-clear hidden>
+										<svg class="shift64-woo-search-icon shift64-woo-search-icon--clear" aria-hidden="true" focusable="false" viewBox="0 0 640 640" width="18" height="18" fill="currentColor">
+											<path d="M183.1 137.4C170.6 124.9 150.3 124.9 137.8 137.4C125.3 149.9 125.3 170.2 137.8 182.7L275.2 320L137.9 457.4C125.4 469.9 125.4 490.2 137.9 502.7C150.4 515.2 170.7 515.2 183.2 502.7L320.5 365.3L457.9 502.6C470.4 515.1 490.7 515.1 503.2 502.6C515.7 490.1 515.7 469.8 503.2 457.3L365.8 320L503.1 182.6C515.6 170.1 515.6 149.8 503.1 137.3C490.6 124.8 470.3 124.8 457.8 137.3L320.5 274.7L183.1 137.4z"></path>
+										</svg>
+									</button>
+								</div>
+								<input type="hidden" name="post_type" value="product">
+								<button type="submit" class="shift64-woo-search-field__submit" aria-label="<?php echo esc_attr( $atts['button'] ); ?>">
+									<svg class="shift64-woo-search-icon shift64-woo-search-icon--search" aria-hidden="true" focusable="false" viewBox="0 0 640 640" width="22" height="22" fill="currentColor">
+										<path d="<?php echo esc_attr( $search_icon_path ); ?>"></path>
+									</svg>
+									<span class="screen-reader-text"><?php echo esc_html( $atts['button'] ); ?></span>
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+		<?php
+
+		$html = (string) ob_get_clean();
+		$html = preg_replace( '/>\s+</', '><', $html );
+
+		return is_string( $html ) ? $html : '';
+	}
+
 
 	/**
 	 * Enqueue search JS and CSS on the frontend.
