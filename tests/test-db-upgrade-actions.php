@@ -37,7 +37,6 @@ class Db_Upgrade_Actions_Test extends WP_UnitTestCase {
 	private function run_upgrade_check() {
 		$plugin = Shift64_Woo_Search_Plugin::get_instance();
 		$method = new ReflectionMethod( Shift64_Woo_Search_Plugin::class, 'maybe_create_tables' );
-		$method->setAccessible( true );
 		$method->invoke( $plugin );
 	}
 
@@ -49,7 +48,6 @@ class Db_Upgrade_Actions_Test extends WP_UnitTestCase {
 	private function get_upgrade_actions() {
 		$plugin = Shift64_Woo_Search_Plugin::get_instance();
 		$method = new ReflectionMethod( Shift64_Woo_Search_Plugin::class, 'get_db_upgrade_actions' );
-		$method->setAccessible( true );
 		return $method->invoke( $plugin );
 	}
 
