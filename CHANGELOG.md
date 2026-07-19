@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.4.0...v0.5.0) (2026-07-19)
+
+
+### Features
+
+* add PHP-only product search blocks ([#9](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/9)) ([349f616](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/349f6164d465d351fb498e150b3e27b6606f82b1))
+
 # [0.4.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.3.0...v0.4.0) (2026-07-17)
 
 
