@@ -252,6 +252,12 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 			$this->assertStringContainsString( "'" . $label . "'", $script );
 		}
 		$this->assertStringContainsString( 'color: false', $script );
+		$this->assertTrue(
+			strpos( $script, "title: __( 'Trigger button'" ) < strpos( $script, "title: __( 'Color of search box and button'" )
+		);
+		$this->assertTrue(
+			strpos( $script, "title: __( 'Color of search box and button'" ) < strpos( $script, "title: __( 'Modal'" )
+		);
 	}
 
 	/**
