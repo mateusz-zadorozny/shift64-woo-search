@@ -136,6 +136,7 @@ class Shift64_Woo_Search_Blocks {
 			'trigger_icon_size',
 			'modal_search_style',
 			'modal_background_color',
+			'modal_background_transparency',
 		);
 
 		foreach ( $custom_controls as $attribute ) {
@@ -292,13 +293,18 @@ class Shift64_Woo_Search_Blocks {
 			$class_names[] = $styles['classnames'];
 		}
 
-		$css              = $styles['css'] ?? '';
-		$modal_background = isset( $attributes['modal_background_color'] )
+		$css                = $styles['css'] ?? '';
+		$modal_background   = isset( $attributes['modal_background_color'] )
 			? $this->sanitize_css_color( $attributes['modal_background_color'] )
 			: '';
+		$transparency       = isset( $attributes['modal_background_transparency'] )
+			? min( 100, max( 0, absint( $attributes['modal_background_transparency'] ) ) )
+			: 17;
+		$background_opacity = 100 - $transparency;
 		if ( $modal_background ) {
-			$css .= '--s64ws-modal-background:' . $modal_background . ';';
+			$css .= '--s64ws-modal-background-color:' . $modal_background . ';';
 		}
+		$css .= '--s64ws-modal-background-opacity:' . $background_opacity . '%;';
 
 		$modal_attributes = 'class="' . esc_attr( implode( ' ', array_unique( $class_names ) ) ) . '"';
 		if ( $css ) {
@@ -429,75 +435,80 @@ class Shift64_Woo_Search_Blocks {
 		return array_merge(
 			$this->get_search_attributes(),
 			array(
-				'trigger_label'               => array(
+				'trigger_label'                 => array(
 					'label'   => __( 'Open button label', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'default' => __( 'Open product search', 'shift64-woo-search' ),
 				),
-				'close_label'                 => array(
+				'close_label'                   => array(
 					'label'   => __( 'Close button label', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'default' => __( 'Close search', 'shift64-woo-search' ),
 				),
-				'clear_label'                 => array(
+				'clear_label'                   => array(
 					'label'   => __( 'Clear button label', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'default' => __( 'Clear search', 'shift64-woo-search' ),
 				),
-				'icon'                        => array(
+				'icon'                          => array(
 					'label'   => __( 'Search icon', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'enum'    => array( 'default', 'alternative' ),
 					'default' => 'default',
 				),
-				'trigger_style'               => array(
+				'trigger_style'                 => array(
 					'label'   => __( 'Trigger button style', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'enum'    => array( 'icon', 'background', 'outline' ),
 					'default' => 'icon',
 				),
-				'trigger_icon_color'          => array(
+				'trigger_icon_color'            => array(
 					'label'   => __( 'Trigger icon color', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'default' => '',
 				),
-				'trigger_icon_hover_color'    => array(
+				'trigger_icon_hover_color'      => array(
 					'label'   => __( 'Trigger icon hover color', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'default' => '',
 				),
-				'trigger_surface_color'       => array(
+				'trigger_surface_color'         => array(
 					'label'   => __( 'Trigger background or outline color', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'default' => '',
 				),
-				'trigger_surface_hover_color' => array(
+				'trigger_surface_hover_color'   => array(
 					'label'   => __( 'Trigger background or outline hover color', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'default' => '',
 				),
-				'trigger_border_radius'       => array(
+				'trigger_border_radius'         => array(
 					'label'   => __( 'Trigger border radius', 'shift64-woo-search' ),
 					'type'    => 'integer',
 					'default' => 50,
 				),
-				'trigger_icon_size'           => array(
+				'trigger_icon_size'             => array(
 					'label'   => __( 'Trigger icon size', 'shift64-woo-search' ),
 					'type'    => 'integer',
 					'default' => 24,
 				),
-				'modal_search_style'          => array(
+				'modal_search_style'            => array(
 					'label'   => __( 'Modal search field style', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'enum'    => array( 'default', 'pill', 'minimal' ),
 					'default' => 'default',
 				),
-				'modal_background_color'      => array(
+				'modal_background_color'        => array(
 					'label'   => __( 'Modal background color', 'shift64-woo-search' ),
 					'type'    => 'string',
 					'default' => '',
 				),
-				'preview'                     => array(
+				'modal_background_transparency' => array(
+					'label'   => __( 'Modal background transparency', 'shift64-woo-search' ),
+					'type'    => 'integer',
+					'default' => 17,
+				),
+				'preview'                       => array(
 					'label'   => __( 'Show modal preview in editor', 'shift64-woo-search' ),
 					'type'    => 'boolean',
 					'default' => false,

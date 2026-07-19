@@ -169,6 +169,8 @@
 }
 
 .shift64-woo-search-block--modal .shift64-woo-search-modal__trigger {
+    width: max(44px, calc(var(--s64ws-trigger-icon-size, 24px) + 20px));
+    height: max(44px, calc(var(--s64ws-trigger-icon-size, 24px) + 20px));
     border: 1px solid transparent;
     border-radius: var(--s64ws-trigger-radius, 50px);
 }
@@ -295,7 +297,12 @@
     justify-content: center;
     padding: 24px;
     overflow-y: auto;
-    background: var(--s64ws-modal-background, rgba(0, 0, 0, 0.83));
+    background: rgba(0, 0, 0, 0.83);
+    background: color-mix(
+        in srgb,
+        var(--s64ws-modal-background-color, #000) var(--s64ws-modal-background-opacity, 83%),
+        transparent
+    );
     animation: s64ws-modal-fade-in 0.18s ease-out;
 }
 

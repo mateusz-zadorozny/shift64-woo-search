@@ -86,7 +86,7 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	 */
 	public function test_modal_block_renders_custom_icon_and_labels() {
 		$html = do_blocks(
-			'<!-- wp:shift64-woo-search/modal-search {"icon":"alternative","trigger_label":"Open catalog","close_label":"Close catalog","trigger_style":"outline","modal_search_style":"pill","trigger_icon_color":"#123456","trigger_icon_hover_color":"#abcdef","trigger_surface_color":"#234567","trigger_surface_hover_color":"#bcdef0","trigger_border_radius":8,"trigger_icon_size":32,"modal_background_color":"rgba(10,20,30,0.8)"} /-->'
+			'<!-- wp:shift64-woo-search/modal-search {"icon":"alternative","trigger_label":"Open catalog","close_label":"Close catalog","trigger_style":"outline","modal_search_style":"pill","trigger_icon_color":"#123456","trigger_icon_hover_color":"#abcdef","trigger_surface_color":"#234567","trigger_surface_hover_color":"#bcdef0","trigger_border_radius":8,"trigger_icon_size":32,"modal_background_color":"#0a141e","modal_background_transparency":40} /-->'
 		);
 
 		$this->assertStringContainsString( 'wp-block-shift64-woo-search-modal-search', $html );
@@ -103,8 +103,9 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( '--s64ws-trigger-surface-hover-color:#bcdef0', $html );
 		$this->assertStringContainsString( '--s64ws-trigger-radius:8px', $html );
 		$this->assertStringContainsString( '--s64ws-trigger-icon-size:32px', $html );
-		$this->assertStringContainsString( '--s64ws-modal-background:rgba(10,20,30,0.8)', $html );
-		$this->assertMatchesRegularExpression( '/class="shift64-woo-search-modal shift64-woo-search-modal--block[^"]*" style="[^"]*--s64ws-modal-background:rgba\(10,20,30,0.8\);/', $html );
+		$this->assertStringContainsString( '--s64ws-modal-background-color:#0a141e', $html );
+		$this->assertStringContainsString( '--s64ws-modal-background-opacity:60%', $html );
+		$this->assertMatchesRegularExpression( '/class="shift64-woo-search-modal shift64-woo-search-modal--block[^"]*" style="[^"]*--s64ws-modal-background-color:#0a141e;--s64ws-modal-background-opacity:60%;/', $html );
 		$this->assertStringNotContainsString( 'shift64-woo-search-modal__trigger wp-element-button', $html );
 		$this->assertStringContainsString( 'shift64-woo-search-field__submit wp-element-button', $html );
 	}
@@ -191,7 +192,7 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	public function test_block_attributes_have_editor_labels() {
 		$block = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
 
-		foreach ( array( 'placeholder', 'button', 'label', 'trigger_label', 'close_label', 'clear_label', 'icon', 'preview', 'trigger_style', 'trigger_icon_color', 'trigger_icon_hover_color', 'trigger_surface_color', 'trigger_surface_hover_color', 'trigger_border_radius', 'trigger_icon_size', 'modal_search_style', 'modal_background_color' ) as $attribute ) {
+		foreach ( array( 'placeholder', 'button', 'label', 'trigger_label', 'close_label', 'clear_label', 'icon', 'preview', 'trigger_style', 'trigger_icon_color', 'trigger_icon_hover_color', 'trigger_surface_color', 'trigger_surface_hover_color', 'trigger_border_radius', 'trigger_icon_size', 'modal_search_style', 'modal_background_color', 'modal_background_transparency' ) as $attribute ) {
 			$this->assertNotEmpty( $block->attributes[ $attribute ]['label'] );
 		}
 
@@ -247,9 +248,10 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 		$script = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'admin/js/shift64-woo-search-block-editor.js' );
 
 		$this->assertStringContainsString( "'blocks.registerBlockType'", $script );
-		foreach ( array( 'Button style', 'Icon size', 'Border radius', 'Icon color', 'Icon hover color', 'Background or outline color', 'Background or outline hover color', 'Search field style', 'Modal background color', 'Show preview in editor' ) as $label ) {
+		foreach ( array( 'Button style', 'Icon size', 'Border radius', 'Icon color', 'Icon hover color', 'Background or outline color', 'Background or outline hover color', 'Color of search box and button', 'Search box text', 'Search box background', 'Search button text', 'Search button background', 'Search field style', 'Modal background color', 'Modal transparency', 'Show preview in editor' ) as $label ) {
 			$this->assertStringContainsString( "'" . $label . "'", $script );
 		}
+		$this->assertStringContainsString( 'color: false', $script );
 	}
 
 	/**
@@ -264,6 +266,10 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 		);
 		$this->assertMatchesRegularExpression(
 			'/\.is-preview-open \.shift64-woo-search-modal\[hidden\]\s*\{[^}]*align-self:\s*stretch;[^}]*width:\s*100%;[^}]*margin-top:\s*12px;/s',
+			$css
+		);
+		$this->assertMatchesRegularExpression(
+			'/\.shift64-woo-search-block--modal \.shift64-woo-search-modal__trigger\s*\{[^}]*width:\s*max\(44px, calc\(var\(--s64ws-trigger-icon-size, 24px\) \+ 20px\)\);[^}]*height:\s*max\(44px, calc\(var\(--s64ws-trigger-icon-size, 24px\) \+ 20px\)\);/s',
 			$css
 		);
 	}
