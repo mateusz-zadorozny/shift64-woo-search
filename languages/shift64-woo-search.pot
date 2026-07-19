@@ -2,20 +2,20 @@
 # This file is distributed under the same license as the Shift64 Woo Search plugin.
 msgid ""
 msgstr ""
-"Project-Id-Version: Shift64 Woo Search 0.1.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/shift64-woo-search-main\n"
+"Project-Id-Version: Shift64 Woo Search 0.4.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/shift64-woo-search\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-16T15:31:58+00:00\n"
+"POT-Creation-Date: 2026-07-19T09:20:16+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: shift64-woo-search\n"
 
 #. Plugin Name of the plugin
-#: shift64-woo-search.php
+#: shift64-woo-search.php:3
 #: admin/class-shift64-woo-search-admin.php:70
 #: admin/class-shift64-woo-search-admin.php:71
 #: admin/class-shift64-woo-search-admin.php:146
@@ -25,12 +25,12 @@ msgid "Shift64 Woo Search"
 msgstr ""
 
 #. Description of the plugin
-#: shift64-woo-search.php
+#: shift64-woo-search.php:4
 msgid "Custom WooCommerce search engine powered by RediSearch. Ultra-fast autocomplete and full-text search."
 msgstr ""
 
 #. Author of the plugin
-#: shift64-woo-search.php
+#: shift64-woo-search.php:6
 msgid "Mateusz Zadorożny"
 msgstr ""
 
@@ -80,6 +80,9 @@ msgstr ""
 
 #: admin/class-shift64-woo-search-admin.php:135
 #: admin/class-shift64-woo-search-admin.php:186
+#: frontend/class-shift64-woo-search-frontend.php:51
+#: frontend/class-shift64-woo-search-frontend.php:108
+#: includes/class-shift64-woo-search-blocks.php:463
 msgid "Search"
 msgstr ""
 
@@ -899,23 +902,50 @@ msgid_plural "%d selected"
 msgstr[0] ""
 msgstr[1] ""
 
-#: frontend/class-shift64-woo-search-frontend.php:58
+#: frontend/class-shift64-woo-search-frontend.php:50
+#: frontend/class-shift64-woo-search-frontend.php:107
+#: includes/class-shift64-woo-search-blocks.php:458
+msgid "Search products..."
+msgstr ""
+
+#: frontend/class-shift64-woo-search-frontend.php:52
+#: frontend/class-shift64-woo-search-frontend.php:109
+#: includes/class-shift64-woo-search-blocks.php:468
+msgid "Search products"
+msgstr ""
+
+#: frontend/class-shift64-woo-search-frontend.php:110
+#: includes/class-shift64-woo-search-blocks.php:485
+msgid "Open product search"
+msgstr ""
+
+#: frontend/class-shift64-woo-search-frontend.php:111
+#: includes/class-shift64-woo-search-blocks.php:490
+msgid "Close search"
+msgstr ""
+
+#: frontend/class-shift64-woo-search-frontend.php:112
+#: includes/class-shift64-woo-search-blocks.php:495
+msgid "Clear search"
+msgstr ""
+
+#: frontend/class-shift64-woo-search-frontend.php:240
 msgid "No products found"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:59
+#: frontend/class-shift64-woo-search-frontend.php:241
 msgid "See all results"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:60
+#: frontend/class-shift64-woo-search-frontend.php:242
 msgid "SEARCH SUGGESTIONS"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:61
+#: frontend/class-shift64-woo-search-frontend.php:243
 msgid "CATEGORIES"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:62
+#: frontend/class-shift64-woo-search-frontend.php:244
 msgid "PRODUCTS"
 msgstr ""
 
@@ -944,21 +974,261 @@ msgstr ""
 msgid "Search results for: \"%s\""
 msgstr ""
 
+#: includes/class-shift64-woo-search-blocks.php:64
+msgid "Shift64 Product Search"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:67
+msgid "A product search form with Shift64 autocomplete."
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:70
+#: includes/class-shift64-woo-search-blocks.php:92
+msgid "products"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:71
+msgid "WooCommerce"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:86
+msgid "Shift64 Modal Product Search"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:89
+msgid "A compact search icon that opens the Shift64 product search modal."
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:93
+msgid "modal"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:456
+msgid "Placeholder"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:461
+msgid "Search button text"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:466
+msgid "Accessible search label"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:483
+msgid "Open button label"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:488
+msgid "Close button label"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:493
+msgid "Clear button label"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:498
+#: admin/js/shift64-woo-search-block-editor.js:92
+msgid "Search icon"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:504
+msgid "Trigger button style"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:510
+msgid "Trigger icon color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:515
+msgid "Trigger icon hover color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:520
+msgid "Trigger background or outline color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:525
+msgid "Trigger background or outline hover color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:530
+msgid "Trigger border radius"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:535
+msgid "Trigger icon size"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:540
+msgid "Modal search field style"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:546
+#: admin/js/shift64-woo-search-block-editor.js:233
+msgid "Modal background color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:551
+msgid "Modal background transparency"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:556
+msgid "Search input text color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:561
+msgid "Search input background color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:566
+msgid "Search button icon color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:571
+msgid "Search button background color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:576
+msgid "Search button icon hover color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:581
+msgid "Search button background hover color"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:586
+msgid "Show modal preview in editor"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:654
+#: admin/js/shift64-woo-search-block-editor.js:224
+msgid "Pill"
+msgstr ""
+
+#: includes/class-shift64-woo-search-blocks.php:658
+#: admin/js/shift64-woo-search-block-editor.js:225
+msgid "Minimal"
+msgstr ""
+
 #: shift64-woo-search.php:37
 msgid "Shift64 Woo Search requires WooCommerce to be active."
 msgstr ""
 
-#: shift64-woo-search.php:505
-#: shift64-woo-search.php:518
+#: shift64-woo-search.php:509
+#: shift64-woo-search.php:522
 msgid "Shift64 Woo Search:"
 msgstr ""
 
-#: shift64-woo-search.php:506
+#: shift64-woo-search.php:510
 msgid "Redis connection not configured. Run: wp shift64-woo-search setup"
 msgstr ""
 
 #. translators: %1$s: Redis host, %2$s: Redis port.
-#: shift64-woo-search.php:522
+#: shift64-woo-search.php:526
 #, php-format
 msgid "Cannot connect to Redis at %1$s:%2$s. Search will fall back to default WooCommerce search."
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:55
+msgid "Modal preview"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:59
+msgid "Show preview in editor"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:75
+msgid "Trigger button"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:79
+msgid "Button style"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:82
+msgid "Icon only"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:83
+#: admin/js/shift64-woo-search-block-editor.js:168
+#: admin/js/shift64-woo-search-block-editor.js:190
+msgid "Background"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:84
+msgid "Outline"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:95
+#: admin/js/shift64-woo-search-block-editor.js:223
+msgid "Default"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:96
+msgid "Alternative"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:104
+msgid "Icon size"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:115
+msgid "Border radius"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:126
+msgid "Icon color"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:133
+msgid "Icon hover color"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:140
+msgid "Background or outline color"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:147
+msgid "Background or outline hover color"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:157
+msgid "Search box input color"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:161
+msgid "Text"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:179
+msgid "Search button color"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:183
+msgid "Icon"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:198
+msgid "Icon hover"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:205
+msgid "Background hover"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:216
+msgid "Modal"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:220
+msgid "Search field style"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:240
+msgid "Modal transparency"
+msgstr ""
+
+#: admin/js/shift64-woo-search-block-editor.js:245
+msgid "0% is opaque; 100% is fully transparent."
 msgstr ""

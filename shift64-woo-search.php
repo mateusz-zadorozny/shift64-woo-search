@@ -56,6 +56,7 @@ require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-archiv
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-attribute-auto-register.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-taxonomy-archive.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'frontend/class-shift64-woo-search-frontend.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-blocks.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'frontend/class-shift64-woo-search-filters.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'admin/class-shift64-woo-search-admin.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'cli/class-shift64-woo-search-cli.php';
@@ -326,9 +327,12 @@ class Shift64_Woo_Search_Plugin {
 			new Shift64_Woo_Search_Admin();
 		}
 
-		// Frontend autocomplete and search.
+		// Shared shortcode renderers and dynamic blocks must also exist in the editor.
+		$frontend = new Shift64_Woo_Search_Frontend();
+		new Shift64_Woo_Search_Blocks( $frontend );
+
+		// Frontend autocomplete and search integrations.
 		if ( ! is_admin() ) {
-			new Shift64_Woo_Search_Frontend();
 			new Shift64_Woo_Search_Archive();
 			new Shift64_Woo_Search_Taxonomy_Archive();
 			new Shift64_Woo_Search_Filters();
