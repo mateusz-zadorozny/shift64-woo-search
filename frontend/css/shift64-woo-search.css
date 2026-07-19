@@ -169,8 +169,8 @@
 }
 
 .shift64-woo-search-block--modal .shift64-woo-search-modal__trigger {
-    width: calc(var(--s64ws-trigger-icon-size, 24px) + 20px);
-    height: calc(var(--s64ws-trigger-icon-size, 24px) + 20px);
+    width: calc(var(--s64ws-trigger-icon-size, 24px) + var(--s64ws-trigger-padding, 10px) + var(--s64ws-trigger-padding, 10px));
+    height: calc(var(--s64ws-trigger-icon-size, 24px) + var(--s64ws-trigger-padding, 10px) + var(--s64ws-trigger-padding, 10px));
     border: 1px solid transparent;
     border-radius: var(--s64ws-trigger-radius, 50px);
 }
@@ -206,6 +206,7 @@
 .shift64-woo-search-block--modal.has-trigger-style-outline .shift64-woo-search-modal__trigger {
     color: var(--s64ws-trigger-icon-color, currentColor);
     background: transparent;
+    border-width: var(--s64ws-trigger-outline-width, 1px);
     border-color: var(--s64ws-trigger-surface-color, currentColor);
 }
 

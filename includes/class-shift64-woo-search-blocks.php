@@ -134,6 +134,8 @@ class Shift64_Woo_Search_Blocks {
 			'trigger_surface_hover_color',
 			'trigger_border_radius',
 			'trigger_icon_size',
+			'trigger_padding',
+			'trigger_outline_width',
 			'modal_search_style',
 			'modal_background_color',
 			'modal_background_transparency',
@@ -229,8 +231,16 @@ class Shift64_Woo_Search_Blocks {
 	 * @return string
 	 */
 	public function render_modal_search_block( $attributes ) {
-		$html = $this->frontend->render_search_modal_shortcode( $attributes );
-		$html = str_replace(
+		$html                  = $this->frontend->render_search_modal_shortcode( $attributes );
+		$trigger_border_radius = isset( $attributes['trigger_border_radius'] )
+			? min( 50, max( 0, absint( $attributes['trigger_border_radius'] ) ) )
+			: 50;
+		$html                  = str_replace(
+			'class="shift64-woo-search-modal__trigger"',
+			'class="shift64-woo-search-modal__trigger" style="border-radius:' . esc_attr( $trigger_border_radius . 'px' ) . ';"',
+			$html
+		);
+		$html                  = str_replace(
 			'class="shift64-woo-search-field__submit"',
 			'class="shift64-woo-search-field__submit wp-element-button"',
 			$html
@@ -390,6 +400,16 @@ class Shift64_Woo_Search_Blocks {
 			$properties[] = '--s64ws-trigger-icon-size:' . $icon_size . 'px';
 		}
 
+		if ( isset( $attributes['trigger_padding'] ) ) {
+			$padding      = min( 30, max( 0, absint( $attributes['trigger_padding'] ) ) );
+			$properties[] = '--s64ws-trigger-padding:' . $padding . 'px';
+		}
+
+		if ( isset( $attributes['trigger_outline_width'] ) ) {
+			$outline_width = min( 10, max( 1, absint( $attributes['trigger_outline_width'] ) ) );
+			$properties[]  = '--s64ws-trigger-outline-width:' . $outline_width . 'px';
+		}
+
 		return $properties ? implode( ';', $properties ) . ';' : '';
 	}
 
@@ -535,6 +555,16 @@ class Shift64_Woo_Search_Blocks {
 					'label'   => __( 'Trigger icon size', 'shift64-woo-search' ),
 					'type'    => 'integer',
 					'default' => 24,
+				),
+				'trigger_padding'                      => array(
+					'label'   => __( 'Trigger padding', 'shift64-woo-search' ),
+					'type'    => 'integer',
+					'default' => 10,
+				),
+				'trigger_outline_width'                => array(
+					'label'   => __( 'Trigger outline width', 'shift64-woo-search' ),
+					'type'    => 'integer',
+					'default' => 1,
 				),
 				'modal_search_style'                   => array(
 					'label'   => __( 'Modal search field style', 'shift64-woo-search' ),

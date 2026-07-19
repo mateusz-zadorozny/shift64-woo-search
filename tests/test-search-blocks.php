@@ -86,7 +86,7 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	 */
 	public function test_modal_block_renders_custom_icon_and_labels() {
 		$html = do_blocks(
-			'<!-- wp:shift64-woo-search/modal-search {"icon":"alternative","trigger_label":"Open catalog","close_label":"Close catalog","trigger_style":"outline","modal_search_style":"pill","trigger_icon_color":"#123456","trigger_icon_hover_color":"#abcdef","trigger_surface_color":"#234567","trigger_surface_hover_color":"#bcdef0","trigger_border_radius":8,"trigger_icon_size":32,"modal_background_color":"#0a141e","modal_background_transparency":40,"search_input_text_color":"#102030","search_input_background_color":"#f1f2f3","search_button_color":"#405060","search_button_background_color":"#d1d2d3","search_button_hover_color":"#708090","search_button_background_hover_color":"#a1a2a3"} /-->'
+			'<!-- wp:shift64-woo-search/modal-search {"icon":"alternative","trigger_label":"Open catalog","close_label":"Close catalog","trigger_style":"outline","modal_search_style":"pill","trigger_icon_color":"#123456","trigger_icon_hover_color":"#abcdef","trigger_surface_color":"#234567","trigger_surface_hover_color":"#bcdef0","trigger_border_radius":8,"trigger_icon_size":32,"trigger_padding":6,"trigger_outline_width":4,"modal_background_color":"#0a141e","modal_background_transparency":40,"search_input_text_color":"#102030","search_input_background_color":"#f1f2f3","search_button_color":"#405060","search_button_background_color":"#d1d2d3","search_button_hover_color":"#708090","search_button_background_hover_color":"#a1a2a3"} /-->'
 		);
 
 		$this->assertStringContainsString( 'wp-block-shift64-woo-search-modal-search', $html );
@@ -103,6 +103,8 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( '--s64ws-trigger-surface-hover-color:#bcdef0', $html );
 		$this->assertStringContainsString( '--s64ws-trigger-radius:8px', $html );
 		$this->assertStringContainsString( '--s64ws-trigger-icon-size:32px', $html );
+		$this->assertStringContainsString( '--s64ws-trigger-padding:6px', $html );
+		$this->assertStringContainsString( '--s64ws-trigger-outline-width:4px', $html );
 		$this->assertStringContainsString( '--s64ws-modal-background-color:#0a141e', $html );
 		$this->assertStringContainsString( '--s64ws-modal-background-opacity:60%', $html );
 		$this->assertStringContainsString( '--s64ws-modal-input-color:#102030', $html );
@@ -204,7 +206,7 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	public function test_block_attributes_have_editor_labels() {
 		$block = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
 
-		foreach ( array( 'placeholder', 'button', 'label', 'trigger_label', 'close_label', 'clear_label', 'icon', 'preview', 'trigger_style', 'trigger_icon_color', 'trigger_icon_hover_color', 'trigger_surface_color', 'trigger_surface_hover_color', 'trigger_border_radius', 'trigger_icon_size', 'modal_search_style', 'modal_background_color', 'modal_background_transparency', 'search_input_text_color', 'search_input_background_color', 'search_button_color', 'search_button_background_color', 'search_button_hover_color', 'search_button_background_hover_color' ) as $attribute ) {
+		foreach ( array( 'placeholder', 'button', 'label', 'trigger_label', 'close_label', 'clear_label', 'icon', 'preview', 'trigger_style', 'trigger_icon_color', 'trigger_icon_hover_color', 'trigger_surface_color', 'trigger_surface_hover_color', 'trigger_border_radius', 'trigger_icon_size', 'trigger_padding', 'trigger_outline_width', 'modal_search_style', 'modal_background_color', 'modal_background_transparency', 'search_input_text_color', 'search_input_background_color', 'search_button_color', 'search_button_background_color', 'search_button_hover_color', 'search_button_background_hover_color' ) as $attribute ) {
 			$this->assertNotEmpty( $block->attributes[ $attribute ]['label'] );
 		}
 
@@ -256,7 +258,7 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 		$script = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'admin/js/shift64-woo-search-block-editor.js' );
 
 		$this->assertStringContainsString( "'blocks.registerBlockType'", $script );
-		foreach ( array( 'Modal preview', 'Show preview in editor', 'Button style', 'Icon size', 'Border radius', 'Icon color', 'Icon hover color', 'Background or outline color', 'Background or outline hover color', 'Search box input color', 'Search button color', 'Icon hover', 'Background hover', 'Search field style', 'Modal background color', 'Modal transparency' ) as $label ) {
+		foreach ( array( 'Modal preview', 'Show preview in editor', 'Button style', 'Icon size', 'Padding', 'Border radius', 'Outline width', 'Icon color', 'Icon hover color', 'Background or outline color', 'Background or outline hover color', 'Search box input color', 'Search button color', 'Icon hover', 'Background hover', 'Search field style', 'Modal background color', 'Modal transparency' ) as $label ) {
 			$this->assertStringContainsString( "'" . $label . "'", $script );
 		}
 		$this->assertTrue(
@@ -288,9 +290,10 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 			$css
 		);
 		$this->assertMatchesRegularExpression(
-			'/\.shift64-woo-search-block--modal \.shift64-woo-search-modal__trigger\s*\{[^}]*width:\s*calc\(var\(--s64ws-trigger-icon-size, 24px\) \+ 20px\);[^}]*height:\s*calc\(var\(--s64ws-trigger-icon-size, 24px\) \+ 20px\);/s',
+			'/\.shift64-woo-search-block--modal \.shift64-woo-search-modal__trigger\s*\{[^}]*width:\s*calc\(var\(--s64ws-trigger-icon-size, 24px\) \+ var\(--s64ws-trigger-padding, 10px\) \+ var\(--s64ws-trigger-padding, 10px\)\);[^}]*height:\s*calc\(var\(--s64ws-trigger-icon-size, 24px\) \+ var\(--s64ws-trigger-padding, 10px\) \+ var\(--s64ws-trigger-padding, 10px\)\);/s',
 			$css
 		);
+		$this->assertStringContainsString( 'border-width: var(--s64ws-trigger-outline-width, 1px);', $css );
 		$this->assertStringContainsString( '.has-search-input-text-color', $css );
 		$this->assertStringContainsString( 'color: var(--s64ws-modal-input-color);', $css );
 		$this->assertStringContainsString( 'background-color: var(--s64ws-modal-input-background);', $css );

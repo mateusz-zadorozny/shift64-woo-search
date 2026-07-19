@@ -112,6 +112,17 @@
 								__nextHasNoMarginBottom: true,
 							} ),
 							createElement( RangeControl, {
+								label: __( 'Padding', 'shift64-woo-search' ),
+								value: attributes.trigger_padding,
+								min: 0,
+								max: 30,
+								step: 1,
+								onChange: function ( value ) {
+									setAttribute( 'trigger_padding', value );
+								},
+								__nextHasNoMarginBottom: true,
+							} ),
+							createElement( RangeControl, {
 								label: __( 'Border radius', 'shift64-woo-search' ),
 								value: attributes.trigger_border_radius,
 								min: 0,
@@ -119,6 +130,17 @@
 								step: 1,
 								onChange: function ( value ) {
 									setAttribute( 'trigger_border_radius', value );
+								},
+								__nextHasNoMarginBottom: true,
+							} ),
+							attributes.trigger_style === 'outline' && createElement( RangeControl, {
+								label: __( 'Outline width', 'shift64-woo-search' ),
+								value: attributes.trigger_outline_width,
+								min: 1,
+								max: 10,
+								step: 1,
+								onChange: function ( value ) {
+									setAttribute( 'trigger_outline_width', value );
 								},
 								__nextHasNoMarginBottom: true,
 							} ),
