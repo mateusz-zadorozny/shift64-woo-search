@@ -599,13 +599,15 @@ body.shift64-woo-search-modal-open {
 }
 
 /* ================================================================
-   Category Item — bold text
+   Category & Brand Items — bold text
    ================================================================ */
-.shift64-woo-search-result--category {
+.shift64-woo-search-result--category,
+.shift64-woo-search-result--brand {
     padding: 8px 0;
 }
 
-.shift64-woo-search-result--category .shift64-woo-search-result__text {
+.shift64-woo-search-result--category .shift64-woo-search-result__text,
+.shift64-woo-search-result--brand .shift64-woo-search-result__text {
     font-size: var(--s64ws-title-size);
     font-weight: var(--s64ws-title-weight);
     color: var(--s64ws-title-color);
@@ -655,7 +657,8 @@ body.shift64-woo-search-modal-open {
     color: var(--s64ws-meta-color);
 }
 
-.shift64-woo-search-result__category {
+.shift64-woo-search-result__category,
+.shift64-woo-search-result__brand {
     font-size: var(--s64ws-meta-size);
     color: var(--global-palette6, #888);
     overflow: hidden;
