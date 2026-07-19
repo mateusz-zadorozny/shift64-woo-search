@@ -86,7 +86,7 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	 */
 	public function test_modal_block_renders_custom_icon_and_labels() {
 		$html = do_blocks(
-			'<!-- wp:shift64-woo-search/modal-search {"icon":"alternative","trigger_label":"Open catalog","close_label":"Close catalog","trigger_style":"outline","modal_search_style":"pill","trigger_icon_color":"#123456","trigger_icon_hover_color":"#abcdef","trigger_surface_color":"#234567","trigger_surface_hover_color":"#bcdef0","trigger_border_radius":8,"trigger_icon_size":32,"modal_background_color":"#0a141e","modal_background_transparency":40} /-->'
+			'<!-- wp:shift64-woo-search/modal-search {"icon":"alternative","trigger_label":"Open catalog","close_label":"Close catalog","trigger_style":"outline","modal_search_style":"pill","trigger_icon_color":"#123456","trigger_icon_hover_color":"#abcdef","trigger_surface_color":"#234567","trigger_surface_hover_color":"#bcdef0","trigger_border_radius":8,"trigger_icon_size":32,"modal_background_color":"#0a141e","modal_background_transparency":40,"search_input_text_color":"#102030","search_input_background_color":"#f1f2f3","search_button_color":"#405060","search_button_background_color":"#d1d2d3","search_button_hover_color":"#708090","search_button_background_hover_color":"#a1a2a3"} /-->'
 		);
 
 		$this->assertStringContainsString( 'wp-block-shift64-woo-search-modal-search', $html );
@@ -105,28 +105,40 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( '--s64ws-trigger-icon-size:32px', $html );
 		$this->assertStringContainsString( '--s64ws-modal-background-color:#0a141e', $html );
 		$this->assertStringContainsString( '--s64ws-modal-background-opacity:60%', $html );
+		$this->assertStringContainsString( '--s64ws-modal-input-color:#102030', $html );
+		$this->assertStringContainsString( '--s64ws-modal-input-background:#f1f2f3', $html );
+		$this->assertStringContainsString( '--s64ws-modal-button-color:#405060', $html );
+		$this->assertStringContainsString( '--s64ws-modal-button-background:#d1d2d3', $html );
+		$this->assertStringContainsString( '--s64ws-modal-button-hover-color:#708090', $html );
+		$this->assertStringContainsString( '--s64ws-modal-button-hover-background:#a1a2a3', $html );
+		$this->assertStringContainsString( 'has-search-input-text-color', $html );
+		$this->assertStringContainsString( 'has-search-input-background-color', $html );
+		$this->assertStringContainsString( 'has-search-button-color', $html );
+		$this->assertStringContainsString( 'has-search-button-background-color', $html );
+		$this->assertStringContainsString( 'has-search-button-hover-color', $html );
+		$this->assertStringContainsString( 'has-search-button-background-hover-color', $html );
 		$this->assertMatchesRegularExpression( '/class="shift64-woo-search-modal shift64-woo-search-modal--block[^"]*" style="[^"]*--s64ws-modal-background-color:#0a141e;--s64ws-modal-background-opacity:60%;/', $html );
 		$this->assertStringNotContainsString( 'shift64-woo-search-modal__trigger wp-element-button', $html );
 		$this->assertStringContainsString( 'shift64-woo-search-field__submit wp-element-button', $html );
 	}
 
 	/**
-	 * Native field and button colors target only the search form inside the modal.
+	 * Legacy native color values migrate to portal variables instead of the wrapper.
 	 */
-	public function test_modal_block_applies_native_search_colors() {
+	public function test_modal_block_migrates_legacy_search_colors() {
 		$html = do_blocks(
 			'<!-- wp:shift64-woo-search/modal-search {"style":{"color":{"text":"#123456","background":"#abcdef"},"elements":{"button":{"color":{"text":"#ffffff","background":"#cc2244"}}}}} /-->'
 		);
-		$css  = wp_style_engine_get_stylesheet_from_context( 'block-supports' );
 
-		$this->assertMatchesRegularExpression( '/wp-elements-[a-f0-9]+/', $html );
-		$this->assertMatchesRegularExpression( '/shift64-woo-search-modal--block[^\"]*wp-elements-[a-f0-9]+/', $html );
-		$this->assertStringContainsString( 'shift64-woo-search-field__input', $html );
-		$this->assertStringContainsString( 'style="color:#123456;background-color:#abcdef;"', $html );
+		$this->assertStringContainsString( '--s64ws-modal-input-color:#123456', $html );
+		$this->assertStringContainsString( '--s64ws-modal-input-background:#abcdef', $html );
+		$this->assertStringContainsString( '--s64ws-modal-button-color:#ffffff', $html );
+		$this->assertStringContainsString( '--s64ws-modal-button-background:#cc2244', $html );
+		$this->assertStringNotContainsString( 'has-background', $html );
+		$this->assertStringNotContainsString( 'has-text-color', $html );
+		$this->assertStringNotContainsString( 'style="color:#123456;background-color:#abcdef;"', $html );
 		$this->assertStringNotContainsString( 'shift64-woo-search-modal__trigger wp-element-button', $html );
 		$this->assertStringContainsString( 'shift64-woo-search-field__submit wp-element-button', $html );
-		$this->assertStringContainsString( 'background-color:#cc2244', $css );
-		$this->assertStringContainsString( 'color:#ffffff', $css );
 	}
 
 	/**
@@ -146,7 +158,7 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	 */
 	public function test_modal_block_rejects_unsafe_custom_colors() {
 		$html = do_blocks(
-			'<!-- wp:shift64-woo-search/modal-search {"trigger_icon_color":"red;display:none","modal_background_color":"url(javascript:alert(1))"} /-->'
+			'<!-- wp:shift64-woo-search/modal-search {"trigger_icon_color":"red;display:none","modal_background_color":"url(javascript:alert(1))","search_input_text_color":"red;display:none"} /-->'
 		);
 
 		$this->assertStringNotContainsString( 'red;display:none', $html );
@@ -192,7 +204,7 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	public function test_block_attributes_have_editor_labels() {
 		$block = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
 
-		foreach ( array( 'placeholder', 'button', 'label', 'trigger_label', 'close_label', 'clear_label', 'icon', 'preview', 'trigger_style', 'trigger_icon_color', 'trigger_icon_hover_color', 'trigger_surface_color', 'trigger_surface_hover_color', 'trigger_border_radius', 'trigger_icon_size', 'modal_search_style', 'modal_background_color', 'modal_background_transparency' ) as $attribute ) {
+		foreach ( array( 'placeholder', 'button', 'label', 'trigger_label', 'close_label', 'clear_label', 'icon', 'preview', 'trigger_style', 'trigger_icon_color', 'trigger_icon_hover_color', 'trigger_surface_color', 'trigger_surface_hover_color', 'trigger_border_radius', 'trigger_icon_size', 'modal_search_style', 'modal_background_color', 'modal_background_transparency', 'search_input_text_color', 'search_input_background_color', 'search_button_color', 'search_button_background_color', 'search_button_hover_color', 'search_button_background_hover_color' ) as $attribute ) {
 			$this->assertNotEmpty( $block->attributes[ $attribute ]['label'] );
 		}
 
@@ -213,21 +225,17 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Both blocks expose native search colors and keep field colors off the wrapper.
+	 * The regular block keeps native colors while the modal uses dedicated controls.
 	 */
 	public function test_search_block_color_supports_target_field_and_button() {
 		$search = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/search' );
 		$modal  = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
 
 		$this->assertTrue( $search->supports['color']['button'] );
-		$this->assertTrue( $modal->supports['color']['button'] );
+		$this->assertArrayNotHasKey( 'color', $modal->supports );
 		$this->assertSame(
 			array( 'text', 'background', 'gradients' ),
 			$search->supports['color']['__experimentalSkipSerialization']
-		);
-		$this->assertSame(
-			array( 'text', 'background', 'gradients' ),
-			$modal->supports['color']['__experimentalSkipSerialization']
 		);
 	}
 
@@ -248,15 +256,20 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 		$script = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'admin/js/shift64-woo-search-block-editor.js' );
 
 		$this->assertStringContainsString( "'blocks.registerBlockType'", $script );
-		foreach ( array( 'Button style', 'Icon size', 'Border radius', 'Icon color', 'Icon hover color', 'Background or outline color', 'Background or outline hover color', 'Color of search box and button', 'Search box text', 'Search box background', 'Search button text', 'Search button background', 'Search field style', 'Modal background color', 'Modal transparency', 'Show preview in editor' ) as $label ) {
+		foreach ( array( 'Modal preview', 'Show preview in editor', 'Button style', 'Icon size', 'Border radius', 'Icon color', 'Icon hover color', 'Background or outline color', 'Background or outline hover color', 'Search box input color', 'Search button color', 'Icon hover', 'Background hover', 'Search field style', 'Modal background color', 'Modal transparency' ) as $label ) {
 			$this->assertStringContainsString( "'" . $label . "'", $script );
 		}
-		$this->assertStringContainsString( 'color: false', $script );
 		$this->assertTrue(
-			strpos( $script, "title: __( 'Trigger button'" ) < strpos( $script, "title: __( 'Color of search box and button'" )
+			strpos( $script, "title: __( 'Modal preview'" ) < strpos( $script, 'createElement( ServerSideEdit' )
 		);
 		$this->assertTrue(
-			strpos( $script, "title: __( 'Color of search box and button'" ) < strpos( $script, "title: __( 'Modal'" )
+			strpos( $script, "title: __( 'Trigger button'" ) < strpos( $script, "title: __( 'Search box input color'" )
+		);
+		$this->assertTrue(
+			strpos( $script, "title: __( 'Search box input color'" ) < strpos( $script, "title: __( 'Search button color'" )
+		);
+		$this->assertTrue(
+			strpos( $script, "title: __( 'Search button color'" ) < strpos( $script, "title: __( 'Modal'" )
 		);
 	}
 
@@ -275,8 +288,13 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 			$css
 		);
 		$this->assertMatchesRegularExpression(
-			'/\.shift64-woo-search-block--modal \.shift64-woo-search-modal__trigger\s*\{[^}]*width:\s*max\(44px, calc\(var\(--s64ws-trigger-icon-size, 24px\) \+ 20px\)\);[^}]*height:\s*max\(44px, calc\(var\(--s64ws-trigger-icon-size, 24px\) \+ 20px\)\);/s',
+			'/\.shift64-woo-search-block--modal \.shift64-woo-search-modal__trigger\s*\{[^}]*width:\s*calc\(var\(--s64ws-trigger-icon-size, 24px\) \+ 20px\);[^}]*height:\s*calc\(var\(--s64ws-trigger-icon-size, 24px\) \+ 20px\);/s',
 			$css
 		);
+		$this->assertStringContainsString( '.has-search-input-text-color', $css );
+		$this->assertStringContainsString( 'color: var(--s64ws-modal-input-color);', $css );
+		$this->assertStringContainsString( 'background-color: var(--s64ws-modal-input-background);', $css );
+		$this->assertStringContainsString( 'color: var(--s64ws-modal-button-hover-color);', $css );
+		$this->assertStringContainsString( 'background: var(--s64ws-modal-button-hover-background);', $css );
 	}
 }

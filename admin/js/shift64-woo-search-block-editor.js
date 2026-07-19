@@ -18,12 +18,8 @@
 		}
 
 		var ServerSideEdit = settings.edit;
-		var modalSupports = Object.assign( {}, settings.supports, {
-			color: false,
-		} );
 
 		return Object.assign( {}, settings, {
-			supports: modalSupports,
 			edit: function ( props ) {
 				var attributes = props.attributes;
 				var setAttribute = function ( attribute, value ) {
@@ -41,28 +37,6 @@
 						__experimentalIsRenderedInSidebar: true,
 					} );
 				};
-				var setSearchBoxColor = function ( property, value ) {
-					var style = Object.assign( {}, attributes.style || {} );
-					style.color = Object.assign( {}, style.color || {} );
-					if ( value ) {
-						style.color[ property ] = value;
-					} else {
-						delete style.color[ property ];
-					}
-					props.setAttributes( { style: style } );
-				};
-				var setSearchButtonColor = function ( property, value ) {
-					var style = Object.assign( {}, attributes.style || {} );
-					style.elements = Object.assign( {}, style.elements || {} );
-					style.elements.button = Object.assign( {}, style.elements.button || {} );
-					style.elements.button.color = Object.assign( {}, style.elements.button.color || {} );
-					if ( value ) {
-						style.elements.button.color[ property ] = value;
-					} else {
-						delete style.elements.button.color[ property ];
-					}
-					props.setAttributes( { style: style } );
-				};
 				var style = attributes.style || {};
 				var searchBoxColors = style.color || {};
 				var buttonColors = style.elements && style.elements.button && style.elements.button.color
@@ -72,6 +46,25 @@
 				return createElement(
 					Fragment,
 					null,
+					createElement(
+						InspectorControls,
+						null,
+						createElement(
+							PanelBody,
+							{
+								title: __( 'Modal preview', 'shift64-woo-search' ),
+								initialOpen: true,
+							},
+							createElement( ToggleControl, {
+								label: __( 'Show preview in editor', 'shift64-woo-search' ),
+								checked: Boolean( attributes.preview ),
+								onChange: function ( value ) {
+									setAttribute( 'preview', value );
+								},
+								__nextHasNoMarginBottom: true,
+							} )
+						)
+					),
 					createElement( ServerSideEdit, props ),
 					createElement(
 						InspectorControls,
@@ -161,36 +154,58 @@
 						createElement(
 							PanelBody,
 							{
-								title: __( 'Color of search box and button', 'shift64-woo-search' ),
+								title: __( 'Search box input color', 'shift64-woo-search' ),
 								initialOpen: true,
 							},
 							colorControl(
-								__( 'Search box text', 'shift64-woo-search' ),
-								searchBoxColors.text,
+								__( 'Text', 'shift64-woo-search' ),
+								attributes.search_input_text_color || searchBoxColors.text,
 								function ( value ) {
-									setSearchBoxColor( 'text', value );
+									setAttribute( 'search_input_text_color', value || '' );
 								}
 							),
 							colorControl(
-								__( 'Search box background', 'shift64-woo-search' ),
-								searchBoxColors.background,
+								__( 'Background', 'shift64-woo-search' ),
+								attributes.search_input_background_color || searchBoxColors.background,
 								function ( value ) {
-									setSearchBoxColor( 'background', value );
+									setAttribute( 'search_input_background_color', value || '' );
+								},
+								true
+							),
+						),
+						createElement(
+							PanelBody,
+							{
+								title: __( 'Search button color', 'shift64-woo-search' ),
+								initialOpen: true,
+							},
+							colorControl(
+								__( 'Icon', 'shift64-woo-search' ),
+								attributes.search_button_color || buttonColors.text,
+								function ( value ) {
+									setAttribute( 'search_button_color', value || '' );
+								}
+							),
+							colorControl(
+								__( 'Background', 'shift64-woo-search' ),
+								attributes.search_button_background_color || buttonColors.background,
+								function ( value ) {
+									setAttribute( 'search_button_background_color', value || '' );
 								},
 								true
 							),
 							colorControl(
-								__( 'Search button text', 'shift64-woo-search' ),
-								buttonColors.text,
+								__( 'Icon hover', 'shift64-woo-search' ),
+								attributes.search_button_hover_color,
 								function ( value ) {
-									setSearchButtonColor( 'text', value );
+									setAttribute( 'search_button_hover_color', value || '' );
 								}
 							),
 							colorControl(
-								__( 'Search button background', 'shift64-woo-search' ),
-								buttonColors.background,
+								__( 'Background hover', 'shift64-woo-search' ),
+								attributes.search_button_background_hover_color,
 								function ( value ) {
-									setSearchButtonColor( 'background', value );
+									setAttribute( 'search_button_background_hover_color', value || '' );
 								},
 								true
 							)
@@ -230,14 +245,6 @@
 								help: __( '0% is opaque; 100% is fully transparent.', 'shift64-woo-search' ),
 								onChange: function ( value ) {
 									setAttribute( 'modal_background_transparency', value );
-								},
-								__nextHasNoMarginBottom: true,
-							} ),
-							createElement( ToggleControl, {
-								label: __( 'Show preview in editor', 'shift64-woo-search' ),
-								checked: Boolean( attributes.preview ),
-								onChange: function ( value ) {
-									setAttribute( 'preview', value );
 								},
 								__nextHasNoMarginBottom: true,
 							} )

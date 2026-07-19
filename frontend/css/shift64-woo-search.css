@@ -169,8 +169,8 @@
 }
 
 .shift64-woo-search-block--modal .shift64-woo-search-modal__trigger {
-    width: max(44px, calc(var(--s64ws-trigger-icon-size, 24px) + 20px));
-    height: max(44px, calc(var(--s64ws-trigger-icon-size, 24px) + 20px));
+    width: calc(var(--s64ws-trigger-icon-size, 24px) + 20px);
+    height: calc(var(--s64ws-trigger-icon-size, 24px) + 20px);
     border: 1px solid transparent;
     border-radius: var(--s64ws-trigger-radius, 50px);
 }
@@ -331,6 +331,39 @@
 .shift64-woo-search-modal--block .shift64-woo-search-modal__search .shift64-woo-search-field__input {
     font-size: inherit;
     line-height: inherit;
+}
+
+.shift64-woo-search-modal--block.has-search-input-text-color .shift64-woo-search-modal__search .shift64-woo-search-field__input,
+.shift64-woo-search-modal--block.has-search-input-text-color .shift64-woo-search-modal__search .shift64-woo-search-field__input::placeholder {
+    color: var(--s64ws-modal-input-color);
+}
+
+.shift64-woo-search-modal--block.has-search-input-text-color .shift64-woo-search-modal__search .shift64-woo-search-field__input::placeholder {
+    opacity: 1;
+}
+
+.shift64-woo-search-modal--block.has-search-input-background-color .shift64-woo-search-modal__search .shift64-woo-search-field__input {
+    background-color: var(--s64ws-modal-input-background);
+}
+
+.shift64-woo-search-modal--block.has-search-button-color .shift64-woo-search-modal__search .shift64-woo-search-field__submit {
+    color: var(--s64ws-modal-button-color);
+}
+
+.shift64-woo-search-modal--block.has-search-button-background-color .shift64-woo-search-modal__search .shift64-woo-search-field__submit {
+    background: var(--s64ws-modal-button-background);
+}
+
+.shift64-woo-search-modal--block.has-search-button-hover-color .shift64-woo-search-modal__search .shift64-woo-search-field__submit:hover {
+    color: var(--s64ws-modal-button-hover-color);
+}
+
+.shift64-woo-search-modal--block.has-search-button-background-hover-color .shift64-woo-search-modal__search .shift64-woo-search-field__submit:hover {
+    background: var(--s64ws-modal-button-hover-background);
+}
+
+.shift64-woo-search-modal--block .shift64-woo-search-modal__search .shift64-woo-search-field__submit:hover {
+    filter: none;
 }
 
 .shift64-woo-search-modal__search .shift64-woo-search-field {
