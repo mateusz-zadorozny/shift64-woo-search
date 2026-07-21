@@ -18,6 +18,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shift64_Woo_Search_Filters {
 
 	/**
+	 * Track if filters have already been rendered for the current request.
+	 *
+	 * @var bool
+	 */
+	private static $has_rendered = false;
+
+	/**
+	 * Reset the rendering guard (for unit testing).
+	 */
+	public static function reset_rendered_flag() {
+		self::$has_rendered = false;
+	}
+
+	/**
 	 * Register rendering hook.
 	 */
 	public function __construct() {
@@ -32,10 +46,16 @@ class Shift64_Woo_Search_Filters {
 	 * context provider. Renderer doesn't know which one it's talking to.
 	 */
 	public function render_filters() {
+		if ( self::$has_rendered ) {
+			return;
+		}
+
 		$context = Shift64_Woo_Search_Facet_Registry::get_current();
 		if ( null === $context ) {
 			return;
 		}
+
+		self::$has_rendered = true;
 
 		$facet_data = $context->get_facet_data();
 		if ( empty( $facet_data ) ) {

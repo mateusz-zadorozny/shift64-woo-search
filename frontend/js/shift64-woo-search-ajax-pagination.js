@@ -341,21 +341,41 @@
                 var parser = new DOMParser();
                 var doc = parser.parseFromString(html, 'text/html');
 
-                // Swap entire product wrap (includes ordering, grid,
-                // result count, pagination, and filters — all inside
-                // .kwt-products-wrap).
-                var newWrap = doc.querySelector(SELECTORS.productWrap);
-                wrap = document.querySelector(SELECTORS.productWrap);
+                // Swap DOM elements.
+                // In Kadence, .kwt-products-wrap wraps everything cleanly.
+                var kadenceWrap = document.querySelector('.kwt-products-wrap');
+                var newKadenceWrap = doc.querySelector('.kwt-products-wrap');
+                if (kadenceWrap && newKadenceWrap) {
+                    kadenceWrap.innerHTML = newKadenceWrap.innerHTML;
+                } else {
+                    // Modular swap for standard WooCommerce and block themes.
+                    var newGrid = doc.querySelector(SELECTORS.productWrap);
+                    if (!newGrid) {
+                        throw new Error('missing product wrap');
+                    }
+                    if (wrap) {
+                        wrap.innerHTML = newGrid.innerHTML;
+                    }
 
-                // Guard: if response doesn't contain a product grid
-                // (e.g. redirected to a single product page), fall back
-                // to full page navigation.
-                if (!newWrap) {
-                    throw new Error('missing product wrap');
-                }
+                    var curFilters = document.querySelector(SELECTORS.filters);
+                    var newFilters = doc.querySelector(SELECTORS.filters);
+                    if (curFilters && newFilters) {
+                        curFilters.outerHTML = newFilters.outerHTML;
+                    }
 
-                if (wrap) {
-                    wrap.innerHTML = newWrap.innerHTML;
+                    var curPag = document.querySelector(SELECTORS.pagination);
+                    var newPag = doc.querySelector(SELECTORS.pagination);
+                    if (curPag && newPag) {
+                        curPag.outerHTML = newPag.outerHTML;
+                    } else if (curPag && !newPag) {
+                        curPag.innerHTML = '';
+                    }
+
+                    var curCount = document.querySelector(SELECTORS.resultCount);
+                    var newCount = doc.querySelector(SELECTORS.resultCount);
+                    if (curCount && newCount) {
+                        curCount.outerHTML = newCount.outerHTML;
+                    }
                 }
 
                 // Update URL.
