@@ -668,9 +668,16 @@
                 catEnabled = catCb.checked ? 'yes' : 'no';
             }
 
+            var brandEnabled = 'no';
+            var brandCb = form.querySelector('#shift64_woo_search_filter_brands_enabled');
+            if (brandCb) {
+                brandEnabled = brandCb.checked ? 'yes' : 'no';
+            }
+
             var data = {
                 filter_attributes: selected,
-                shift64_woo_search_filter_categories_enabled: catEnabled
+                shift64_woo_search_filter_categories_enabled: catEnabled,
+                shift64_woo_search_filter_brands_enabled: brandEnabled
             };
 
             var excludedInput = form.querySelector('#shift64_woo_search_filter_categories_excluded_input');
