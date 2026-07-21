@@ -694,11 +694,19 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			return $template;
 		}
 
-		// Render minimal HTML fragment with only the hooks we need.
-		// Avoids firing all plugins' woocommerce_before_shop_loop callbacks.
+		// Only intercept with partial fragment for Kadence theme.
+		// Standard Woo and block themes rely on full-page template rendering
+		// so block-template product cards (wp-block-post-title) keep their styling.
+		$is_kadence = function_exists( 'kadence' ) || defined( 'KADENCE_VERSION' ) || 'kadence' === get_template() || 'kadence' === get_stylesheet();
+		if ( ! $is_kadence ) {
+			return $template;
+		}
+
+		// Reset filter render guard for AJAX partial.
+		Shift64_Woo_Search_Filters::reset_rendered_flag();
+
 		echo '<div class="kwt-products-wrap">';
 
-		// Filters — call renderer directly, bypassing woocommerce_before_shop_loop.
 		( new Shift64_Woo_Search_Filters() )->render_filters();
 
 		// Top row: result count + ordering (Kadence hooks).
@@ -990,6 +998,21 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			}
 			if ( ! empty( $cat_names ) ) {
 				$filters['category'] = $cat_names;
+			}
+		}
+
+		// Brand filter. Unknown slugs are ignored, same as categories.
+		if ( ! empty( $_GET['filter_product_brand'] ) && taxonomy_exists( 'product_brand' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only URL filter.
+			$brands      = array_map( 'sanitize_text_field', explode( ',', sanitize_text_field( wp_unslash( $_GET['filter_product_brand'] ) ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$brand_names = array();
+			foreach ( $brands as $slug ) {
+				$term = get_term_by( 'slug', $slug, 'product_brand' );
+				if ( $term ) {
+					$brand_names[] = $term->name;
+				}
+			}
+			if ( ! empty( $brand_names ) ) {
+				$filters['brand'] = $brand_names;
 			}
 		}
 

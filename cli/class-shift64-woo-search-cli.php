@@ -225,7 +225,7 @@ class Shift64_Woo_Search_CLI {
 				WP_CLI::log( "Synced {$synced} synonym groups." );
 			}
 			Shift64_Woo_Search_Suggestions::sync_to_redis( $redis );
-			Shift64_Woo_Search_Indexer::cache_categories_to_redis( $redis );
+			Shift64_Woo_Search_Rebuild::cache_blobs( $redis );
 		}
 
 		// Full reindex.
@@ -323,60 +323,36 @@ class Shift64_Woo_Search_CLI {
 	public static function rebuild( $args, $assoc_args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$redis = Shift64_Woo_Search_Redis::get_instance();
 
-		if ( ! $redis->is_available() ) {
-			WP_CLI::error( 'Redis is not available.' );
-		}
-
-		// Drop existing index.
-		if ( Shift64_Woo_Search_Schema::index_exists( $redis ) ) {
-			WP_CLI::log( 'Dropping existing index...' );
-			Shift64_Woo_Search_Schema::drop_index( $redis );
-		}
-
-		// Create new index.
-		WP_CLI::log( 'Creating index with current schema...' );
-		if ( ! Shift64_Woo_Search_Schema::create_index( $redis ) ) {
-			WP_CLI::error( 'Failed to create index.' );
-		}
-		WP_CLI::log( 'Index created.' );
-
-		// Sync synonyms + suggestions + categories.
-		$synced = Shift64_Woo_Search_Synonyms::sync_to_redis( $redis );
-		if ( $synced > 0 ) {
-			WP_CLI::log( "Synced {$synced} synonym groups." );
-		}
-		$sug_count = Shift64_Woo_Search_Suggestions::sync_to_redis( $redis );
-		WP_CLI::log( "Synced {$sug_count} suggestions." );
-		$cat_count = Shift64_Woo_Search_Indexer::cache_categories_to_redis( $redis );
-		WP_CLI::log( "Cached {$cat_count} product categories." );
-
-		// Reindex.
-		WP_CLI::log( 'Starting full reindex...' );
-		$indexer = new Shift64_Woo_Search_Indexer( $redis );
-
 		$progress = null;
-		$count    = $indexer->reindex_all(
-			function ( $indexed, $total ) use ( &$progress ) {
-				if ( null === $progress ) {
-						$progress = \WP_CLI\Utils\make_progress_bar( 'Indexing products', $total );
-				}
-				static $last = 0;
-				$diff        = $indexed - $last;
-				for ( $i = 0; $i < $diff; $i++ ) {
-					$progress->tick();
-				}
-				$last = $indexed;
-			}
+		$result   = Shift64_Woo_Search_Rebuild::run(
+			$redis,
+			array(
+				'log'      => function ( $message ) {
+					WP_CLI::log( $message );
+				},
+				'progress' => function ( $indexed, $total ) use ( &$progress ) {
+					if ( null === $progress ) {
+							$progress = \WP_CLI\Utils\make_progress_bar( 'Indexing products', $total );
+					}
+					static $last = 0;
+					$diff        = $indexed - $last;
+					for ( $i = 0; $i < $diff; $i++ ) {
+						$progress->tick();
+					}
+					$last = $indexed;
+				},
+			)
 		);
 
 		if ( $progress ) {
 			$progress->finish();
 		}
 
-		// Regenerate SHORTINIT config to reflect any schema changes.
-		Shift64_Woo_Search_Plugin::get_instance()->generate_mu_plugin_config();
+		if ( ! $result['success'] ) {
+			WP_CLI::error( $result['error'] );
+		}
 
-		WP_CLI::success( "Rebuild complete. {$count} products indexed." );
+		WP_CLI::success( "Rebuild complete. {$result['indexed']} products indexed." );
 	}
 
 	/**

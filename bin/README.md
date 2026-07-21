@@ -14,6 +14,13 @@ Color is a visible global product attribute; size (`XS` through `XXL`) is the
 variation attribute. Categories are organized under Clothing, Tops, Bottoms,
 and Outerwear.
 
+Products are also assigned fictional brands from the `product_brand` taxonomy —
+roughly 80% get one brand, 10% get two, and 10% stay brandless, so the single,
+multi-brand, and brandless paths are all covered. The pool includes one parent
+brand (`Aeon Atelier`) with two children, which exercises the indexer's brand
+ancestor chain and the parent-brand filter. Stores without `product_brand`
+(WooCommerce below 9.4) are seeded without brands and log a warning.
+
 ```bash
 # Create 48 variable products with six size variations each.
 wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=48 mode=variable seed=6464

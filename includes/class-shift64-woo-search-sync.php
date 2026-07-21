@@ -39,6 +39,17 @@ class Shift64_Woo_Search_Sync {
 	private static $deleted_category_descendants = array();
 
 	/**
+	 * Descendants of brands about to be deleted, captured pre-delete and consumed post-delete.
+	 *
+	 * Same mechanism as $deleted_category_descendants: product_brand is hierarchical
+	 * (WooCommerce 9.4+), so deleting a parent brand reparents its children and the
+	 * "who was under $term_id" question is only answerable before wp_delete_term() runs.
+	 *
+	 * @var array<int, int[]>
+	 */
+	private static $deleted_brand_descendants = array();
+
+	/**
 	 * Register WooCommerce sync hooks.
 	 */
 	public function __construct() {
@@ -59,6 +70,14 @@ class Shift64_Woo_Search_Sync {
 		// changes when the parent disappears), then reindex affected products after deletion.
 		add_action( 'pre_delete_term', array( $this, 'on_pre_category_delete' ), 10, 2 );
 		add_action( 'delete_product_cat', array( $this, 'on_category_delete' ), 10, 4 );
+
+		// Brand edit — reindex affected products and refresh the blob.
+		add_action( 'edited_product_brand', array( $this, 'on_brand_change' ), 10, 2 );
+
+		// Brand deletion — same pre/post coordination as categories: snapshot
+		// descendants while the hierarchy is intact, reindex after deletion.
+		add_action( 'pre_delete_term', array( $this, 'on_pre_brand_delete' ), 10, 2 );
+		add_action( 'delete_product_brand', array( $this, 'on_brand_delete' ), 10, 4 );
 
 		// CSV import.
 		add_action( 'woocommerce_product_import_inserted_product_object', array( $this, 'on_product_import' ), 10, 2 );
@@ -110,6 +129,147 @@ class Shift64_Woo_Search_Sync {
 	 */
 	public function on_stock_change( $product_id, $stock_status, $product ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$this->upsert_product( $product_id );
+	}
+
+	/**
+	 * Handle a brand being edited.
+	 *
+	 * Reindexes the products assigned to the term (sub-brand products included —
+	 * their inherited ancestor name may have changed) and always refreshes the
+	 * {prefix}:brands blob, which must reflect a rename immediately even when no
+	 * product changed.
+	 *
+	 * @param int $term_id Term ID.
+	 * @param int $tt_id   Term taxonomy ID (unused, required by hook).
+	 */
+	public function on_brand_change( $term_id, $tt_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		$redis = Shift64_Woo_Search_Redis::get_instance();
+		if ( ! $redis->is_available() ) {
+			return;
+		}
+
+		$term = get_term( $term_id, 'product_brand' );
+		if ( $term && ! is_wp_error( $term ) ) {
+			$product_ids = get_posts(
+				array(
+					'post_type'      => 'product',
+					'post_status'    => 'publish',
+					'fields'         => 'ids',
+					'posts_per_page' => -1,
+					// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- term-scoped reindex, runs on a term edit only.
+					'tax_query'      => array(
+						array(
+							'taxonomy'         => 'product_brand',
+							'field'            => 'term_id',
+							'terms'            => (int) $term_id,
+							'include_children' => true,
+						),
+					),
+				)
+			);
+
+			if ( ! empty( $product_ids ) ) {
+				$indexer = new Shift64_Woo_Search_Indexer( $redis );
+				foreach ( $product_ids as $product_id ) {
+					$indexer->index_product( $product_id );
+				}
+			}
+		}
+
+		Shift64_Woo_Search_Indexer::cache_brands_to_redis( $redis );
+	}
+
+	/**
+	 * Snapshot descendants of a brand about to be deleted.
+	 *
+	 * Runs on `pre_delete_term`. Mirrors on_pre_category_delete(): once
+	 * `wp_delete_term()` finishes, descendants have already been reparented to 0,
+	 * so the recursive child list must be captured here and consumed in
+	 * `on_brand_delete()`.
+	 *
+	 * @param int    $term_id  Term ID about to be deleted.
+	 * @param string $taxonomy Taxonomy name.
+	 */
+	public function on_pre_brand_delete( $term_id, $taxonomy ) {
+		if ( 'product_brand' !== $taxonomy ) {
+			return;
+		}
+
+		$children = get_term_children( $term_id, $taxonomy );
+		if ( is_wp_error( $children ) || empty( $children ) ) {
+			return;
+		}
+
+		self::$deleted_brand_descendants[ $term_id ] = array_map( 'intval', $children );
+	}
+
+	/**
+	 * Reindex products affected by a deleted brand.
+	 *
+	 * Mirrors on_category_delete(). Two groups need refreshing, or the deleted
+	 * brand stays searchable (brands_text) and filterable (brands TAG) until the
+	 * next full rebuild:
+	 *   1. Products directly attached to the deleted brand — WP passes their IDs
+	 *      as `$object_ids`.
+	 *   2. Products in descendant brands — their TAG value carries the deleted
+	 *      ancestor's name. Uses the snapshot taken in `on_pre_brand_delete()`.
+	 *
+	 * The {prefix}:brands blob is always refreshed, even when no product was
+	 * affected, so the deleted term disappears from the autocomplete dropdown.
+	 *
+	 * @param int     $term_id      Deleted term ID.
+	 * @param int     $tt_id        Term taxonomy ID (unused, required by hook).
+	 * @param WP_Term $deleted_term Already-deleted term object (unused, required by hook).
+	 * @param array   $object_ids   Product IDs that were directly attached to the deleted term.
+	 */
+	public function on_brand_delete( $term_id, $tt_id, $deleted_term, $object_ids ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		$product_ids = array();
+
+		if ( is_array( $object_ids ) && ! empty( $object_ids ) ) {
+			$product_ids = array_map( 'intval', $object_ids );
+		}
+
+		if ( ! empty( self::$deleted_brand_descendants[ $term_id ] ) ) {
+			$descendant_ids = self::$deleted_brand_descendants[ $term_id ];
+			unset( self::$deleted_brand_descendants[ $term_id ] );
+
+			$descendant_products = get_posts(
+				array(
+					'post_type'      => 'product',
+					'post_status'    => 'publish',
+					'fields'         => 'ids',
+					'posts_per_page' => -1,
+					// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- term-scoped reindex, runs on a term deletion only.
+					'tax_query'      => array(
+						array(
+							'taxonomy'         => 'product_brand',
+							'field'            => 'term_id',
+							'terms'            => $descendant_ids,
+							// The snapshot is already recursive.
+							'include_children' => false,
+						),
+					),
+				)
+			);
+
+			if ( ! empty( $descendant_products ) ) {
+				$product_ids = array_merge( $product_ids, array_map( 'intval', $descendant_products ) );
+			}
+		}
+
+		$redis = Shift64_Woo_Search_Redis::get_instance();
+		if ( ! $redis->is_available() ) {
+			return;
+		}
+
+		if ( ! empty( $product_ids ) ) {
+			$indexer = new Shift64_Woo_Search_Indexer( $redis );
+			foreach ( array_unique( $product_ids ) as $product_id ) {
+				$indexer->index_product( $product_id );
+			}
+		}
+
+		Shift64_Woo_Search_Indexer::cache_brands_to_redis( $redis );
 	}
 
 	/**

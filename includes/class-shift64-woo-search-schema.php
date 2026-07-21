@@ -23,6 +23,7 @@ class Shift64_Woo_Search_Schema {
 		return array(
 			'title'           => 10,
 			'sku_text'        => 8,
+			'brands_text'     => 5,
 			'categories_text' => 4,
 			'short_desc'      => 3,
 			'attributes'      => 2,
@@ -112,6 +113,10 @@ class Shift64_Woo_Search_Schema {
 			'TAG',
 			'SEPARATOR',
 			'|',
+			'brands_text',
+			'TEXT',
+			'WEIGHT',
+			$weights['brands_text'],
 			'tags',
 			'TAG',
 			'SEPARATOR',

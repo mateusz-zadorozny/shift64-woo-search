@@ -44,8 +44,10 @@ require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-redis.
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-schema.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-stats.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-indexer.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-rebuild.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-query.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-category-suggest.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-brand-suggest.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-synonyms.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-suggestions.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-sync.php';
@@ -127,7 +129,7 @@ class Shift64_Woo_Search_Plugin {
 	 */
 	public function activate() {
 		Shift64_Woo_Search_Stats::create_table();
-		update_option( 'shift64_woo_search_db_version', '1.0' );
+		update_option( 'shift64_woo_search_db_version', self::DB_VERSION );
 		$this->set_default_options();
 		$this->install_mu_plugin();
 		$this->generate_mu_plugin_config();
@@ -345,16 +347,76 @@ class Shift64_Woo_Search_Plugin {
 	}
 
 	/**
-	 * Create database tables if needed.
+	 * Current data version. Bump whenever an upgrade needs to do work beyond
+	 * creating the stats table, and add the matching entry to
+	 * get_db_upgrade_actions().
+	 */
+	const DB_VERSION = '1.2';
+
+	/**
+	 * Map a data version to the action an install must run to reach it.
+	 *
+	 * Two actions exist:
+	 *
+	 * - 'rebuild' — the RediSearch schema changed, so the live index is stale
+	 *   and must be dropped and recreated. ensure_index_healthy() cannot detect
+	 *   field-level drift (it only checks existence and doc count), so without
+	 *   this an upgraded install would silently return nothing for queries
+	 *   against the new field.
+	 * - 'blobs'   — only a Redis blob the endpoint reads changed. Cheap, and no
+	 *   reindex is needed.
+	 *
+	 * @return array<string,string> Version => action.
+	 */
+	private function get_db_upgrade_actions() {
+		return array(
+			// brands_text TEXT field added to the product index.
+			'1.1' => 'rebuild',
+			// {prefix}:brands suggestion blob added.
+			'1.2' => 'blobs',
+		);
+	}
+
+	/**
+	 * Create database tables and run version-gated upgrade actions if needed.
 	 */
 	private function maybe_create_tables() {
-		$current_version = '1.0';
-		$db_version      = get_option( 'shift64_woo_search_db_version' );
+		$db_version = get_option( 'shift64_woo_search_db_version' );
 
-		if ( $db_version !== $current_version ) {
-			Shift64_Woo_Search_Stats::create_table();
-			update_option( 'shift64_woo_search_db_version', $current_version );
+		if ( $db_version === self::DB_VERSION ) {
+			return;
 		}
+
+		Shift64_Woo_Search_Stats::create_table();
+
+		// Collect every action between the stored version and the current one.
+		// A fresh install (no stored version) is already built from the current
+		// schema by activate(), so it needs none of them.
+		$actions = array();
+		if ( ! empty( $db_version ) ) {
+			foreach ( $this->get_db_upgrade_actions() as $version => $action ) {
+				if ( version_compare( $db_version, $version, '<' ) ) {
+					$actions[ $action ] = true;
+				}
+			}
+		}
+
+		// A full rebuild also refreshes the blobs, so it subsumes 'blobs'.
+		if ( isset( $actions['rebuild'] ) ) {
+			// Deferred to WP-Cron rather than run inline: a rebuild reindexes the
+			// whole catalog and must not block the request that triggered it. The
+			// auto-rebuild handler already carries the concurrency lock.
+			if ( ! wp_next_scheduled( Shift64_Woo_Search_Attribute_Auto_Register::REBUILD_HOOK ) ) {
+				wp_schedule_single_event( time() + 60, Shift64_Woo_Search_Attribute_Auto_Register::REBUILD_HOOK );
+			}
+		} elseif ( isset( $actions['blobs'] ) ) {
+			$redis = Shift64_Woo_Search_Redis::get_instance();
+			if ( $redis && $redis->is_available() ) {
+				Shift64_Woo_Search_Rebuild::cache_blobs( $redis );
+			}
+		}
+
+		update_option( 'shift64_woo_search_db_version', self::DB_VERSION );
 	}
 
 	/**
@@ -449,6 +511,10 @@ class Shift64_Woo_Search_Plugin {
 		$config .= "define( 'SHIFT64_WOO_SEARCH_CATEGORY_SUGGEST_FUZZY', " . var_export( get_option( 'shift64_woo_search_category_suggest_fuzzy', 'no' ) === 'yes', true ) . " );\n";
 		$config .= "define( 'SHIFT64_WOO_SEARCH_CATEGORY_BOOST_RULES', " . var_export( get_option( 'shift64_woo_search_category_boost_rules', '' ), true ) . " );\n";
 		$config .= "define( 'SHIFT64_WOO_SEARCH_CATEGORY_PIN_RULES', " . var_export( get_option( 'shift64_woo_search_category_pin_rules', '' ), true ) . " );\n";
+
+		// Brand suggestions. Defaults to on: harmless on a store with no brands,
+		// where the blob is empty and the dropdown section stays hidden.
+		$config .= "define( 'SHIFT64_WOO_SEARCH_BRAND_SUGGEST', " . var_export( get_option( 'shift64_woo_search_brand_suggest_enabled', 'yes' ) === 'yes', true ) . " );\n";
 
 		// Filter attributes for faceted search.
 		$config .= "define( 'SHIFT64_WOO_SEARCH_FILTER_ATTRIBUTES', " . var_export( implode( ',', Shift64_Woo_Search_Schema::get_filter_attributes() ), true ) . " );\n";

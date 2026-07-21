@@ -224,7 +224,28 @@ class Shift64_Woo_Search_Category_Suggest {
 	 * @return array<int,array{name:string,url:string,count:int}> Up to LIMIT rows.
 	 */
 	public static function rank( $all_cats, $query, $pin_rules = '', $fuzzy_enabled = false ) {
-		$out = array();
+		return self::rank_entries( $all_cats, $query, $pin_rules, $fuzzy_enabled );
+	}
+
+	/**
+	 * Taxonomy-agnostic scoring core shared by every suggestion blob.
+	 *
+	 * Categories and brands use identical blob shapes and identical ranking
+	 * math, so the scoring lives here once. Callers with no pin or boost concept
+	 * (brands, today) simply pass an empty pin-rules string.
+	 *
+	 * Stays WordPress-free: it runs inside the SHORTINIT endpoint.
+	 *
+	 * @param array  $entries       Decoded suggestion blob (entries with name,
+	 *                              name_ascii, slug, url, count, optional boost).
+	 * @param string $query         Raw search query.
+	 * @param string $pin_rules     Raw pin-rules textarea content; '' for none.
+	 * @param bool   $fuzzy_enabled Whether typo-tolerant matching is enabled.
+	 * @return array<int,array{name:string,url:string,count:int}> Up to LIMIT rows.
+	 */
+	public static function rank_entries( $entries, $query, $pin_rules = '', $fuzzy_enabled = false ) {
+		$all_cats = $entries;
+		$out      = array();
 		if ( ! is_array( $all_cats ) || empty( $all_cats ) ) {
 			return $out;
 		}

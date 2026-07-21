@@ -447,8 +447,9 @@
         var html = '';
         var hasSuggestions = data.suggestions && data.suggestions.length > 0;
         var hasCategories  = data.categories && data.categories.length > 0;
+        var hasBrands      = data.brands && data.brands.length > 0;
         var hasProducts    = data.results && data.results.length > 0;
-        var hasAnything    = hasSuggestions || hasCategories || hasProducts;
+        var hasAnything    = hasSuggestions || hasCategories || hasBrands || hasProducts;
 
         // Scrollable content wrapper.
         html += '<div class="shift64-woo-search-results__scroll">';
@@ -490,7 +491,20 @@
                 html += '</div>';
             }
 
-            // Section 3: Products.
+            // Section 3: Brands.
+            if (hasBrands) {
+                html += '<div class="shift64-woo-search-section shift64-woo-search-section--brands">';
+                html += '<div class="shift64-woo-search-section__header">' + escapeHtml(config.brandsHeaderText || 'BRANDS') + '</div>';
+                for (var b = 0; b < data.brands.length; b++) {
+                    var brand = data.brands[b];
+                    html += '<div class="shift64-woo-search-result shift64-woo-search-result--brand" role="option" data-url="' + escapeAttr(brand.url) + '">';
+                    html += '<span class="shift64-woo-search-result__text">' + escapeHtml(brand.name) + '</span>';
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+
+            // Section 4: Products.
             if (hasProducts) {
                 html += '<div class="shift64-woo-search-section shift64-woo-search-section--products">';
                 html += '<div class="shift64-woo-search-section__header">' + escapeHtml(config.productsHeaderText || 'PRODUCTS') + '</div>';
@@ -548,6 +562,13 @@
             metaParts.push('<span class="shift64-woo-search-result__category">' + escapeHtml(category) + '</span>');
         }
 
+        // First segment only — the indexer guarantees it is a directly-assigned
+        // brand rather than an inherited parent.
+        var brandLabel = typeof item.brand === 'string' ? item.brand.split('|')[0].trim() : '';
+        if (config.showBrand !== false && brandLabel) {
+            metaParts.push('<span class="shift64-woo-search-result__brand">' + escapeHtml(brandLabel) + '</span>');
+        }
+
         if (metaParts.length > 0) {
             html += '<div class="shift64-woo-search-result__meta">'
                 + metaParts.join('<span class="shift64-woo-search-result__meta-sep">|</span>')
@@ -597,6 +618,7 @@
                     self.renderResults({
                         suggestions: data.suggestions,
                         categories: [],
+                        brands: [],
                         results: [],
                         query: ''
                     });

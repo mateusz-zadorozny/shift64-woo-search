@@ -79,6 +79,7 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 			}
 
 			$category_ids = $this->ensure_categories();
+			$brand_ids    = $this->ensure_brands();
 			$color_data   = $this->ensure_attribute( 'Color', 'color', $this->get_colors() );
 			$size_data    = $this->ensure_attribute( 'Size', 'size', $this->get_sizes() );
 			$combinations = $this->build_combinations( $this->count );
@@ -107,6 +108,8 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 				} else {
 					$this->create_variable_product( $combination, $sku, $category_ids, $color_data, $size_data, $index );
 				}
+
+				$this->assign_brands( wc_get_product_id_by_sku( $sku ), $brand_ids, $index );
 
 				++$created;
 				$progress->tick();
@@ -180,6 +183,71 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 				'coats'    => $this->ensure_term( 'Coats', 'product_cat', $outer ),
 				'dresses'  => $this->ensure_term( 'Dresses', 'product_cat', $clothing ),
 			);
+		}
+
+		/**
+		 * Create the fictional brand hierarchy.
+		 *
+		 * Includes one parent with two children so the indexer's brand
+		 * ancestor-chain handling and the parent-brand filter are exercised
+		 * locally.
+		 *
+		 * @return array<int,int> Brand term IDs, or an empty array when the store
+		 *                        has no product_brand taxonomy.
+		 */
+		private function ensure_brands() {
+			if ( ! taxonomy_exists( 'product_brand' ) ) {
+				WP_CLI::warning( 'Taxonomy product_brand is not registered (WooCommerce 9.4+ required) — skipping brand seeding.' );
+				return array();
+			}
+
+			$aeon = $this->ensure_term( 'Aeon Atelier', 'product_brand', 0 );
+
+			return array(
+				$this->ensure_term( 'Helios Supply', 'product_brand', 0 ),
+				$this->ensure_term( 'Nyx Workshop', 'product_brand', 0 ),
+				$this->ensure_term( 'Orpheus Goods', 'product_brand', 0 ),
+				$this->ensure_term( 'Selene Studio', 'product_brand', 0 ),
+				$this->ensure_term( 'Thalia Union', 'product_brand', 0 ),
+				$aeon,
+				$this->ensure_term( 'Aeon Everyday', 'product_brand', $aeon ),
+				$this->ensure_term( 'Aeon Reserve', 'product_brand', $aeon ),
+			);
+		}
+
+		/**
+		 * Assign brands to a generated product.
+		 *
+		 * Distribution: ~80% one brand, ~10% two brands, ~10% none — enough to
+		 * exercise the single, multi-brand, and brandless paths. Selection is
+		 * derived from the product index rather than mt_rand() so it is
+		 * reproducible AND leaves the existing seeded random stream untouched,
+		 * keeping previously generated catalogs byte-identical.
+		 *
+		 * @param int   $product_id Product ID.
+		 * @param array $brand_ids  Available brand term IDs.
+		 * @param int   $index      Zero-based product index.
+		 */
+		private function assign_brands( $product_id, $brand_ids, $index ) {
+			if ( empty( $brand_ids ) || ! $product_id ) {
+				return;
+			}
+
+			$bucket = $index % 10;
+			if ( 9 === $bucket ) {
+				return; // Brandless.
+			}
+
+			$count    = count( $brand_ids );
+			$assigned = array( $brand_ids[ ( $index * 7 ) % $count ] );
+			if ( 8 === $bucket ) {
+				$second = $brand_ids[ ( $index * 7 + 3 ) % $count ];
+				if ( $second !== $assigned[0] ) {
+					$assigned[] = $second;
+				}
+			}
+
+			wp_set_object_terms( $product_id, $assigned, 'product_brand' );
 		}
 
 		/**

@@ -30,7 +30,7 @@ class Shift64_Woo_Search_Facets {
 	 * @param array                    $active_user_filters User-selected filters from URL params. Exclude-self logic applies per dimension.
 	 * @param array|null               $terms               Optional search terms for text-query context (search archive).
 	 *                                                      NULL on taxonomy archive — facets are computed without a text query.
-	 * @return array Keyed by field name (e.g. 'categories', 'attr_pa_kolor') → list of ['value' => string, 'count' => int].
+	 * @return array Keyed by field name (e.g. 'categories', 'brands', 'attr_pa_kolor') → list of ['value' => string, 'count' => int].
 	 */
 	public static function compute(
 		Shift64_Woo_Search_Query $search_query,
@@ -57,6 +57,16 @@ class Shift64_Woo_Search_Facets {
 			$cat_results = $search_query->execute_category_facet( $cat_query );
 			if ( ! empty( $cat_results ) ) {
 				$facets['categories'] = $cat_results;
+			}
+		}
+
+		// Brands are opt-in (default off): most stores have no brands at all, and
+		// an empty group would just be noise in the sidebar.
+		if ( 'yes' === get_option( 'shift64_woo_search_filter_brands_enabled', 'no' ) ) {
+			$brand_query   = $search_query->build_facet_query( $terms_for_query, $all_filters, 'brand' );
+			$brand_results = $search_query->execute_brand_facet( $brand_query );
+			if ( ! empty( $brand_results ) ) {
+				$facets['brands'] = $brand_results;
 			}
 		}
 

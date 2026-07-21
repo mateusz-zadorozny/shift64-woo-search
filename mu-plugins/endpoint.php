@@ -40,6 +40,8 @@ require_once SHIFT64_WOO_SEARCH_PLUGIN_PATH . 'includes/class-shift64-woo-search
 require_once SHIFT64_WOO_SEARCH_PLUGIN_PATH . 'includes/class-shift64-woo-search-schema.php';
 // Pure category-suggestion ranking (pins + boost + relevance), unit-tested standalone.
 require_once SHIFT64_WOO_SEARCH_PLUGIN_PATH . 'includes/class-shift64-woo-search-category-suggest.php';
+// Brand suggestions — same blob shape, same scoring core, no pins.
+require_once SHIFT64_WOO_SEARCH_PLUGIN_PATH . 'includes/class-shift64-woo-search-brand-suggest.php';
 
 // Set JSON headers.
 header( 'Content-Type: application/json; charset=utf-8' );
@@ -79,6 +81,7 @@ if ( 'suggestions' === $mode ) {
         'success'     => true,
         'suggestions' => $suggestions,
         'categories'  => array(),
+        'brands'      => array(),
         'results'     => array(),
         'count'       => 0,
         'query'       => '',
@@ -95,6 +98,7 @@ if ( empty( $query ) || mb_strlen( $query ) < 2 ) {
         'time_ms'     => 0,
         'suggestions' => array(),
         'categories'  => array(),
+        'brands'      => array(),
         'results'     => array(),
     ) );
     exit;
@@ -156,6 +160,9 @@ $config = array(
     'category_boost_rules'          => defined( 'SHIFT64_WOO_SEARCH_CATEGORY_BOOST_RULES' ) ? SHIFT64_WOO_SEARCH_CATEGORY_BOOST_RULES : '',
     'category_pin_rules'            => defined( 'SHIFT64_WOO_SEARCH_CATEGORY_PIN_RULES' ) ? SHIFT64_WOO_SEARCH_CATEGORY_PIN_RULES : '',
     'category_suggest_fuzzy'        => defined( 'SHIFT64_WOO_SEARCH_CATEGORY_SUGGEST_FUZZY' ) ? SHIFT64_WOO_SEARCH_CATEGORY_SUGGEST_FUZZY : false,
+    // Absence means enabled: the option defaults to on, and an install whose
+    // config.php predates this constant must not lose the section.
+    'brand_suggest_enabled'         => defined( 'SHIFT64_WOO_SEARCH_BRAND_SUGGEST' ) ? (bool) SHIFT64_WOO_SEARCH_BRAND_SUGGEST : true,
 );
 
 // Execute search.
@@ -189,6 +196,18 @@ if ( 'autocomplete' === $mode ) {
     $cat_raw  = $redis->raw_command( 'GET', $cat_key );
     $all_cats = $cat_raw ? json_decode( $cat_raw, true ) : array();
     $results['categories'] = Shift64_Woo_Search_Category_Suggest::rank( $all_cats, $query, $config['category_pin_rules'], $config['category_suggest_fuzzy'] );
+
+    // Brands: same treatment, minus pins and boosts. The key is always present
+    // in an autocomplete response — including when the feature is switched off —
+    // so the frontend can hide the section purely on emptiness and never has to
+    // know about the toggle.
+    $results['brands'] = array();
+    if ( $config['brand_suggest_enabled'] ) {
+        $brand_key  = $redis->get_prefix() . ':brands';
+        $brand_raw  = $redis->raw_command( 'GET', $brand_key );
+        $all_brands = $brand_raw ? json_decode( $brand_raw, true ) : array();
+        $results['brands'] = Shift64_Woo_Search_Brand_Suggest::rank( $all_brands, $query, $config['category_suggest_fuzzy'] );
+    }
 }
 
 // Output response.
