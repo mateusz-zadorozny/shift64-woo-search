@@ -15,7 +15,7 @@
 
     // Selectors — Kadence + WooCommerce defaults.
     var SELECTORS = {
-        productWrap:    '.kwt-products-wrap',
+        productWrap:    '.kwt-products-wrap, ul.products, .products, .wc-block-grid__products, .wp-block-woocommerce-product-template',
         pagination:     'nav.woocommerce-pagination',
         resultCount:    '.woocommerce-result-count',
         ordering:       '.woocommerce-ordering',
@@ -26,8 +26,8 @@
     var isLoading = false;
 
     function init() {
-        // Only activate on product search pages with a product wrap.
-        if (!document.querySelector(SELECTORS.productWrap)) return;
+        // Activate if filters element or product wrap exists.
+        if (!document.querySelector(SELECTORS.filters) && !document.querySelector(SELECTORS.productWrap)) return;
 
         delegate();
     }
@@ -66,7 +66,7 @@
 
         // Pagination links.
         document.addEventListener('click', function (e) {
-            var link = e.target.closest(SELECTORS.productWrap + ' a.page-numbers');
+            var link = e.target.closest(SELECTORS.pagination + ' a, a.page-numbers');
             if (!link || isLoading) return;
 
             e.preventDefault();
