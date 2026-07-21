@@ -1,3 +1,10 @@
+# [0.6.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.5.0...v0.6.0) (2026-07-21)
+
+
+### Features
+
+* Spec: Native WooCommerce Brands Support (product_brand) ([#10](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/10)) ([#11](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/11)) ([2ecfa2b](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/2ecfa2b714c873f3b6ce6c8ea813523e4e8811a0))
+
 # [0.5.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.4.0...v0.5.0) (2026-07-19)
 
 
