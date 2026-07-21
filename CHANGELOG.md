@@ -1,3 +1,20 @@
+# [0.7.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.6.0...v0.7.0) (2026-07-21)
+
+
+### Bug Fixes
+
+* **admin:** send shift64_woo_search_filter_brands_enabled in save_filters AJAX payload ([99e5059](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/99e50590edfcd40342c2c79420456f15678e6359))
+* **archive:** bypass custom AJAX partial fragment on non-Kadence block themes ([aa4b195](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/aa4b1951b1a0a9e818bf8d55a391b47f4d5fc168))
+* **brands:** reindex products on brand deletion and cover the upgrade map ([c7dfc64](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/c7dfc64c49053d876fa55f5c9cd28501e9bd75be))
+* **frontend:** expand productWrap selectors to support non-Kadence themes ([9616119](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/961611938c9ea607f0ffbc2f5c23a0f0b9f4f52f))
+* **frontend:** guard single filter render and support modular AJAX DOM swap on block themes ([3e935ed](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/3e935edb24b26f341de369c07a4abcff2ad4ef5d))
+* **tests:** drop ReflectionMethod::setAccessible, deprecated on PHP 8.5 ([304311c](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/304311c13b5fd2421fdd51fe53ec2e5ddfc80236))
+
+
+### Features
+
+* **brands:** add native WooCommerce product_brand support ([#10](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/10)) ([409c90f](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/409c90f6ab79f91ebfc2c38be771a35b821cc9ff))
+
 # [0.6.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.5.0...v0.6.0) (2026-07-21)
 
 
