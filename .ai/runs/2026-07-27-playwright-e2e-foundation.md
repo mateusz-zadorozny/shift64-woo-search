@@ -61,9 +61,9 @@ Route-mocked failure modes (#15–#17) with payloads mirroring `mu-plugins/endpo
 
 ### Phase 1: Provisioning + local smoke
 
-- [ ] 1.1 Write `bin/e2e-provision.sh` (idempotent; env contract; verification tail) and verify twice against LocalWP
-- [ ] 1.2 Playwright scaffolding: devDependency, npm scripts, `playwright.config.ts`, `.gitignore` entries, `tests/e2e/helpers/{env,search,mocks}.ts`
-- [ ] 1.3 First two smoke tests (#1 dropdown visible, #7 submit journey) green against LocalWP
+- [x] 1.1 Write `bin/e2e-provision.sh` (idempotent; env contract; verification tail) and verify twice against LocalWP — a0518bb
+- [x] 1.2 Playwright scaffolding: devDependency, npm scripts, `playwright.config.ts`, `.gitignore` entries, `tests/e2e/helpers/{env,search,mocks}.ts` — 3722199
+- [x] 1.3 First two smoke tests (#1 dropdown visible, #7 submit journey) green against LocalWP — 0a10789
 
 ### Phase 2: Core journey suite
 
