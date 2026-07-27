@@ -38,6 +38,10 @@ yarn.lock
 tests
 vendor
 node_modules
+playwright.config.ts
+playwright-report
+test-results
+blob-report
 *.sql
 *.tar.gz
 *.zip

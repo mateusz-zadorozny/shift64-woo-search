@@ -22,6 +22,19 @@ wp shift64-woo-search test "query"
 wp shift64-woo-search health
 ```
 
+### E2E (Playwright)
+
+`npm run test:e2e` requires a provisioned live site (`bin/e2e-provision.sh`);
+`BASE_URL` selects the target (defaults to the CI `wp server` at
+`http://127.0.0.1:8889`; use `BASE_URL=http://<site>.local` for LocalWP).
+The suite's degraded project REALLY mutates the target site's Redis config
+and restores it in a teardown — if an aborted run leaves the site broken,
+re-run `npm run e2e:provision`. Never add Playwright to the agentic
+validation gate (`.ai/agentic.config.json` `validation.commands`): the gate
+must stay hermetic, and the degraded project would corrupt the dev site.
+CI enforcement lives in `.github/workflows/release.yml` (`e2e` job;
+`release` needs it).
+
 ## Architecture
 
 ```text
