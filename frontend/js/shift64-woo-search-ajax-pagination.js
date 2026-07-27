@@ -385,7 +385,19 @@
                     if (curPag && newPag) {
                         curPag.outerHTML = newPag.outerHTML;
                     } else if (curPag && !newPag) {
+                        // The response has a single page of results (typically
+                        // after a filter narrows the set), so there is nothing
+                        // to page through. Empty the control AND hide it —
+                        // an emptied nav still occupies its flex/margin box on
+                        // block themes and leaves a visible gap.
+                        //
+                        // Inline display, not the [hidden] attribute: the UA's
+                        // [hidden] { display: none } loses to the theme's
+                        // .wp-block-query-pagination { display: flex } rule.
+                        // The swap branch above replaces the whole element, so
+                        // this style is gone as soon as pagination returns.
                         curPag.innerHTML = '';
+                        curPag.style.display = 'none';
                     }
 
                     var curCount = document.querySelector(SELECTORS.resultCount);

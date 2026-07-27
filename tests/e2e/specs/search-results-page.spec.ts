@@ -47,6 +47,14 @@ test.describe('search results page (Redis takeover)', () => {
 		for (let i = 0; i < count; i++) {
 			await expect(cards.nth(i)).toContainText(/Green/);
 		}
+
+		// Green narrows 48 results to a single page, so the swap must hide the
+		// pagination control outright. Merely emptying it leaves a nav that
+		// still occupies its box — asserting on `display` rather than
+		// visibility is what distinguishes the two.
+		await expect(
+			page.locator('nav.woocommerce-pagination, nav.wp-block-query-pagination').first()
+		).toHaveCSS('display', 'none');
 	});
 
 	// Test 10: orderby=price → rendered prices non-decreasing.
