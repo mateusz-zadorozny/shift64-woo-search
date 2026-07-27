@@ -47,6 +47,14 @@ test.describe('search results page (Redis takeover)', () => {
 		for (let i = 0; i < count; i++) {
 			await expect(cards.nth(i)).toContainText(/Green/);
 		}
+
+		// Green narrows 48 results to a single page, so the swap must hide the
+		// pagination control outright. Merely emptying it leaves a nav that
+		// still occupies its box — asserting on `display` rather than
+		// visibility is what distinguishes the two.
+		await expect(
+			page.locator('nav.woocommerce-pagination, nav.wp-block-query-pagination').first()
+		).toHaveCSS('display', 'none');
 	});
 
 	// Test 10: orderby=price → rendered prices non-decreasing.
@@ -88,6 +96,12 @@ test.describe('search results page (Redis takeover)', () => {
 
 		await expect(page).toHaveURL(/(\/page\/2\/|[?&]paged=2)/);
 		await expect(cards.first()).not.toHaveText(firstTitleBefore);
+
+		// The pagination control itself must be swapped too, not just the grid.
+		// `.page-numbers.current` covers classic Woo (span.page-numbers.current)
+		// and blockified markup (span.page-numbers.current[aria-current="page"]),
+		// so the same assertion holds on Storefront and on a block theme.
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
 
 		const flagSurvived = await page.evaluate(() => {
 			return (window as unknown as Record<string, unknown>).__e2eNoReload === true;
