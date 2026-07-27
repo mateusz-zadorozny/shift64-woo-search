@@ -92,9 +92,113 @@ jobs:
       - name: Run PHPUnit
         run: vendor/bin/phpunit
 
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      WP_ROOT: /tmp/wordpress-e2e
+      E2E_PORT: "8889"
+      E2E_URL: http://127.0.0.1:8889
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress_e2e
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      redis:
+        image: redis/redis-stack-server:7.4.0-v8
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mysqli, mbstring, intl, redis
+          coverage: none
+          tools: composer:v2, wp-cli
+
+      - name: Ensure wp server command
+        # setup-php's wp-cli tool should ship wp-cli/server-command; install it
+        # explicitly when it does not (flagged assumption in the e2e spec).
+        run: wp package list 2>/dev/null | grep -q server-command || wp server --help >/dev/null 2>&1 || wp package install wp-cli/server-command
+
+      - name: Install WordPress + WooCommerce
+        env:
+          SITE_URL: ${{ env.E2E_URL }}
+        run: bash bin/e2e-install-wp.sh
+
+      - name: Provision e2e state
+        run: bash bin/e2e-provision.sh
+
+      - name: Start wp server
+        run: |
+          cd "$WP_ROOT"
+          PHP_CLI_SERVER_WORKERS=4 nohup wp server --host=127.0.0.1 --port="$E2E_PORT" > /tmp/wp-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null "$E2E_URL/"; then
+              break
+            fi
+            [ "$i" = "30" ] && { echo "wp server never became ready" >&2; cat /tmp/wp-server.log >&2; exit 1; }
+            sleep 1
+          done
+          BODY="$(curl -sf "$E2E_URL/wp-content/mu-plugins/shift64-woo-search/endpoint.php?q=athena&mode=autocomplete")"
+          echo "$BODY" | grep -q '"success":true' || { echo "Endpoint smoke-curl failed: $BODY" >&2; exit 1; }
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "lts/*"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright suite
+        env:
+          BASE_URL: ${{ env.E2E_URL }}
+        run: npx playwright test
+
+      - name: Collect server log
+        if: failure()
+        run: cp /tmp/wp-server.log wp-server.log 2>/dev/null || true
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report/
+            test-results/
+            wp-server.log
+          retention-days: 7
+
   release:
     name: Release
-    needs: test
+    needs: [test, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:

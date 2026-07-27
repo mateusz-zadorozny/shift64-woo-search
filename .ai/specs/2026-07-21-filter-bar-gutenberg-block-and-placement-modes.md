@@ -1,5 +1,7 @@
 # Filter Bar Gutenberg Block, Flexible Hooks & Result Display Settings
 
+> **Status:** draft — BLOCKED: must be aligned with `.ai/specs/2026-07-22-admin-settings-information-architecture.md` before implementation (its "Display" tab conflicts with the new admin IA).
+
 ## TLDR
 Introduce a Gutenberg Block (`shift64-woo-search/filter-bar`) and Shortcode (`[shift64_woo_search_filters]`) for placing faceted search filters anywhere on WooCommerce shop and archive pages. Add flexible placement options (Default Hook `woocommerce_before_shop_loop`, alternate hook selector, or manual block/shortcode mode) and a dedicated "Display / Wygląd" WP Admin tab to easily manage filter placement and product card result meta toggles (SKU, Category, Brand).
 

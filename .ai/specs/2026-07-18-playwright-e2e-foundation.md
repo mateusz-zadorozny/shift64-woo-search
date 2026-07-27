@@ -1,5 +1,7 @@
 # Playwright E2E Foundation
 
+> **Status:** implemented — PR #14, 2026-07-27. Execution plan: `.ai/runs/2026-07-27-playwright-e2e-foundation.md`.
+
 ## TLDR
 
 Add a Playwright end-to-end layer that exercises the plugin's real runtime for the first time in CI: real WordPress + WooCommerce + Redis Stack provisioned natively on a GitHub Actions runner (no Docker), served by `wp server`, seeded by the existing deterministic demo generator. Nineteen tests cover the core shopper journeys (autocomplete dropdown, keyboard navigation, modal, Redis-backed results page, filters, sort, AJAX pagination, category archive) plus every degradation path — JS failure modes via `page.route()` mocks, real dead-Redis and cleared-config via serialized environment mutation. The e2e job runs on every PR and push to `main`, gates the release job (`release: needs: [test, e2e]`), and is registered as a required status check in branch protection so it blocks merges. The same idempotent provisioning script targets the LocalWP dev site, so the suite runs locally with only a `BASE_URL` switch.
