@@ -57,6 +57,8 @@ Route-mocked failure modes (#15–#17) with payloads mirroring `mu-plugins/endpo
 
 ## Progress
 
+PR: #14
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Provisioning + local smoke
