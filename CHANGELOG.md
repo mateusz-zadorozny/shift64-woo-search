@@ -1,3 +1,10 @@
+## [0.7.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.7.0...v0.7.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **frontend:** swap blockified pagination on AJAX page change ([#15](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/15)) ([#16](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/16)) ([fd4c013](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/fd4c0137b0ba50ac3b69f278df015360d0db3cae))
+
 # [0.7.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.6.0...v0.7.0) (2026-07-21)
 
 
