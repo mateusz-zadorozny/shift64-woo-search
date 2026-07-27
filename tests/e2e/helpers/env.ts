@@ -1,0 +1,22 @@
+import { execFileSync } from 'node:child_process';
+
+/**
+ * BASE_URL selects the target site: the CI `wp server` (default) or a LocalWP
+ * dev site (e.g. BASE_URL=http://my-site.local).
+ */
+export const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8889';
+
+const WP_CLI_BIN = process.env.WP_CLI_BIN || 'wp';
+const WP_ROOT = process.env.WP_ROOT;
+
+/**
+ * Run a wp-cli command against the target install and return stdout.
+ * Honors the same WP_CLI_BIN / WP_ROOT contract as bin/e2e-provision.sh.
+ */
+export function wpCli(args: string[]): string {
+	const finalArgs = WP_ROOT ? [...args, `--path=${WP_ROOT}`] : args;
+	return execFileSync(WP_CLI_BIN, finalArgs, {
+		encoding: 'utf8',
+		stdio: ['ignore', 'pipe', 'pipe'],
+	});
+}

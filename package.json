@@ -8,7 +8,11 @@
     "lint:changed": "{ git diff --name-only --diff-filter=ACM; git ls-files --others --exclude-standard; } | sort -u | grep '.php$' | xargs -r ./vendor/bin/phpcs",
     "fix:changed": "{ git diff --name-only --diff-filter=ACM; git ls-files --others --exclude-standard; } | sort -u | grep '.php$' | xargs -r ./vendor/bin/phpcbf || true",
     "lc": "npm run lint:changed",
-    "fc": "npm run fix:changed"
+    "fc": "npm run fix:changed",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "e2e:provision": "bash bin/e2e-provision.sh"
   },
   "lint-staged": {
     "*.php": [
@@ -17,6 +21,7 @@
     ]
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.1",
