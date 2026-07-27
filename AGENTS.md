@@ -22,6 +22,15 @@ wp shift64-woo-search test "query"
 wp shift64-woo-search health
 ```
 
+### Spec lifecycle
+
+Specs live in `.ai/specs/` and every file carries a `> **Status:**` line under
+its title, mirrored in the `.ai/specs/README.md` index table. A PR that
+implements a spec MUST flip that spec's Status header (`draft` →
+`implemented — PR #N, date`) and the index row **in the same PR**. Never move,
+rename, or delete spec files — their paths are referenced from other specs,
+`.ai/runs/` plans, and PR bodies.
+
 ### E2E (Playwright)
 
 `npm run test:e2e` requires a provisioned live site (`bin/e2e-provision.sh`);
