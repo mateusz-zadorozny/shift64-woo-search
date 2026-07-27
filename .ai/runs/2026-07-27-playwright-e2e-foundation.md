@@ -78,5 +78,5 @@ Route-mocked failure modes (#15–#17) with payloads mirroring `mu-plugins/endpo
 
 ### Phase 4: CI wiring + release gate
 
-- [ ] 4.1 Write `bin/e2e-install-wp.sh` and add the `e2e` job to `.github/workflows/release.yml`
-- [ ] 4.2 Flip `release` to `needs: [test, e2e]`; `.distignore` entries; `AGENTS.md` note; register required status check after `e2e` is green on the PR
+- [x] 4.1 Write `bin/e2e-install-wp.sh` and add the `e2e` job to `.github/workflows/release.yml` — a7983b9
+- [x] 4.2 Flip `release` to `needs: [test, e2e]`; `.distignore` entries; `AGENTS.md` note; register required status check after `e2e` is green on the PR — f55774c (branch protection pending green `e2e` on the PR)
