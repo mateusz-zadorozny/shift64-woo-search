@@ -73,8 +73,8 @@ Route-mocked failure modes (#15–#17) with payloads mirroring `mu-plugins/endpo
 
 ### Phase 3: Failure modes + degraded environment
 
-- [ ] 3.1 Write `specs/failure-modes.spec.ts` (#15–#17) with verified mock payloads
-- [ ] 3.2 Add degraded project chain (`degrade.setup.ts`, `degraded.spec.ts` #18–#19, `restore.teardown.ts`); full local run leaves LocalWP healthy
+- [x] 3.1 Write `specs/failure-modes.spec.ts` (#15–#17) with verified mock payloads — c067c0b
+- [x] 3.2 Add degraded project chain (`degrade.setup.ts`, `degraded.spec.ts` #18–#19, `restore.teardown.ts`); full local run leaves LocalWP healthy — 3ab2c95
 
 ### Phase 4: CI wiring + release gate
 
