@@ -19,7 +19,9 @@ test.describe('search results page (Redis takeover)', () => {
 		await expect(cards.first()).toBeVisible();
 		await expect(cards.first()).toContainText(/Athena/);
 
-		const orderby = page.locator(SEL.orderbySelect);
+		// Storefront renders the ordering control twice (above and below the
+		// loop); block themes render it once — assert on the first.
+		const orderby = page.locator(SEL.orderbySelect).first();
 		await expect(orderby).toBeVisible();
 		await expect(orderby).toHaveValue('relevance');
 		await expect(orderby.locator('option[value="relevance"]')).toHaveText('Search relevance');
