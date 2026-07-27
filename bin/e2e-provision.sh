@@ -33,18 +33,33 @@ wpc() {
 
 log() { printf '\n==> %s\n' "$1"; }
 
+TARGET_URL="$(wpc option get siteurl)"
+printf '\n############################################################\n'
+printf '# Provisioning target: %s\n' "$TARGET_URL"
+printf '# This OVERWRITES this site'\''s Shift64 Woo Search options\n'
+printf '# (rate limit, suggestions, archive gates, filter attributes)\n'
+printf '# and reseeds the demo catalog (generator-owned products only).\n'
+printf '############################################################\n'
+
 log "WooCommerce active + storefront visible"
 # The plugin's CLI commands only register when WooCommerce is active, and the
 # plugin's own activation hook silently no-ops while WooCommerce is inactive.
 wpc plugin is-active woocommerce >/dev/null 2>&1 || wpc plugin activate woocommerce
 wpc option update woocommerce_coming_soon no
 
-log "Activate shift64-woo-search (forced re-activation so the activation hook runs with WooCommerce active)"
-if wpc plugin is-active shift64-woo-search >/dev/null 2>&1; then
-	wpc plugin deactivate shift64-woo-search >/dev/null
+log "Activate shift64-woo-search"
+if ! wpc plugin is-active shift64-woo-search >/dev/null 2>&1; then
+	wpc plugin activate shift64-woo-search
 fi
-wpc plugin activate shift64-woo-search
-wpc plugin is-active shift64-woo-search >/dev/null
+if ! wpc plugin is-active shift64-woo-search >/dev/null 2>&1; then
+	echo 'FATAL: shift64-woo-search failed to activate (is WooCommerce really active?).' >&2
+	exit 1
+fi
+# Re-run the activation routine idempotently (stats table, default options,
+# mu-plugin install, config regen) WITHOUT a deactivate/activate window: it
+# covers the edge where the plugin was activated while WooCommerce was
+# inactive, in which case the real activation hook silently never ran.
+wpc eval 'Shift64_Woo_Search_Plugin::get_instance()->activate();'
 
 log "Pretty permalinks"
 wpc rewrite structure '/%postname%/' >/dev/null
@@ -105,7 +120,10 @@ fi
 if [ -n "${BASE_URL:-}" ]; then
 	SMOKE_URL="${BASE_URL%/}/wp-content/mu-plugins/shift64-woo-search/endpoint.php?q=athena&mode=autocomplete"
 	echo "Smoke-curl: $SMOKE_URL"
-	SMOKE_BODY="$(curl -sf --max-time 15 "$SMOKE_URL")"
+	if ! SMOKE_BODY="$(curl -sS -L --max-time 15 "$SMOKE_URL" 2>&1)"; then
+		echo "FATAL: endpoint smoke-curl failed: $SMOKE_BODY" >&2
+		exit 1
+	fi
 	echo "$SMOKE_BODY" | grep -q '"success":true' || { echo "FATAL: endpoint smoke-curl did not return \"success\":true — got: $SMOKE_BODY" >&2; exit 1; }
 	echo "Endpoint smoke-curl OK."
 fi

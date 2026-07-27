@@ -20,3 +20,10 @@ export function wpCli(args: string[]): string {
 		stdio: ['ignore', 'pipe', 'pipe'],
 	});
 }
+
+/**
+ * Where the degrade setup records the site's original Redis connection so the
+ * restore teardown puts back what was actually there — not env defaults.
+ * Lives under test-results/ (gitignored, wiped by Playwright between runs).
+ */
+export const REDIS_STATE_PATH = 'test-results/e2e-redis-state.json';

@@ -38,9 +38,11 @@ test.describe('failure modes (route-mocked)', () => {
 		const message = visibleTray(page).locator(SEL.empty);
 		await expect(message).toHaveText('Quick search timed out. Use the search button.', { timeout: 8000 });
 
-		// The latch must suppress this query entirely; the navigation below
-		// gives the debounce window ample time to prove it.
+		// Prove the latch: typing a new valid query must not issue a request even
+		// after the debounce window — the bounded waitForRequest must time out.
 		await searchInput(page).fill('hoodie');
+		await expect(page.waitForRequest(isAutocompleteRequest, { timeout: 700 })).rejects.toThrow();
+
 		await searchInput(page).press('Enter');
 		await page.waitForURL(/[?&]s=hoodie/);
 		await expect(page.locator(SEL.productsGrid).first().locator('li.product').first()).toBeVisible();
@@ -82,10 +84,17 @@ test.describe('failure modes (route-mocked)', () => {
 			}
 		);
 
+		// Anchor on the mocked round trip so tray-absence proves the client
+		// handled the fallback (an immediate check would pass vacuously).
+		const fallbackHandled = page.waitForResponse((res) => isAutocompleteRequest(res.request()));
 		await typeQuery(page, 'athena');
+		await fallbackHandled;
 		await expect(visibleTray(page)).toHaveCount(0);
 
+		// Prove the latch before navigating: no request may fire for a new query.
 		await searchInput(page).fill('hoodie');
+		await expect(page.waitForRequest(isAutocompleteRequest, { timeout: 700 })).rejects.toThrow();
+
 		await searchInput(page).press('Enter');
 		await page.waitForURL(/[?&]s=hoodie/);
 		await expect(page.locator(SEL.productsGrid).first().locator('li.product').first()).toBeVisible();

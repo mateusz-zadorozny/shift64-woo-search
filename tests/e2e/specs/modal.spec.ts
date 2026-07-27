@@ -26,9 +26,9 @@ test.describe('modal search', () => {
 		await expect(products).toBeVisible();
 		await expect(products.locator(SEL.rowTitle).first()).toContainText(/Athena/);
 
-		await input.press('Escape');
-		// First Escape closes the tray (result rows were rendered); the second
-		// reaches the modal's own keydown handler.
+		// A single Escape closes both the tray and the modal: the dropdown's
+		// keydown handler closes the tray without stopping propagation, so the
+		// same event reaches the modal's keydown handler (verified empirically).
 		await input.press('Escape');
 		await expect(modal).toBeHidden();
 		await expect(page.locator('body')).not.toHaveClass(new RegExp(MODAL_OPEN_BODY_CLASS));

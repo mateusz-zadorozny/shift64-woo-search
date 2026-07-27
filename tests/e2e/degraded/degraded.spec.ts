@@ -1,6 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { wpCli } from '../helpers/env';
-import { ENDPOINT_PATH, SEARCH_PAGE, SEL, searchInput, typeQuery, visibleTray } from '../helpers/search';
+import {
+	ENDPOINT_PATH,
+	SEARCH_PAGE,
+	SEL,
+	isAutocompleteRequest,
+	searchInput,
+	typeQuery,
+	visibleTray,
+} from '../helpers/search';
 
 /**
  * Real environment mutation — no mocks. The degrade setup pointed the Redis
@@ -15,11 +23,18 @@ test('dead Redis degrades gracefully to native search', async ({ page }) => {
 	page.on('pageerror', (err) => pageErrors.push(err));
 
 	await page.goto(SEARCH_PAGE);
-	await typeQuery(page, 'athena');
 
-	// The endpoint answers success:false + fallback; the client closes the tray
-	// and latches. The dropdown must never open.
+	// Anchor on the real round trip: asserting tray-absence before the debounced
+	// fetch resolves would pass vacuously. Only after the fallback response has
+	// been handled does "no dropdown" prove the client's behavior.
+	const fallbackResponse = page.waitForResponse((res) => isAutocompleteRequest(res.request()));
+	await typeQuery(page, 'athena');
+	const clientResponse = await fallbackResponse;
+	expect((await clientResponse.json()).success).toBe(false);
+
 	await expect(visibleTray(page)).toHaveCount(0);
+	// The response handler must also have cleared the pending loading placeholder.
+	await expect(page.locator('.shift64-woo-search-results__loading')).toHaveCount(0);
 
 	const res = await page.request.get(`${ENDPOINT_PATH}?q=athena&mode=autocomplete`);
 	expect(res.status()).toBe(200);

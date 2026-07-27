@@ -27,9 +27,10 @@ export default defineConfig({
 			testDir: 'tests/e2e/specs',
 		},
 		// The degraded chain REALLY mutates the target site's Redis config.
-		// Ordering is enforced by dependencies; restore-env always runs after
-		// its setup ran (a red `main` skips the whole chain, leaving the
-		// environment untouched).
+		// Ordering is enforced by dependencies. restore-env may also run when
+		// the degrade setup was skipped (e.g. a red `main`) — that is safe by
+		// design: it re-runs the idempotent real `setup`, which only re-asserts
+		// the healthy state it PINGs first.
 		{
 			name: 'degrade-env',
 			testDir: 'tests/e2e/degraded',

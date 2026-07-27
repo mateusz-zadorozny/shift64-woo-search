@@ -10,6 +10,11 @@
 # blockified archive templates, which never fire woocommerce_before_shop_loop —
 # the hook the filter bar (and the ordering control) depends on. A classic Woo
 # theme guarantees the shop-loop hooks the journey tests assert on.
+#
+# WordPress, WooCommerce, and Storefront versions are deliberately UNPINNED:
+# catching breakage against the latest ecosystem releases is part of what this
+# suite exists for. If an upstream release reds the gate, that is signal — pin
+# temporarily only to unblock an unrelated release, and file the breakage.
 
 set -euo pipefail
 

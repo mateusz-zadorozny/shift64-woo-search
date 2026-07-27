@@ -1,5 +1,7 @@
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { test as setup } from '@playwright/test';
-import { wpCli } from '../helpers/env';
+import { REDIS_STATE_PATH, wpCli } from '../helpers/env';
 
 /**
  * Flip the environment to a dead Redis: point the port option at nothing and
@@ -14,6 +16,15 @@ import { wpCli } from '../helpers/env';
  * `npm run e2e:provision` (or `wp shift64-woo-search setup`) to heal the site.
  */
 setup('degrade: point Redis at a dead port and regenerate the config', () => {
+	// Record the site's actual connection first so restore puts back what was
+	// really there (a site on a non-default host/port must not end up broken).
+	const original = {
+		host: wpCli(['option', 'get', 'shift64_woo_search_redis_host']).trim(),
+		port: wpCli(['option', 'get', 'shift64_woo_search_redis_port']).trim(),
+	};
+	mkdirSync(dirname(REDIS_STATE_PATH), { recursive: true });
+	writeFileSync(REDIS_STATE_PATH, JSON.stringify(original));
+
 	wpCli(['option', 'update', 'shift64_woo_search_redis_port', '6390']);
 	wpCli(['eval', 'Shift64_Woo_Search_Plugin::get_instance()->generate_mu_plugin_config();']);
 });
