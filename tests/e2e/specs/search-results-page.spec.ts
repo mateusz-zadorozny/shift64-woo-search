@@ -89,6 +89,12 @@ test.describe('search results page (Redis takeover)', () => {
 		await expect(page).toHaveURL(/(\/page\/2\/|[?&]paged=2)/);
 		await expect(cards.first()).not.toHaveText(firstTitleBefore);
 
+		// The pagination control itself must be swapped too, not just the grid.
+		// `.page-numbers.current` covers classic Woo (span.page-numbers.current)
+		// and blockified markup (span.page-numbers.current[aria-current="page"]),
+		// so the same assertion holds on Storefront and on a block theme.
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+
 		const flagSurvived = await page.evaluate(() => {
 			return (window as unknown as Record<string, unknown>).__e2eNoReload === true;
 		});

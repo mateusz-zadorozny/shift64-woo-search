@@ -16,7 +16,9 @@
     // Selectors — Kadence + WooCommerce defaults.
     var SELECTORS = {
         productWrap:    '.kwt-products-wrap, ul.products, .products, .wc-block-grid__products, .wp-block-woocommerce-product-template',
-        pagination:     'nav.woocommerce-pagination',
+        // Classic WooCommerce markup plus WooCommerce's blockified pagination,
+        // which block themes render instead of nav.woocommerce-pagination.
+        pagination:     'nav.woocommerce-pagination, nav.wp-block-query-pagination',
         resultCount:    '.woocommerce-result-count',
         ordering:       '.woocommerce-ordering',
         filters:        '.shift64-woo-search-filters',
@@ -30,6 +32,21 @@
         if (!document.querySelector(SELECTORS.filters) && !document.querySelector(SELECTORS.productWrap)) return;
 
         delegate();
+    }
+
+    /**
+     * Build a descendant selector for the anchors inside a comma-separated
+     * selector list. Concatenating ' a' onto the list itself would scope the
+     * suffix to the last alternative only, leaving the earlier ones matching
+     * their container element.
+     *
+     * @param {string} list Comma-separated selector list.
+     * @return {string} Selector list matching only descendant anchors.
+     */
+    function descendantLinks(list) {
+        return list.split(',').map(function (sel) {
+            return sel.trim() + ' a';
+        }).join(', ');
     }
 
     /**
@@ -66,7 +83,7 @@
 
         // Pagination links.
         document.addEventListener('click', function (e) {
-            var link = e.target.closest(SELECTORS.pagination + ' a, a.page-numbers');
+            var link = e.target.closest(descendantLinks(SELECTORS.pagination) + ', a.page-numbers');
             if (!link || isLoading) return;
 
             e.preventDefault();
