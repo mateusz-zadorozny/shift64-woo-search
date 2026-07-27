@@ -67,9 +67,9 @@ Route-mocked failure modes (#15–#17) with payloads mirroring `mu-plugins/endpo
 
 ### Phase 2: Core journey suite
 
-- [ ] 2.1 Complete `search-dropdown.spec.ts` (#2–#6)
-- [ ] 2.2 Write `search-results-page.spec.ts` (#8–#11)
-- [ ] 2.3 Write `category-archive.spec.ts` (#12) and `modal.spec.ts` (#13–#14)
+- [x] 2.1 Complete `search-dropdown.spec.ts` (#2–#6) — caa50fa
+- [x] 2.2 Write `search-results-page.spec.ts` (#8–#11) — 8b607f3
+- [x] 2.3 Write `category-archive.spec.ts` (#12) and `modal.spec.ts` (#13–#14) — 5a5dad6
 
 ### Phase 3: Failure modes + degraded environment
 
