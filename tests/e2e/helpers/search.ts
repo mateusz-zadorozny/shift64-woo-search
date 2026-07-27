@@ -56,9 +56,34 @@ export function isSuggestionsRequest(req: Request): boolean {
 	return url.includes(ENDPOINT_PATH) && url.includes('mode=suggestions');
 }
 
-/** The visible (non-modal) search input on the e2e page. */
+/**
+ * The plain search-block input on the e2e page. Scoped to the block wrapper:
+ * the theme may render additional inputs with the same class (header search),
+ * and the modal block has its own input.
+ */
 export function searchInput(page: Page): Locator {
-	return page.locator(SEL.input).first();
+	return page.locator(`.shift64-woo-search-block--form ${SEL.input}`);
+}
+
+/**
+ * The e2e block's modal trigger. The theme may render its own modal-search
+ * instance (e.g. in the header), so scope to the block wrapper.
+ */
+export function modalTrigger(page: Page): Locator {
+	return page.locator(`.shift64-woo-search-block--modal ${SEL.modalTrigger}`);
+}
+
+/**
+ * The modal paired with the block's trigger. Modals are portaled to
+ * document.body on init, so the pairing comes from the trigger's
+ * aria-controls id — never from DOM nesting.
+ */
+export async function blockModal(page: Page): Promise<Locator> {
+	const controls = await modalTrigger(page).getAttribute('aria-controls');
+	if (!controls) {
+		throw new Error('Modal trigger has no aria-controls id.');
+	}
+	return page.locator(`#${controls}`);
 }
 
 /** The currently open dropdown tray. */
