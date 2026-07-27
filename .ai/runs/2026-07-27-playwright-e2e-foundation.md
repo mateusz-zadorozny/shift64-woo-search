@@ -85,4 +85,4 @@ PR: #14
 ### Phase 4: CI wiring + release gate
 
 - [x] 4.1 Write `bin/e2e-install-wp.sh` and add the `e2e` job to `.github/workflows/release.yml` — a7983b9
-- [x] 4.2 Flip `release` to `needs: [test, e2e]`; `.distignore` entries; `AGENTS.md` note; register required status check after `e2e` is green on the PR — f55774c (branch protection pending green `e2e` on the PR)
+- [x] 4.2 Flip `release` to `needs: [test, e2e]`; `.distignore` entries; `AGENTS.md` note; register required status check after `e2e` is green on the PR — f55774c. Branch-protection registration is NOT POSSIBLE: private repo on the GitHub free plan (API returns 403 "Upgrade to GitHub Pro or make this repository public"). Enforcement remains `release: needs: [test, e2e]`, which blocks releases on a red e2e; register `E2E (Playwright)` as a required check if the repo ever goes public/Pro.
