@@ -76,6 +76,10 @@ Route-mocked failure modes (#15–#17) with payloads mirroring `mu-plugins/endpo
 - [x] 3.1 Write `specs/failure-modes.spec.ts` (#15–#17) with verified mock payloads — c067c0b
 - [x] 3.2 Add degraded project chain (`degrade.setup.ts`, `degraded.spec.ts` #18–#19, `restore.teardown.ts`); full local run leaves LocalWP healthy — 3ab2c95
 
+### Post-review fixes (om-code-review, 4 lenses + adversarial verify: 19 confirmed / 8 refuted)
+
+- [x] Post-review fix: deterministic tray/latch assertions, single-Escape modal flow, captured-state restore, provisioning target banner + no deactivation window, CI hardening (timeout, permissions, pinned redis-stack, env-driven port, relative artifacts) — eb355fb
+
 ### Phase 4: CI wiring + release gate
 
 - [x] 4.1 Write `bin/e2e-install-wp.sh` and add the `e2e` job to `.github/workflows/release.yml` — a7983b9
