@@ -266,10 +266,68 @@ class Test_Shift64_Woo_Search_Demo_Product_Catalog extends WP_UnitTestCase {
 	 * SKUs follow the DEMO-[VERTICAL]-[SEED]-[ID] shape.
 	 */
 	public function test_sku_shape() {
-		$this->assertSame( 'DEMO-APP-64-000001', Shift64_Woo_Search_Demo_Catalog::build_sku( 'apparel', 6464, 0 ) );
-		$this->assertSame( 'DEMO-TEC-64-050000', Shift64_Woo_Search_Demo_Catalog::build_sku( 'tech', 6464, 49999 ) );
-		$this->assertSame( 'DEMO-HOM-01-000123', Shift64_Woo_Search_Demo_Catalog::build_sku( 'home', 101, 122 ) );
-		$this->assertSame( 'DEMO-BEA-42-000002', Shift64_Woo_Search_Demo_Catalog::build_sku( 'beauty', 42, 1 ) );
+		$this->assertSame( 'DEMO-APP-6464-000001', Shift64_Woo_Search_Demo_Catalog::build_sku( 'apparel', 6464, 0 ) );
+		$this->assertSame( 'DEMO-TEC-6464-050000', Shift64_Woo_Search_Demo_Catalog::build_sku( 'tech', 6464, 49999 ) );
+		$this->assertSame( 'DEMO-HOM-0101-000123', Shift64_Woo_Search_Demo_Catalog::build_sku( 'home', 101, 122 ) );
+		$this->assertSame( 'DEMO-BEA-0042-000002', Shift64_Woo_Search_Demo_Catalog::build_sku( 'beauty', 42, 1 ) );
+	}
+
+	/**
+	 * The seed segment is padded to four digits, never truncated to them, so a
+	 * seed past the padding width still round-trips into the SKU intact.
+	 */
+	public function test_sku_seed_segment_widens_past_the_padding() {
+		$this->assertSame( 'DEMO-APP-10000-000001', Shift64_Woo_Search_Demo_Catalog::build_sku( 'apparel', 10000, 0 ) );
+		$this->assertSame( 'DEMO-APP-123456-000001', Shift64_Woo_Search_Demo_Catalog::build_sku( 'apparel', 123456, 0 ) );
+	}
+
+	/**
+	 * Regression guard: the seed segment used to be `$seed % 100`, so seeds a
+	 * multiple of 100 apart produced identical SKUs for different products. A
+	 * no-reset rerun on such a seed then skipped every product as already
+	 * present and created nothing.
+	 *
+	 * @dataProvider colliding_seed_provider
+	 *
+	 * @param int $first  First seed.
+	 * @param int $second Second seed, congruent to the first modulo 100.
+	 */
+	public function test_skus_differ_for_seeds_a_multiple_of_100_apart( $first, $second ) {
+		$this->assertNotSame(
+			Shift64_Woo_Search_Demo_Catalog::build_sku( 'apparel', $first, 0 ),
+			Shift64_Woo_Search_Demo_Catalog::build_sku( 'apparel', $second, 0 )
+		);
+	}
+
+	/**
+	 * Seed pairs that are congruent modulo 100.
+	 *
+	 * @return array<string, array{0:int, 1:int}>
+	 */
+	public function colliding_seed_provider() {
+		return array(
+			'42 vs 142'        => array( 42, 142 ),
+			'42 vs 1042'       => array( 42, 1042 ),
+			'6464 vs 64'       => array( 6464, 64 ),
+			'past the padding' => array( 6464, 16464 ),
+		);
+	}
+
+	/**
+	 * SKUs stay unique across a run seeded differently, not just within one
+	 * run: the same index under two seeds must not collide.
+	 */
+	public function test_skus_are_unique_across_seeds() {
+		$skus = array();
+
+		foreach ( array( 42, 142, 242, 6464 ) as $seed ) {
+			for ( $index = 0; $index < 200; ++$index ) {
+				$vertical = Shift64_Woo_Search_Demo_Catalog::vertical_for_index( 'all', $index );
+				$skus[ Shift64_Woo_Search_Demo_Catalog::build_sku( $vertical, $seed, $index ) ] = true;
+			}
+		}
+
+		$this->assertCount( 4 * 200, $skus );
 	}
 
 	/**

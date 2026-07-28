@@ -264,6 +264,13 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Catalog' ) ) {
 		 *
 		 * Shape: DEMO-[VERTICAL]-[SEED]-[ID].
 		 *
+		 * The seed segment carries the whole seed, zero-padded to four digits.
+		 * `seed` is only bounded from below, so folding it into a fixed width
+		 * would make every pair of seeds a whole multiple of that width apart
+		 * share a SKU — and a rerun on such a seed would then skip every
+		 * product as already present. Padding widens rather than truncates, so
+		 * seeds above 9999 stay distinct too.
+		 *
 		 * @param string $vertical Vertical key.
 		 * @param int    $seed     Deterministic seed.
 		 * @param int    $index    Zero-based product index.
@@ -271,7 +278,7 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Catalog' ) ) {
 		 */
 		public static function build_sku( $vertical, $seed, $index ) {
 			$data = self::vertical( $vertical );
-			return sprintf( 'DEMO-%s-%02d-%06d', $data['sku_prefix'], $seed % 100, $index + 1 );
+			return sprintf( 'DEMO-%s-%04d-%06d', $data['sku_prefix'], $seed, $index + 1 );
 		}
 
 		/**
