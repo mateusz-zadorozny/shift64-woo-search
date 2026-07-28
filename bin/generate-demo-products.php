@@ -7,6 +7,7 @@
  * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=48
  * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=50000 mode=mixed catalog=all batch=1000 seed=6464 reset variation-skus
  * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=5000 catalog=tech mode=simple
+ * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php reset-only
  *
  * Products are drawn from four catalog verticals (apparel, tech, home,
  * beauty). Names use a five-segment tuple —
@@ -104,10 +105,19 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 
 		/**
 		 * Run the reset, taxonomy setup, and creation loop.
+		 *
+		 * `reset` wipes generator-owned products and then seeds; `reset-only`
+		 * performs the same teardown and stops before any taxonomy setup or
+		 * product creation.
 		 */
 		private function generate() {
-			if ( $this->options['reset'] ) {
+			if ( $this->options['reset'] || $this->options['reset_only'] ) {
 				$this->delete_generated_products();
+			}
+
+			if ( $this->options['reset_only'] ) {
+				WP_CLI::success( 'Teardown complete: no products were created (reset-only).' );
+				return;
 			}
 
 			$this->warn_about_variation_volume();
@@ -672,7 +682,7 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
  * Parse eval-file arguments, reporting failures through WP-CLI.
  *
  * @param array $raw_args Arguments exposed by WP-CLI to eval-file.
- * @return array{count:int,mode:string,catalog:string,batch:int,seed:int,reset:bool,variation_skus:bool}
+ * @return array{count:int,mode:string,catalog:string,batch:int,seed:int,reset:bool,reset_only:bool,variation_skus:bool}
  */
 function shift64_woo_search_parse_demo_product_args( $raw_args ) {
 	try {
