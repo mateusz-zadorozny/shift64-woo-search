@@ -60,6 +60,7 @@ require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-taxono
 require_once SHIFT64_WOO_SEARCH_PATH . 'frontend/class-shift64-woo-search-frontend.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-blocks.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'frontend/class-shift64-woo-search-filters.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'admin/class-shift64-woo-search-admin-routes.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'admin/class-shift64-woo-search-admin.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'cli/class-shift64-woo-search-cli.php';
 
