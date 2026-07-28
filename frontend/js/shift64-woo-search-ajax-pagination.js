@@ -22,10 +22,44 @@
         resultCount:    '.woocommerce-result-count',
         ordering:       '.woocommerce-ordering',
         filters:        '.shift64-woo-search-filters',
-        filterCheckbox: '.shift64-woo-search-filter__checkbox'
+        filterCheckbox: '.shift64-woo-search-filter__checkbox',
+        // WooCommerce's standard Product Collection block. Pagination rendered
+        // inside it is NOT ours — see ownsPagination() below.
+        productCollection: '.wp-block-woocommerce-product-collection'
     };
 
     var isLoading = false;
+
+    /**
+     * Pagination ownership (issue #20).
+     *
+     * Who handles a pagination click depends on the markup it lives in:
+     *
+     *   classic Woo markup, Kadence, custom pagers -> this plugin (AJAX swap)
+     *   Product Collection + data-wp-router-region -> WooCommerce (Interactivity API)
+     *   Product Collection + forcePageReload       -> plain browser navigation
+     *
+     * Inside a standard Product Collection the block owns its own navigation,
+     * in both of its configurations, so we detect and defer. Previously this
+     * script claimed every `a.page-numbers` click, which meant that on block
+     * themes BOTH handlers ran: two fetches of the same URL and two history
+     * entries per click, so Back needed two presses to leave page 2.
+     *
+     * Note this cannot be solved with stopPropagation(): the listener runs on
+     * `document` in the bubble phase, by which time the Interactivity API's
+     * own listener on the link has already fired. Winning the click would need
+     * capture-phase interception plus an early preventDefault() — which would
+     * take ownership away from WooCommerce everywhere, including where its
+     * integration is better (prefetch-on-hover, router-region updates).
+     * Deferring is the intent, not a workaround.
+     *
+     * @param {Element} el Element to test (a pagination link, or the grid).
+     * @return {boolean} True when this script owns navigation for that element.
+     */
+    function ownsPagination(el) {
+        if (!el || typeof el.closest !== 'function') return true;
+        return !el.closest(SELECTORS.productCollection);
+    }
 
     function init() {
         // Activate if filters element or product wrap exists.
@@ -85,6 +119,12 @@
         document.addEventListener('click', function (e) {
             var link = e.target.closest(descendantLinks(SELECTORS.pagination) + ', a.page-numbers');
             if (!link || isLoading) return;
+
+            // Not ours: the Product Collection block handles this click itself
+            // (Interactivity API, or a plain reload when forcePageReload is
+            // set). Return WITHOUT preventDefault so whichever owner applies
+            // still gets the untouched event.
+            if (!ownsPagination(link)) return;
 
             e.preventDefault();
             loadPage(link.href);
@@ -217,7 +257,12 @@
 
         // Handle browser back/forward — only for search pages.
         window.addEventListener('popstate', function () {
-            if (!document.querySelector(SELECTORS.productWrap)) return;
+            var wrap = document.querySelector(SELECTORS.productWrap);
+            if (!wrap) return;
+            // Same ownership rule as the click: when the grid lives inside a
+            // Product Collection, that block restores its own state on
+            // back/forward. Re-fetching here would duplicate its work.
+            if (!ownsPagination(wrap)) return;
             loadPage(window.location.href, true);
         });
     }
