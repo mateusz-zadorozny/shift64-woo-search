@@ -35,8 +35,9 @@ test.describe('search dropdown', () => {
 
 		const firstProduct = traySection(page, 'products').locator(SEL.row).first();
 		await expect(firstProduct).toBeVisible();
-		// SKUs are DEMO-[VERTICAL]-[SEED]-[ID], e.g. DEMO-APP-64-000009.
-		await expect(firstProduct.locator(SEL.rowSku)).toContainText(/DEMO-[A-Z]{3}-\d{2}-\d{6}/);
+		// SKUs are DEMO-[VERTICAL]-[SEED]-[ID], e.g. DEMO-APP-6464-000009. The seed
+		// segment carries the whole seed, zero-padded to at least four digits.
+		await expect(firstProduct.locator(SEL.rowSku)).toContainText(/DEMO-[A-Z]{3}-\d{4,}-\d{6}/);
 		await expect(firstProduct.locator(SEL.rowCategory)).not.toBeEmpty();
 
 		const targetUrl = await firstProduct.getAttribute('data-url');

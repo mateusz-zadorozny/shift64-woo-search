@@ -16,7 +16,8 @@ brand tree, and attributes. Names use a five-segment tuple,
 `[Prefix] [Series] [Item] [Spec] [Finish]` (for example
 `Nova Athena Hoodie Oversized Deep Navy`), which spans more than five million
 combinations, so even a 100k run produces no duplicate names. SKUs follow
-`DEMO-[VERTICAL]-[SEED]-[ID]`, e.g. `DEMO-APP-64-000001`.
+`DEMO-[VERTICAL]-[SEED]-[ID]`, e.g. `DEMO-APP-6464-000001`. The seed segment
+carries the whole seed, so two seeds never share a SKU.
 
 Color is a visible global product attribute in every vertical. The variation
 attribute depends on the vertical: size for apparel, capacity for tech and
@@ -50,7 +51,8 @@ Supported arguments:
 - `mode=variable|simple|mixed` — default `mixed` (75% simple, 25% variable);
 - `catalog=all|apparel|tech|home|beauty` — target vertical, default `all`;
 - `batch=50..5000` — items per cache flush and garbage collection cycle, default `1000`;
-- `seed=N` — repeatable name/SKU generation, default `6464`;
+- `seed=N` — repeatable name/SKU generation, default `6464`; any positive integer, and
+  distinct seeds always produce distinct SKUs;
 - `variation-skus` — assigns deterministic SKUs to variations; disabled by default;
 - `reset` — permanently deletes products marked as generator-owned, in batches, and then seeds the requested catalog;
 - `reset-only` — performs the same deletion and stops; nothing is created, so `count` has no
