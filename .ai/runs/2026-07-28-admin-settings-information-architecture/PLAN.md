@@ -12,7 +12,7 @@
 | Phase | Step | Title | Status | Commit |
 |-------|------|-------|--------|--------|
 | 1 | 1.1 | Add fixed route registry/resolver with full unit coverage | done | bdd22ee |
-| 1 | 1.2 | Render six-workspace navigation shell, Overview landing, registry dispatch | todo | — |
+| 1 | 1.2 | Render six-workspace navigation shell, Overview landing, registry dispatch | done | 77d06b5 |
 | 2 | 2.1 | Extract credential-safe settings persistence seam with sentinel tests | todo | — |
 | 2 | 2.2 | Relocate Search Experience sections to canonical routes | todo | — |
 | 2 | 2.3 | Relocate Results & Filters sections to canonical routes | todo | — |

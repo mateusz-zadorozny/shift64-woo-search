@@ -118,50 +118,123 @@ class Shift64_Woo_Search_Admin {
 	}
 
 	/**
-	 * Render the main admin page with tab navigation.
+	 * Build a canonical admin URL for a workspace, optionally scoped to a section.
+	 *
+	 * Workspace links may omit the section: the resolver applies the workspace default,
+	 * so the shortest canonical URL stays stable even if a default section is renamed.
+	 *
+	 * @param string $workspace Workspace slug.
+	 * @param string $section   Optional section slug.
+	 * @return string Relative admin URL.
 	 */
-	public function render_page() {
-		$tabs = array(
-			'test'        => __( 'Test Search', 'shift64-woo-search' ),
-			'tuning'      => __( 'Tuning', 'shift64-woo-search' ),
-			'synonyms'    => __( 'Synonyms', 'shift64-woo-search' ),
-			'suggestions' => __( 'Suggestions', 'shift64-woo-search' ),
-			'catboost'    => __( 'Category Boost', 'shift64-woo-search' ),
-			'stats'       => __( 'Statistics', 'shift64-woo-search' ),
-			'weights'     => __( 'Weights', 'shift64-woo-search' ),
-			'filters'     => __( 'Filters', 'shift64-woo-search' ),
-			'index'       => __( 'Index', 'shift64-woo-search' ),
-			'redis'       => __( 'Redis', 'shift64-woo-search' ),
-			'search'      => __( 'Search', 'shift64-woo-search' ),
-			'frontend'    => __( 'Frontend', 'shift64-woo-search' ),
-		);
+	private function get_route_url( $workspace, $section = '' ) {
+		$url = '?page=shift64-woo-search&tab=' . rawurlencode( $workspace );
 
-		$current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'test'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab navigation only.
-		if ( ! isset( $tabs[ $current_tab ] ) ) {
-			$current_tab = 'test';
+		if ( '' !== $section ) {
+			$url .= '&section=' . rawurlencode( $section );
 		}
 
+		return $url;
+	}
+
+	/**
+	 * Render the main admin page: navigation shell plus the resolved section.
+	 *
+	 * `tab` and `section` are plain navigation parameters on a read-only GET, so they
+	 * are nonce-exempt exactly as the legacy tab parameter was. They are never used to
+	 * build a method name — `Shift64_Woo_Search_Admin_Routes::resolve()` maps them onto
+	 * the fixed registry and returns one of its own declared callbacks.
+	 */
+	public function render_page() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only navigation parameters, no state change.
+		$requested_tab     = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
+		$requested_section = isset( $_GET['section'] ) ? sanitize_text_field( wp_unslash( $_GET['section'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		$route      = Shift64_Woo_Search_Admin_Routes::resolve( $requested_tab, $requested_section );
+		$workspaces = Shift64_Woo_Search_Admin_Routes::get_workspaces();
+		$sections   = $workspaces[ $route['workspace'] ]['sections'];
 		?>
 		<div class="wrap shift64-woo-search-admin">
 			<h1><?php esc_html_e( 'Shift64 Woo Search', 'shift64-woo-search' ); ?></h1>
 
-			<h2 class="nav-tab-wrapper">
-				<?php foreach ( $tabs as $slug => $label ) : ?>
-					<a href="?page=shift64-woo-search&tab=<?php echo esc_attr( $slug ); ?>"
-						class="nav-tab <?php echo $current_tab === $slug ? 'nav-tab-active' : ''; ?>">
-						<?php echo esc_html( $label ); ?>
-					</a>
+			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Primary', 'shift64-woo-search' ); ?>">
+				<?php foreach ( $workspaces as $workspace_slug => $workspace ) : ?>
+					<?php $is_current = ( $route['workspace'] === $workspace_slug ); ?>
+					<a href="<?php echo esc_url( $this->get_route_url( $workspace_slug ) ); ?>" class="nav-tab<?php echo $is_current ? ' nav-tab-active' : ''; ?>"<?php echo $is_current ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $workspace['label'] ); ?></a>
 				<?php endforeach; ?>
-			</h2>
+			</nav>
+
+			<?php if ( count( $sections ) > 1 ) : ?>
+				<nav class="shift64-woo-search-admin__sections" aria-label="<?php esc_attr_e( 'Sections', 'shift64-woo-search' ); ?>">
+					<ul class="subsubsub">
+						<?php
+						$section_index = 0;
+						foreach ( $sections as $section_slug => $section ) :
+							++$section_index;
+							$is_current = ( $route['section'] === $section_slug );
+							?>
+							<li>
+								<a href="<?php echo esc_url( $this->get_route_url( $route['workspace'], $section_slug ) ); ?>" class="shift64-woo-search-admin__section-link<?php echo $is_current ? ' current' : ''; ?>"<?php echo $is_current ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $section['label'] ); ?></a><?php echo $section_index < count( $sections ) ? ' |' : ''; ?>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</nav>
+			<?php endif; ?>
 
 			<div class="shift64-woo-search-admin__content">
+				<h2 class="shift64-woo-search-admin__section-title"><?php echo esc_html( $sections[ $route['section'] ]['label'] ); ?></h2>
 				<?php
-				$method = 'render_' . $current_tab . '_tab';
-				if ( method_exists( $this, $method ) ) {
-					$this->$method();
+				/*
+				 * Safe variable method call: `$route['callback']` is always a string the
+				 * route registry itself declared. Request input selects which registry
+				 * entry is used, but never contributes to the method name.
+				 */
+				$callback = $route['callback'];
+				if ( method_exists( $this, $callback ) ) {
+					$this->$callback();
 				}
 				?>
 			</div>
+		</div>
+		<?php
+	}
+
+	// ── Overview Tab ───────────────────────────────────────────
+
+	/**
+	 * Render the Overview landing page.
+	 *
+	 * Read-only by contract: this is a signpost to the five task workspaces. It must
+	 * never write an option, query Redis, regenerate config, or expose credentials —
+	 * merely visiting the plugin's default page has to be free of side effects.
+	 */
+	private function render_overview_tab() {
+		$descriptions = array(
+			'experience' => __( 'Search field behaviour, autocomplete, and the query and category suggestions shoppers see.', 'shift64-woo-search' ),
+			'results'    => __( 'Which listings the search backend serves, and the facets shoppers filter results with.', 'shift64-woo-search' ),
+			'relevance'  => __( 'Matching, ranking, synonyms, merchandising, and the tools for evaluating them.', 'shift64-woo-search' ),
+			'insights'   => __( 'Search usage over time and the queries that come back empty.', 'shift64-woo-search' ),
+			'system'     => __( 'Backend connection, index operations, traffic protection, and generated configuration.', 'shift64-woo-search' ),
+		);
+		?>
+		<div class="shift64-woo-search-overview">
+			<p class="description">
+				<?php esc_html_e( 'Every setting, content list, tool, and report lives in one of the workspaces below. This page only points at them — nothing here changes your store.', 'shift64-woo-search' ); ?>
+			</p>
+
+			<ul class="shift64-woo-search-overview__cards">
+				<?php foreach ( Shift64_Woo_Search_Admin_Routes::get_workspaces() as $workspace_slug => $workspace ) : ?>
+					<?php if ( isset( $descriptions[ $workspace_slug ] ) ) : ?>
+						<li class="shift64-woo-search-overview__card">
+							<h3 class="shift64-woo-search-overview__card-title">
+								<a href="<?php echo esc_url( $this->get_route_url( $workspace_slug ) ); ?>"><?php echo esc_html( $workspace['label'] ); ?></a>
+							</h3>
+							<p class="shift64-woo-search-overview__card-text"><?php echo esc_html( $descriptions[ $workspace_slug ] ); ?></p>
+						</li>
+					<?php endif; ?>
+				<?php endforeach; ?>
+			</ul>
 		</div>
 		<?php
 	}

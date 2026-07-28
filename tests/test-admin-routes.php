@@ -179,16 +179,9 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 	/**
 	 * Every callback in the registry must exist on the admin controller, otherwise a
 	 * route silently renders nothing — exactly the legacy Synonyms failure mode.
-	 *
-	 * `render_overview_tab` is exempt: the registry declares its route in this commit
-	 * and the renderer arrives with the navigation shell.
 	 */
 	public function test_declared_callbacks_exist_on_the_admin_controller() {
 		foreach ( $this->declared_callbacks() as $callback ) {
-			if ( 'render_overview_tab' === $callback ) {
-				continue;
-			}
-
 			$this->assertTrue(
 				method_exists( Shift64_Woo_Search_Admin::class, $callback ),
 				"Registry declares {$callback}(), which does not exist on Shift64_Woo_Search_Admin."

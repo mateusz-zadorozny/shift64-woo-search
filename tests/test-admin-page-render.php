@@ -1,0 +1,375 @@
+<?php
+/**
+ * Tests for the rendered admin navigation shell.
+ *
+ * @package Shift64_Woo_Search
+ */
+
+/**
+ * Admin page render tests.
+ *
+ * `tests/test-admin-routes.php` proves the registry resolves correctly. These tests
+ * prove the page actually built from that resolution: the six-workspace primary
+ * navigation, the secondary section navigation, the accessible active states, the
+ * Synonyms regression, and — the property the spec cares most about — that merely
+ * looking at a route never writes anything.
+ */
+class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
+
+	/**
+	 * Admin page controller under test.
+	 *
+	 * @var Shift64_Woo_Search_Admin
+	 */
+	private $admin;
+
+	public function set_up() {
+		parent::set_up();
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->admin = new Shift64_Woo_Search_Admin();
+	}
+
+	public function tear_down() {
+		unset( $_GET['tab'], $_GET['section'] );
+
+		parent::tear_down();
+	}
+
+	/**
+	 * Render a route and return its markup.
+	 *
+	 * @param string|null $tab     `tab` request value, or null to omit it.
+	 * @param string|null $section `section` request value, or null to omit it.
+	 * @return string Rendered markup.
+	 */
+	private function render( $tab = null, $section = null ) {
+		unset( $_GET['tab'], $_GET['section'] );
+
+		if ( null !== $tab ) {
+			$_GET['tab'] = $tab;
+		}
+		if ( null !== $section ) {
+			$_GET['section'] = $section;
+		}
+
+		ob_start();
+		$this->admin->render_page();
+
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Every stored plugin option, keyed by name.
+	 *
+	 * Read straight from the options table rather than through `get_option()` so a
+	 * newly created or deleted row is visible, not just a changed value.
+	 *
+	 * @return array<string, string> Option name => raw stored value.
+	 */
+	private function option_snapshot() {
+		global $wpdb;
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reading raw option rows is the point of the assertion.
+			$wpdb->prepare(
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_name",
+				$wpdb->esc_like( 'shift64_woo_search_' ) . '%'
+			),
+			ARRAY_A
+		);
+
+		$snapshot = array();
+		foreach ( (array) $rows as $row ) {
+			$snapshot[ $row['option_name'] ] = $row['option_value'];
+		}
+
+		return $snapshot;
+	}
+
+	// ── Default landing ────────────────────────────────────────
+
+	/**
+	 * With no `tab`, the plugin lands on Overview — not on the query debugger.
+	 */
+	public function test_default_landing_renders_the_overview_workspace() {
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'shift64-woo-search-overview__cards', $html );
+		$this->assertStringContainsString( 'Every setting, content list, tool, and report lives in one of the workspaces below.', $html );
+	}
+
+	/**
+	 * Overview is a signpost: one card per task workspace, each a canonical link.
+	 */
+	public function test_overview_links_to_the_five_task_workspaces() {
+		$html = $this->render();
+
+		foreach ( array( 'experience', 'results', 'relevance', 'insights', 'system' ) as $workspace ) {
+			$this->assertMatchesRegularExpression(
+				'#<h3 class="shift64-woo-search-overview__card-title">\s*<a href="[^"]*tab=' . $workspace . '"#',
+				$html,
+				"Overview is missing a card link to the {$workspace} workspace."
+			);
+		}
+
+		$this->assertSame( 5, substr_count( $html, 'shift64-woo-search-overview__card-title' ) );
+	}
+
+	/**
+	 * Overview must not leak connection credentials into markup, URLs, or attributes.
+	 */
+	public function test_overview_contains_no_credentials() {
+		update_option( 'shift64_woo_search_redis_username', 's64ws-test-user' );
+		update_option( 'shift64_woo_search_redis_password', 's64ws-test-secret' );
+
+		$html = $this->render( 'overview' );
+
+		$this->assertStringNotContainsString( 's64ws-test-user', $html );
+		$this->assertStringNotContainsString( 's64ws-test-secret', $html );
+		$this->assertStringNotContainsString( 'redis_password', $html );
+	}
+
+	// ── Primary navigation ─────────────────────────────────────
+
+	/**
+	 * Navigation order is part of the contract, so the rendered order is asserted too.
+	 */
+	public function test_primary_navigation_renders_six_workspaces_in_documented_order() {
+		$html = $this->render();
+
+		$this->assertSame( 6, preg_match_all( '/class="nav-tab(?: nav-tab-active)?"/', $html ) );
+
+		$previous = -1;
+		foreach ( array( 'overview', 'experience', 'results', 'relevance', 'insights', 'system' ) as $workspace ) {
+			$position = strpos( $html, 'tab=' . $workspace . '"' );
+
+			$this->assertIsInt( $position, "No primary link for the {$workspace} workspace." );
+			$this->assertGreaterThan( $previous, $position, "The {$workspace} primary link is out of documented order." );
+
+			$previous = $position;
+		}
+	}
+
+	public function test_primary_navigation_is_a_labelled_nav_landmark() {
+		$this->assertMatchesRegularExpression( '/<nav class="nav-tab-wrapper" aria-label="Primary">/', $this->render() );
+	}
+
+	/**
+	 * The active workspace is announced, not only coloured.
+	 *
+	 * @dataProvider active_primary_link_provider
+	 *
+	 * @param string|null $tab                Requested `tab` value.
+	 * @param string      $expected_workspace Workspace expected to be active.
+	 */
+	public function test_active_primary_link_is_marked_current( $tab, $expected_workspace ) {
+		$html = $this->render( $tab );
+
+		$this->assertSame(
+			1,
+			preg_match_all( '/<a href="[^"]*" class="nav-tab nav-tab-active" aria-current="page">/', $html ),
+			'Exactly one primary link may be active.'
+		);
+		$this->assertMatchesRegularExpression(
+			'#<a href="[^"]*tab=' . $expected_workspace . '" class="nav-tab nav-tab-active" aria-current="page">#',
+			$html,
+			"The {$expected_workspace} primary link should be the active one."
+		);
+	}
+
+	public function active_primary_link_provider() {
+		return array(
+			'no tab'          => array( null, 'overview' ),
+			'canonical'       => array( 'relevance', 'relevance' ),
+			'legacy alias'    => array( 'synonyms', 'relevance' ),
+			'legacy frontend' => array( 'frontend', 'experience' ),
+			'invalid'         => array( 'nope', 'overview' ),
+		);
+	}
+
+	// ── Secondary navigation ───────────────────────────────────
+
+	/**
+	 * A workspace with several sections offers them in the documented order.
+	 */
+	public function test_multi_section_workspace_renders_a_labelled_secondary_nav() {
+		$html = $this->render( 'relevance' );
+
+		$this->assertStringContainsString( '<nav class="shift64-woo-search-admin__sections" aria-label="Sections">', $html );
+
+		$previous = -1;
+		foreach ( array( 'basic', 'matching', 'synonyms', 'merchandising', 'field-weights', 'test-search', 'compare-passes' ) as $section ) {
+			$position = strpos( $html, 'tab=relevance&#038;section=' . $section . '"' );
+
+			$this->assertIsInt( $position, "No secondary link for the relevance/{$section} section." );
+			$this->assertGreaterThan( $previous, $position, "The {$section} secondary link is out of documented order." );
+
+			$previous = $position;
+		}
+	}
+
+	public function test_active_secondary_link_is_marked_current_and_visibly_active() {
+		$html = $this->render( 'relevance', 'synonyms' );
+
+		$this->assertSame(
+			1,
+			preg_match_all( '/aria-current="page">/', $this->strip_primary_nav( $html ) ),
+			'Exactly one secondary link may be active.'
+		);
+		$this->assertMatchesRegularExpression(
+			'#<a href="[^"]*tab=relevance&\#038;section=synonyms" class="shift64-woo-search-admin__section-link current" aria-current="page">#',
+			$html
+		);
+	}
+
+	/**
+	 * A single-section workspace has nothing to choose between, so it renders no
+	 * secondary navigation at all.
+	 *
+	 * @dataProvider single_section_workspace_provider
+	 *
+	 * @param string $tab Single-section workspace slug.
+	 */
+	public function test_single_section_workspace_renders_no_secondary_nav( $tab ) {
+		$this->assertStringNotContainsString( 'aria-label="Sections"', $this->render( $tab ) );
+	}
+
+	public function single_section_workspace_provider() {
+		return array(
+			'overview' => array( 'overview' ),
+			'insights' => array( 'insights' ),
+		);
+	}
+
+	// ── Headings ───────────────────────────────────────────────
+
+	/**
+	 * Heading order is plugin `h1`, then the canonical section `h2`, then whatever
+	 * headings the relocated content already had.
+	 */
+	public function test_canonical_section_heading_follows_the_plugin_heading() {
+		$html = $this->render( 'relevance', 'synonyms' );
+
+		$h1 = strpos( $html, '<h1>Shift64 Woo Search</h1>' );
+		$h2 = strpos( $html, '<h2 class="shift64-woo-search-admin__section-title">Synonyms</h2>' );
+
+		$this->assertIsInt( $h1 );
+		$this->assertIsInt( $h2 );
+		$this->assertGreaterThan( $h1, $h2 );
+	}
+
+	// ── Dispatch ───────────────────────────────────────────────
+
+	/**
+	 * The legacy Synonyms tab rendered an empty content area because the dynamic
+	 * router looked for a `render_synonyms_tab()` that never existed. Both the legacy
+	 * and the canonical route must now reach the real manager.
+	 *
+	 * @dataProvider synonyms_route_provider
+	 *
+	 * @param string      $tab     Requested `tab` value.
+	 * @param string|null $section Requested `section` value.
+	 */
+	public function test_synonyms_route_renders_the_synonyms_manager( $tab, $section ) {
+		$this->assertStringContainsString( 's64ws-syn-table', $this->render( $tab, $section ) );
+	}
+
+	public function synonyms_route_provider() {
+		return array(
+			'canonical'         => array( 'relevance', 'synonyms' ),
+			'legacy alias'      => array( 'synonyms', null ),
+			'alias ignores sec' => array( 'synonyms', 'field-weights' ),
+		);
+	}
+
+	/**
+	 * Hostile `tab` values fall back to Overview. PHPUnit is configured to convert
+	 * notices, warnings, and deprecations into exceptions, so this also proves the
+	 * fallback path is diagnostic-free.
+	 *
+	 * @dataProvider hostile_tab_provider
+	 *
+	 * @param mixed $tab Hostile `tab` request value.
+	 */
+	public function test_hostile_tab_renders_overview_without_diagnostics( $tab ) {
+		$html = $this->render( $tab );
+
+		$this->assertStringContainsString( 'shift64-woo-search-overview__cards', $html );
+		$this->assertMatchesRegularExpression( '#<a href="[^"]*tab=overview" class="nav-tab nav-tab-active" aria-current="page">#', $html );
+	}
+
+	public function hostile_tab_provider() {
+		return array(
+			'array'          => array( array( 'relevance' ) ),
+			'path traversal' => array( '../../etc/passwd' ),
+			'markup'         => array( '<script>alert(1)</script>' ),
+			'constructor'    => array( '__construct' ),
+			'public method'  => array( 'render_page' ),
+			'private method' => array( 'render_redis_tab' ),
+			'empty string'   => array( '' ),
+			'wrong case'     => array( 'Relevance' ),
+		);
+	}
+
+	// ── Render without write ───────────────────────────────────
+
+	/**
+	 * Visiting a route must not persist anything: no option created, changed, or
+	 * removed. This is the guarantee that makes navigation safe to bookmark, refresh,
+	 * and crawl.
+	 */
+	public function test_rendering_routes_writes_no_options() {
+		// Unusual legacy values: rendering must not normalize or rewrite them either.
+		update_option( 'shift64_woo_search_logic', 'or' );
+		update_option( 'shift64_woo_search_fuzzy_level', '' );
+		update_option( 'shift64_woo_search_debounce', '150ms' );
+
+		$before = $this->option_snapshot();
+
+		$this->assertNotEmpty( $before, 'The snapshot must observe real stored options.' );
+
+		$routes = array(
+			array( null, null ),
+			array( 'overview', null ),
+			array( 'experience', 'search-field' ),
+			array( 'experience', 'query-suggestions' ),
+			array( 'relevance', 'basic' ),
+			array( 'relevance', 'synonyms' ),
+			array( 'relevance', 'field-weights' ),
+			array( 'relevance', 'test-search' ),
+			array( 'relevance', 'compare-passes' ),
+			// Legacy aliases reach the same renderers through the alias map.
+			array( 'frontend', null ),
+			array( 'suggestions', null ),
+			array( 'search', null ),
+			array( 'synonyms', null ),
+			array( 'weights', null ),
+			array( 'test', null ),
+			array( 'tuning', null ),
+			array( 'nope', null ),
+		);
+
+		foreach ( $routes as $route ) {
+			list( $tab, $section ) = $route;
+
+			$this->assertNotSame( '', $this->render( $tab, $section ), 'A route rendered nothing at all.' );
+			$this->assertSame(
+				$before,
+				$this->option_snapshot(),
+				sprintf( 'Rendering tab=%s section=%s changed stored options.', (string) $tab, (string) $section )
+			);
+		}
+	}
+
+	/**
+	 * Drop the primary navigation so secondary-link assertions cannot match a
+	 * primary link by accident.
+	 *
+	 * @param string $html Rendered page markup.
+	 * @return string Markup with the primary nav removed.
+	 */
+	private function strip_primary_nav( $html ) {
+		return (string) preg_replace( '#<nav class="nav-tab-wrapper".*?</nav>#s', '', $html );
+	}
+}
