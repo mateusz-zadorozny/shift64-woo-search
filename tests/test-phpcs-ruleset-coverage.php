@@ -60,11 +60,9 @@ class Phpcs_Ruleset_Coverage_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Every exclusion for a covered tree must be scoped to one sniff.
+	 * Every exclusion for a covered tree must be scoped to one error code.
 	 */
-	public function test_covered_tree_exclusions_are_rule_scoped() {
-		$scoped = 0;
-
+	public function test_covered_tree_exclusions_name_a_single_sniff() {
 		foreach ( $this->ruleset()->rule as $rule ) {
 			foreach ( $rule->{'exclude-pattern'} as $pattern ) {
 				foreach ( self::COVERED_TREES as $tree ) {
@@ -72,20 +70,28 @@ class Phpcs_Ruleset_Coverage_Test extends WP_UnitTestCase {
 						continue;
 					}
 
+					$ref = (string) $rule['ref'];
+
 					$this->assertNotEmpty(
-						(string) $rule['ref'],
+						$ref,
 						'A rule-scoped exclusion must name the sniff it switches off.'
 					);
-					++$scoped;
+
+					// `Standard.Category.Sniff` switches off a whole sniff; the
+					// error-code form `Standard.Category.Sniff.Code` switches off
+					// exactly one message and is what these exclusions should use.
+					$this->assertGreaterThanOrEqual(
+						3,
+						substr_count( $ref, '.' ),
+						sprintf(
+							'Exclusion "%s" for %s/ names a whole sniff — narrow it to a single error code.',
+							$ref,
+							$tree
+						)
+					);
 				}
 			}
 		}
-
-		$this->assertGreaterThan(
-			0,
-			$scoped,
-			'The ruleset is expected to narrow at least one sniff for bin/ or tests/; if that is no longer true, drop this assertion.'
-		);
 	}
 
 	/**

@@ -71,10 +71,11 @@
 	Narrow exclusions for `bin/` and `tests/`.
 
 	Both trees are scanned in full; the rules below are switched off only where a
-	WordPress-runtime assumption does not hold. Each entry is scoped to a single
-	sniff and a single tree — never a whole directory — so everything else
-	(PHP compatibility, array and whitespace formatting, i18n, escaping, the
-	security sniffs) still applies there.
+	WordPress-runtime assumption does not hold. Each entry names a single error
+	code — not a whole sniff — and a single tree, never a whole directory, so
+	everything else (PHP compatibility, array and whitespace formatting, i18n,
+	escaping, the security sniffs) still applies there.
+	`tests/test-phpcs-ruleset-coverage.php` enforces both of those properties.
 	-->
 
 	<!-- Test method names are the documentation; a docblock per assertion adds noise. -->
@@ -88,7 +89,7 @@
 	</rule>
 
 	<!-- Same file scope: a CLI local shadowing a WP global never reaches WP core. -->
-	<rule ref="WordPress.WP.GlobalVariablesOverride">
+	<rule ref="WordPress.WP.GlobalVariablesOverride.Prohibited">
 		<exclude-pattern>/bin/</exclude-pattern>
 	</rule>
 
@@ -103,14 +104,22 @@
 		<exclude-pattern>/tests/</exclude-pattern>
 	</rule>
 
-	<!--
-	The WP HTTP/filesystem/random APIs are unavailable or wrong here: these are
-	local-file reads, stream writes to STDOUT/STDERR, and the demo generator's
-	deterministic seeded PRNG, which wp_rand() cannot reproduce.
-	-->
-	<rule ref="WordPress.WP.AlternativeFunctions">
-		<exclude-pattern>/bin/</exclude-pattern>
+	<!-- Reading a repo file off disk; wp_remote_get() is for URLs. -->
+	<rule ref="WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents">
 		<exclude-pattern>/tests/</exclude-pattern>
+	</rule>
+
+	<!-- Writing to an already-open STDOUT/STDERR stream, not to the filesystem. -->
+	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fwrite">
+		<exclude-pattern>/bin/</exclude-pattern>
+	</rule>
+
+	<!-- The demo generator seeds a PRNG so a run is reproducible; wp_rand() cannot be seeded. -->
+	<rule ref="WordPress.WP.AlternativeFunctions.rand_seeding_mt_srand">
+		<exclude-pattern>/bin/</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.rand_mt_rand">
+		<exclude-pattern>/bin/</exclude-pattern>
 	</rule>
 
 	<!-- Exception messages go to a terminal, not to HTML. -->
