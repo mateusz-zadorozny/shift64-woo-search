@@ -46,7 +46,15 @@ export default defineConfig({
 			name: 'degrade-env',
 			testDir: 'tests/e2e/degraded',
 			testMatch: /degrade\.setup\.ts/,
-			dependencies: ['main'],
+			// Depends on block-theme, not main. Both are state-mutating chains;
+			// if they merely shared `main` as a dependency, their relative order
+			// would rest on undocumented intra-stage scheduling, and a
+			// degrade-env that ran first would point Redis at a dead port and
+			// red the block-theme journeys (which need the takeover live).
+			// Making the edge explicit forces main -> block-theme -> degrade-env
+			// -> degraded. block-theme is a DEPENDENCY here, not a dependent, so
+			// restore-env still fires as soon as `degraded` is done.
+			dependencies: ['block-theme'],
 			teardown: 'restore-env',
 		},
 		{

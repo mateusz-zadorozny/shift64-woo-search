@@ -110,6 +110,13 @@ test('pagination swaps the grid, the indicator, and the result count via AJAX', 
 	await expect(resultCount).toBeVisible();
 	const countTextBefore = await resultCount.innerText();
 
+	// Tag the live count element. The count reports the query total, not the
+	// page slice, so its TEXT is identical before and after — asserting on text
+	// alone would pass even if the swap never touched it. The swap replaces the
+	// element via outerHTML, so the tag disappearing is what actually proves it
+	// was replaced rather than left alone.
+	await resultCount.evaluate((el) => el.setAttribute('data-e2e-pre-swap', '1'));
+
 	// A full navigation would wipe this flag; the AJAX swap must keep it.
 	await page.evaluate(() => {
 		(window as unknown as Record<string, unknown>).__e2eNoReload = true;
@@ -124,12 +131,12 @@ test('pagination swaps the grid, the indicator, and the result count via AJAX', 
 	// aria-current="page". Before the #15 fix this stayed on "1".
 	await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
 
-	// The result count is swapped too. It reports the total for the query, not
-	// the current page's slice, so the correct assertion is that it SURVIVES
-	// the swap unchanged — a swap that dropped the element or pulled in a stale
-	// or empty count would fail here.
+	// The result count was genuinely swapped: the pre-swap tag is gone (proving
+	// the element was replaced, not merely left in place), and the replacement
+	// still reports the query total rather than a stale or empty value.
 	await expect(resultCount).toBeVisible();
 	await expect(resultCount).toHaveText(countTextBefore);
+	await expect(page.locator('[data-e2e-pre-swap]')).toHaveCount(0);
 
 	const flagSurvived = await page.evaluate(() => {
 		return (window as unknown as Record<string, unknown>).__e2eNoReload === true;
