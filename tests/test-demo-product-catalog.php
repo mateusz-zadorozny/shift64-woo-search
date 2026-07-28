@@ -26,7 +26,38 @@ class Test_Shift64_Woo_Search_Demo_Product_Catalog extends WP_UnitTestCase {
 		$this->assertSame( 1000, $options['batch'] );
 		$this->assertSame( 6464, $options['seed'] );
 		$this->assertFalse( $options['reset'] );
+		$this->assertFalse( $options['reset_only'] );
 		$this->assertFalse( $options['variation_skus'] );
+	}
+
+	/**
+	 * `reset-only` is a standalone teardown switch, independent of `reset`.
+	 */
+	public function test_parses_reset_only_flag() {
+		$options = Shift64_Woo_Search_Demo_Catalog::parse_args( array( 'reset-only' ) );
+
+		$this->assertTrue( $options['reset_only'] );
+		$this->assertFalse( $options['reset'] );
+	}
+
+	/**
+	 * `reset` on its own stays a wipe-then-seed modifier and never implies teardown.
+	 */
+	public function test_reset_does_not_imply_reset_only() {
+		$options = Shift64_Woo_Search_Demo_Catalog::parse_args( array( 'reset' ) );
+
+		$this->assertTrue( $options['reset'] );
+		$this->assertFalse( $options['reset_only'] );
+	}
+
+	/**
+	 * `reset-only` ignores `count`, so the other options still parse alongside it.
+	 */
+	public function test_reset_only_combines_with_other_options() {
+		$options = Shift64_Woo_Search_Demo_Catalog::parse_args( array( 'reset-only', 'batch=50' ) );
+
+		$this->assertTrue( $options['reset_only'] );
+		$this->assertSame( 50, $options['batch'] );
 	}
 
 	/**
@@ -79,6 +110,7 @@ class Test_Shift64_Woo_Search_Demo_Product_Catalog extends WP_UnitTestCase {
 			'unknown catalog'    => array( array( 'catalog=toys' ) ),
 			'unknown option'     => array( array( 'colour=red' ) ),
 			'bare unknown token' => array( array( 'purge' ) ),
+			'reset-only=value'   => array( array( 'reset-only=1' ) ),
 		);
 	}
 

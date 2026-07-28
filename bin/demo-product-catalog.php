@@ -316,7 +316,7 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Catalog' ) ) {
 		 * Parse the arguments WP-CLI hands to `wp eval-file`.
 		 *
 		 * @param array $raw_args Raw argument strings.
-		 * @return array{count:int,mode:string,catalog:string,batch:int,seed:int,reset:bool,variation_skus:bool}
+		 * @return array{count:int,mode:string,catalog:string,batch:int,seed:int,reset:bool,reset_only:bool,variation_skus:bool}
 		 * @throws InvalidArgumentException When an argument is unknown or out of range.
 		 */
 		public static function parse_args( $raw_args ) {
@@ -327,7 +327,15 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Catalog' ) ) {
 				'batch'          => 1000,
 				'seed'           => 6464,
 				'reset'          => false,
+				'reset_only'     => false,
 				'variation_skus' => false,
+			);
+
+			// Valueless switches; they never accept a `key=value` form.
+			$flags = array(
+				'reset'          => 'reset',
+				'reset-only'     => 'reset_only',
+				'variation-skus' => 'variation_skus',
 			);
 
 			foreach ( $raw_args as $raw_arg ) {
@@ -335,18 +343,14 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Catalog' ) ) {
 				if ( '' === $arg ) {
 					continue;
 				}
-				if ( 'reset' === $arg ) {
-					$options['reset'] = true;
-					continue;
-				}
-				if ( 'variation-skus' === $arg ) {
-					$options['variation_skus'] = true;
+				if ( isset( $flags[ $arg ] ) ) {
+					$options[ $flags[ $arg ] ] = true;
 					continue;
 				}
 				if ( false === strpos( $arg, '=' ) ) {
 					throw new InvalidArgumentException(
 						sprintf(
-							'Unknown argument "%s". Use count=N, mode=variable|simple|mixed, catalog=all|apparel|tech|home|beauty, batch=N, seed=N, reset, or variation-skus.',
+							'Unknown argument "%s". Use count=N, mode=variable|simple|mixed, catalog=all|apparel|tech|home|beauty, batch=N, seed=N, reset, reset-only, or variation-skus.',
 							(string) $raw_arg
 						)
 					);
@@ -354,7 +358,7 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Catalog' ) ) {
 
 				list( $key, $value ) = array_map( 'trim', explode( '=', $arg, 2 ) );
 				$key                 = str_replace( '-', '_', $key );
-				if ( ! array_key_exists( $key, $options ) || 'reset' === $key || 'variation_skus' === $key ) {
+				if ( ! array_key_exists( $key, $options ) || in_array( $key, $flags, true ) ) {
 					throw new InvalidArgumentException( sprintf( 'Unknown option "%s".', $key ) );
 				}
 				$options[ $key ] = $value;
