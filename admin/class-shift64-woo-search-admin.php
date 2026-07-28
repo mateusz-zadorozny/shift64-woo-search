@@ -1233,8 +1233,11 @@ class Shift64_Woo_Search_Admin {
 	 * works before saving it. This migration does not touch that flow.
 	 *
 	 * The credential rows are hidden *and* disabled when authentication is off, so
-	 * they never reach the payload; the always-submitted hidden `no` value is what
-	 * tells the persistence seam that clearing stored credentials was deliberate.
+	 * they never reach the payload; the auth checkbox itself always serializes
+	 * (the admin JS emits `yes`/`no` for checkboxes and skips the hidden fallback
+	 * when a same-named checkbox exists), and that explicit `no` in the payload is
+	 * what tells the persistence seam that clearing stored credentials was
+	 * deliberate.
 	 */
 	private function render_system_connection_section() {
 		?>
@@ -2720,8 +2723,10 @@ class Shift64_Woo_Search_Admin {
 			update_option( $key, $value );
 		}
 
-		// Mirror the auth toggle behaviour from ajax_save_setting: when auth is off, wipe creds
-		// so a subsequent connection test (or config regen) doesn't use stale values.
+		// Stored-state credential wipe is intentional here (unlike the payload-scoped
+		// guard in Shift64_Woo_Search_Admin_Settings::persist()): the only caller is
+		// ajax_test_connection(), whose Connection form always posts auth_enabled and
+		// writes it above, so the stored value it reads back is this request's value.
 		if ( 'no' === get_option( 'shift64_woo_search_redis_auth_enabled', 'no' ) ) {
 			update_option( 'shift64_woo_search_redis_username', '' );
 			update_option( 'shift64_woo_search_redis_password', '' );

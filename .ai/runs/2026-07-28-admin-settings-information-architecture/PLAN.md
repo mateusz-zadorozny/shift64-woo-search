@@ -21,6 +21,7 @@
 | 3 | 3.2 | Canonical internal links, legacy-search relocation notice, secondary-nav CSS | done | 7bd33ec |
 | 4 | 4.1 | Add focused IA regression suite (test-admin-settings-information-architecture.php) | done | 4b59cb5 |
 | 4 | 4.2 | Docs and i18n: spec status flip, specs index, BACKWARD_COMPATIBILITY, makepot | done | a1677ff |
+| 4 | 4.2-review-fix | Reword misleading auth-toggle and save_posted_settings comments (self-review nits) | done | 915dee1 |
 
 ## Goal
 
