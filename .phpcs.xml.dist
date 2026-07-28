@@ -7,8 +7,6 @@
 	<exclude-pattern>/vendor/</exclude-pattern>
 	<exclude-pattern>/node_modules/</exclude-pattern>
 	<exclude-pattern>/mu-plugins/</exclude-pattern>
-	<exclude-pattern>/tests/</exclude-pattern>
-	<exclude-pattern>/bin/</exclude-pattern>
 
 	<!-- How to scan -->
 	<arg value="sp"/>
@@ -67,5 +65,61 @@
 		<properties>
 			<property name="blank_line_check" value="true"/>
 		</properties>
+	</rule>
+
+	<!--
+	Narrow exclusions for `bin/` and `tests/`.
+
+	Both trees are scanned in full; the rules below are switched off only where a
+	WordPress-runtime assumption does not hold. Each entry is scoped to a single
+	sniff and a single tree — never a whole directory — so everything else
+	(PHP compatibility, array and whitespace formatting, i18n, escaping, the
+	security sniffs) still applies there.
+	-->
+
+	<!-- Test method names are the documentation; a docblock per assertion adds noise. -->
+	<rule ref="Squiz.Commenting.FunctionComment.Missing">
+		<exclude-pattern>/tests/</exclude-pattern>
+	</rule>
+
+	<!-- CLI entrypoints run in file scope, so their locals are not plugin globals. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound">
+		<exclude-pattern>/bin/</exclude-pattern>
+	</rule>
+
+	<!-- Same file scope: a CLI local shadowing a WP global never reaches WP core. -->
+	<rule ref="WordPress.WP.GlobalVariablesOverride">
+		<exclude-pattern>/bin/</exclude-pattern>
+	</rule>
+
+	<!-- These scripts are invoked by path, so the class-file naming scheme does not apply. -->
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>/bin/</exclude-pattern>
+	</rule>
+
+	<!-- A CLI entrypoint is a bootstrap plus its class; splitting it costs the single-file invocation. -->
+	<rule ref="Universal.Files.SeparateFunctionsFromOO.Mixed">
+		<exclude-pattern>/bin/</exclude-pattern>
+		<exclude-pattern>/tests/</exclude-pattern>
+	</rule>
+
+	<!--
+	The WP HTTP/filesystem/random APIs are unavailable or wrong here: these are
+	local-file reads, stream writes to STDOUT/STDERR, and the demo generator's
+	deterministic seeded PRNG, which wp_rand() cannot reproduce.
+	-->
+	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>/bin/</exclude-pattern>
+		<exclude-pattern>/tests/</exclude-pattern>
+	</rule>
+
+	<!-- Exception messages go to a terminal, not to HTML. -->
+	<rule ref="WordPress.Security.EscapeOutput.ExceptionNotEscaped">
+		<exclude-pattern>/bin/</exclude-pattern>
+	</rule>
+
+	<!-- A must-use plugin fixture: WordPress loads it by the `.mu.php` suffix. -->
+	<rule ref="WordPress.Files.FileName.NotHyphenatedLowercase">
+		<exclude-pattern>/tests/e2e/</exclude-pattern>
 	</rule>
 </ruleset>

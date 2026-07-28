@@ -9,6 +9,9 @@
  * @package Shift64_Woo_Search
  */
 
+/**
+ * Filter-driven search query tests.
+ */
 class Search_By_Filters_Test extends WP_UnitTestCase {
 
 	/**
@@ -41,7 +44,7 @@ class Search_By_Filters_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * search_by_filters returns structured array with 'ids' (int list) and 'total'.
+	 * The search_by_filters helper returns a structured array with 'ids' (int list) and 'total'.
 	 */
 	public function test_returns_ids_and_total() {
 		// Simulated FT.SEARCH raw response without WITHSCORES: [total, key1, fields1, key2, fields2, ...].

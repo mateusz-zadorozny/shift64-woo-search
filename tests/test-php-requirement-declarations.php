@@ -11,6 +11,9 @@
  * @package Shift64_Woo_Search
  */
 
+/**
+ * Declared PHP minimum consistency tests.
+ */
 class Php_Requirement_Declarations_Test extends WP_UnitTestCase {
 
 	/**
@@ -40,7 +43,7 @@ class Php_Requirement_Declarations_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * readme.txt declares the expected minimum.
+	 * The readme.txt file declares the expected minimum.
 	 */
 	public function test_readme_requires_php() {
 		$readme = file_get_contents( $this->plugin_dir() . '/readme.txt' );
@@ -52,7 +55,7 @@ class Php_Requirement_Declarations_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * composer.json requires the expected minimum and pins the platform to it.
+	 * The composer.json file requires the expected minimum and pins the platform to it.
 	 */
 	public function test_composer_php_requirement_and_platform_pin() {
 		$composer = json_decode( file_get_contents( $this->plugin_dir() . '/composer.json' ), true );

@@ -11,6 +11,9 @@
  * @package Shift64_Woo_Search
  */
 
+/**
+ * TAG value escaping tests.
+ */
 class Escape_Tag_Value_Test extends WP_UnitTestCase {
 
 	/**

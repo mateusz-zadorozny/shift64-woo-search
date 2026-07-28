@@ -10,13 +10,15 @@
  * - raw category facet payload from Redis aggregation
  * - top result IDs from Redis search
  * - for each result: real WP product_cat terms and raw indexed `categories` field
+ *
+ * @package Shift64_Woo_Search
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit( 1 );
 }
 
-$argv = $_SERVER['argv'] ?? array();
+$argv = array_map( 'sanitize_text_field', wp_unslash( $_SERVER['argv'] ?? array() ) );
 $file = 'bin/diagnose-category-facets.php';
 $pos  = array_search( $file, $argv, true );
 
@@ -52,18 +54,18 @@ $search_data  = $search_query->search( $query, 'full', $limit, array() );
 $post_ids     = $search_data['post_ids'] ?? array();
 
 $report = array(
-	'query'              => $query,
-	'sanitized_query'    => $sanitized,
-	'terms'              => $terms,
-	'result_count'       => $search_data['count'] ?? 0,
-	'search_pass'        => $search_data['search_pass'] ?? '',
-	'debug_queries'      => $search_data['debug_queries'] ?? array(),
+	'query'               => $query,
+	'sanitized_query'     => $sanitized,
+	'terms'               => $terms,
+	'result_count'        => $search_data['count'] ?? 0,
+	'search_pass'         => $search_data['search_pass'] ?? '',
+	'debug_queries'       => $search_data['debug_queries'] ?? array(),
 	'raw_category_facets' => $facet_data['categories'] ?? array(),
-	'products'           => array(),
+	'products'            => array(),
 );
 
 foreach ( $post_ids as $post_id ) {
-	$terms = get_the_terms( $post_id, 'product_cat' );
+	$terms         = get_the_terms( $post_id, 'product_cat' );
 	$wp_categories = array();
 	if ( $terms && ! is_wp_error( $terms ) ) {
 		foreach ( $terms as $term ) {

@@ -151,7 +151,7 @@ class Brands_Indexing_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * brands_text must be declared as a weighted TEXT field, otherwise typing a
+	 * The brands_text field must be declared as a weighted TEXT field, otherwise typing a
 	 * brand name matches nothing.
 	 */
 	public function test_schema_declares_weighted_brands_text_field() {

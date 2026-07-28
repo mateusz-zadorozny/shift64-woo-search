@@ -5,7 +5,9 @@
  * @package Shift64_Woo_Search
  */
 
-require_once dirname( __DIR__ ) . '/bin/demo-product-catalog.php';
+if ( ! class_exists( 'Shift64_Woo_Search_Demo_Catalog' ) ) {
+	require_once dirname( __DIR__ ) . '/bin/demo-product-catalog.php';
+}
 
 /**
  * Covers argument parsing, name combinatorics, and SKU generation.
@@ -119,8 +121,8 @@ class Test_Shift64_Woo_Search_Demo_Product_Catalog extends WP_UnitTestCase {
 			$ordinal     = Shift64_Woo_Search_Demo_Catalog::ordinal_for_index( 'all', $index );
 			$combination = Shift64_Woo_Search_Demo_Catalog::build_combination( $vertical, $ordinal, $seed );
 
-			$names[ Shift64_Woo_Search_Demo_Catalog::build_name( $combination ) ] = true;
-			$skus[ Shift64_Woo_Search_Demo_Catalog::build_sku( $vertical, $seed, $index ) ]  = true;
+			$names[ Shift64_Woo_Search_Demo_Catalog::build_name( $combination ) ]           = true;
+			$skus[ Shift64_Woo_Search_Demo_Catalog::build_sku( $vertical, $seed, $index ) ] = true;
 		}
 
 		$this->assertCount( $count, $names );
@@ -137,8 +139,8 @@ class Test_Shift64_Woo_Search_Demo_Product_Catalog extends WP_UnitTestCase {
 		for ( $index = 0; $index < $count; ++$index ) {
 			$vertical = Shift64_Woo_Search_Demo_Catalog::vertical_for_index( 'tech', $index );
 			$this->assertSame( 'tech', $vertical );
-			$ordinal                                                              = Shift64_Woo_Search_Demo_Catalog::ordinal_for_index( 'tech', $index );
-			$combination                                                          = Shift64_Woo_Search_Demo_Catalog::build_combination( $vertical, $ordinal, 42 );
+			$ordinal     = Shift64_Woo_Search_Demo_Catalog::ordinal_for_index( 'tech', $index );
+			$combination = Shift64_Woo_Search_Demo_Catalog::build_combination( $vertical, $ordinal, 42 );
 			$names[ Shift64_Woo_Search_Demo_Catalog::build_name( $combination ) ] = true;
 		}
 

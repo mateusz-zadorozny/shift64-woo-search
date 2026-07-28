@@ -5,6 +5,9 @@
  * @package Shift64_Woo_Search
  */
 
+/**
+ * Archive relevance re-ranking tests.
+ */
 class Archive_Relevance_Test extends WP_UnitTestCase {
 
 	/**
