@@ -145,17 +145,18 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 		/**
 		 * Resolve the product type for an index.
 		 *
-		 * In mixed mode roughly 75% of the catalog is simple and 25% variable,
-		 * which keeps the total post count manageable on high-volume runs.
+		 * Delegates to the catalog module so the mixed-mode split stays pure and
+		 * unit tested; see Shift64_Woo_Search_Demo_Catalog::product_mode().
 		 *
 		 * @param int $index Zero-based product index.
 		 * @return string
 		 */
 		private function product_mode( $index ) {
-			if ( 'mixed' !== $this->options['mode'] ) {
-				return $this->options['mode'];
-			}
-			return 0 === $index % 4 ? 'variable' : 'simple';
+			return Shift64_Woo_Search_Demo_Catalog::product_mode(
+				$this->options['mode'],
+				$this->options['catalog'],
+				$index
+			);
 		}
 
 		/**

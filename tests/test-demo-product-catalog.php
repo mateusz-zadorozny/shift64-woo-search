@@ -217,6 +217,65 @@ class Test_Shift64_Woo_Search_Demo_Product_Catalog extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Mixed mode splits roughly 75/25 and spreads variable products across
+	 * every vertical.
+	 *
+	 * Regression guard: deciding the mode from the raw index rather than the
+	 * per-vertical ordinal makes "variable" and "apparel" the same condition
+	 * under `all` (both are index % 4 === 0), so every variable product lands in
+	 * one vertical and the Capacity/Material variation attributes are never
+	 * exercised as variations.
+	 */
+	public function test_mixed_mode_spreads_variable_products_across_verticals() {
+		$count    = 400;
+		$variable = array();
+		$total    = 0;
+
+		for ( $index = 0; $index < $count; $index++ ) {
+			$vertical = Shift64_Woo_Search_Demo_Catalog::vertical_for_index( 'all', $index );
+			if ( 'variable' === Shift64_Woo_Search_Demo_Catalog::product_mode( 'mixed', 'all', $index ) ) {
+				$variable[ $vertical ] = isset( $variable[ $vertical ] ) ? $variable[ $vertical ] + 1 : 1;
+				++$total;
+			}
+		}
+
+		foreach ( Shift64_Woo_Search_Demo_Catalog::vertical_keys() as $vertical ) {
+			$this->assertArrayHasKey(
+				$vertical,
+				$variable,
+				sprintf( 'Vertical %s got no variable products in mixed mode.', $vertical )
+			);
+			$this->assertSame( $count / 16, $variable[ $vertical ], 'Variable products are unevenly spread.' );
+		}
+
+		$this->assertSame( $count / 4, $total, 'Mixed mode should make a quarter of the catalog variable.' );
+	}
+
+	/**
+	 * A single-vertical run keeps the same 75/25 split.
+	 */
+	public function test_mixed_mode_split_holds_for_a_single_vertical() {
+		$variable = 0;
+		for ( $index = 0; $index < 400; $index++ ) {
+			if ( 'variable' === Shift64_Woo_Search_Demo_Catalog::product_mode( 'mixed', 'tech', $index ) ) {
+				++$variable;
+			}
+		}
+
+		$this->assertSame( 100, $variable );
+	}
+
+	/**
+	 * Explicit modes are returned verbatim, whatever the index.
+	 */
+	public function test_explicit_modes_ignore_the_index() {
+		foreach ( array( 0, 1, 2, 3, 17, 400 ) as $index ) {
+			$this->assertSame( 'variable', Shift64_Woo_Search_Demo_Catalog::product_mode( 'variable', 'all', $index ) );
+			$this->assertSame( 'simple', Shift64_Woo_Search_Demo_Catalog::product_mode( 'simple', 'all', $index ) );
+		}
+	}
+
+	/**
 	 * An unknown vertical is a programming error, not a silent fallback.
 	 */
 	public function test_unknown_vertical_throws() {

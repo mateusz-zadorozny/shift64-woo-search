@@ -147,6 +147,31 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Catalog' ) ) {
 		}
 
 		/**
+		 * Resolve the product type for a zero-based product index.
+		 *
+		 * In mixed mode roughly 75% of the catalog is simple and 25% variable,
+		 * which keeps the total post count manageable on high-volume runs.
+		 *
+		 * The decision keys off the per-vertical ordinal, not the raw index. With
+		 * `all`, the index also selects the vertical (index % 4), so testing the
+		 * index against the same modulus would make "variable" and "apparel" the
+		 * same condition — every variable product would land in one vertical and
+		 * the other three would be entirely simple, leaving their variation
+		 * attributes never exercised as variations.
+		 *
+		 * @param string $mode    Mode option (variable, simple, or mixed).
+		 * @param string $catalog Catalog option (all or a vertical key).
+		 * @param int    $index   Zero-based product index.
+		 * @return string
+		 */
+		public static function product_mode( $mode, $catalog, $index ) {
+			if ( 'mixed' !== $mode ) {
+				return $mode;
+			}
+			return 0 === self::ordinal_for_index( $catalog, $index ) % 4 ? 'variable' : 'simple';
+		}
+
+		/**
 		 * Build the five-segment name combination for a product.
 		 *
 		 * The ordinal is mapped through a stride that is co-prime with the
