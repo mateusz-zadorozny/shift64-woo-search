@@ -336,9 +336,6 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 		foreach ( array( 'min_query', 'autocomplete_limit', 'category_suggest_fuzzy', 'brand_suggest_enabled', 'category_pin_rules' ) as $field ) {
 			$this->assertStringNotContainsString( 'shift64_woo_search_' . $field, $html );
 		}
-
-		// Still owned by Relevance until Step 2.4 moves it.
-		$this->assertStringContainsString( 'name="shift64_woo_search_category_boost_rules"', $html );
 	}
 
 	public function test_query_suggestions_section_renders_the_suggestions_manager() {
@@ -420,8 +417,7 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Coverage moved out of the legacy Search tab; it must not keep rendering there,
-	 * while the fields Step 2.4 relocates stay put for now.
+	 * Coverage moved out of the legacy Search tab; it must not keep rendering there.
 	 */
 	public function test_relocated_coverage_fields_no_longer_render_on_the_legacy_search_route() {
 		$html = $this->render( 'search', null );
@@ -429,10 +425,97 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 		foreach ( array( 'archive_enabled', 'price_sort_mode', 'taxonomy_archive_scopes' ) as $field ) {
 			$this->assertStringNotContainsString( 'shift64_woo_search_' . $field, $html );
 		}
+	}
 
-		// Still owned by Relevance until Step 2.4 moves them.
-		$this->assertStringContainsString( 'name="shift64_woo_search_logic"', $html );
-		$this->assertStringContainsString( 'name="shift64_woo_search_full_limit"', $html );
+	// ── Relevance sections ─────────────────────────────────────
+
+	/**
+	 * Basic Ranking owns how a match is decided and ordered — and only that. Each
+	 * section's form posts every key it renders, so a key rendered on two sections is
+	 * a key either section could overwrite; fuzzy tuning, the endpoint limit, and the
+	 * boost rules therefore have to be absent here.
+	 *
+	 * The legacy `search` bookmark is the third route in the provider: it lands here,
+	 * which is why it must render exactly the same fields.
+	 *
+	 * @dataProvider basic_ranking_route_provider
+	 *
+	 * @param string      $tab     Requested `tab` value.
+	 * @param string|null $section Requested `section` value.
+	 */
+	public function test_basic_ranking_section_owns_the_ranking_mode_fields( $tab, $section ) {
+		$html = $this->render( $tab, $section );
+
+		foreach ( array( 'logic', 'strategy', 'outofstock_mode', 'outofstock_demote_factor' ) as $field ) {
+			$this->assertStringContainsString( 'name="shift64_woo_search_' . $field . '"', $html );
+		}
+
+		$this->assertStringNotContainsString( 'shift64_woo_search_fuzzy_level', $html );
+		$this->assertStringNotContainsString( 'shift64_woo_search_full_limit', $html );
+		$this->assertStringNotContainsString( 'shift64_woo_search_category_boost_rules', $html );
+	}
+
+	public function basic_ranking_route_provider() {
+		return array(
+			'canonical'         => array( 'relevance', 'basic' ),
+			'workspace default' => array( 'relevance', null ),
+			'legacy search tab' => array( 'search', null ),
+		);
+	}
+
+	/**
+	 * The old mixed Search page maps deterministically to Basic Ranking, so the
+	 * heading a returning bookmark lands on has to say so.
+	 */
+	public function test_legacy_search_bookmark_lands_on_the_basic_ranking_section() {
+		$this->assertStringContainsString(
+			'<h2 class="shift64-woo-search-admin__section-title">Basic Ranking</h2>',
+			$this->render( 'search', null )
+		);
+	}
+
+	/**
+	 * Matching & Fallback owns typo tolerance, token reduction, normalization, and the
+	 * full-search limit that bounds the endpoint those passes feed.
+	 */
+	public function test_matching_section_owns_the_fuzzy_and_fallback_fields() {
+		$html = $this->render( 'relevance', 'matching' );
+
+		$fields = array(
+			'fuzzy_level',
+			'fallback_trigger',
+			'fallback_score_threshold',
+			'fallback_fuzzy_level',
+			'token_reduction_enabled',
+			'weak_tokens',
+			'drop_trailing_weak_token_only',
+			'diacritics_normalization',
+			'fuzzy_synonyms',
+			'full_limit',
+		);
+
+		foreach ( $fields as $field ) {
+			$this->assertStringContainsString( 'name="shift64_woo_search_' . $field . '"', $html );
+		}
+
+		$this->assertStringNotContainsString( 'shift64_woo_search_logic', $html );
+		$this->assertStringNotContainsString( 'shift64_woo_search_outofstock_mode', $html );
+		$this->assertStringNotContainsString( 'shift64_woo_search_category_boost_rules', $html );
+	}
+
+	/**
+	 * Merchandising is the one place a merchant overrides organic product ranking on
+	 * purpose. Its editor boosts products by category or tag — not to be confused with
+	 * the similarly named `category_boosts` editor that orders the autocomplete
+	 * category list over in Search Experience.
+	 */
+	public function test_merchandising_section_renders_the_product_boost_rule_editor() {
+		$html = $this->render( 'relevance', 'merchandising' );
+
+		$this->assertStringContainsString( 'name="shift64_woo_search_category_boost_rules"', $html );
+		$this->assertStringNotContainsString( 's64ws-cb-table', $html );
+		$this->assertStringNotContainsString( 'shift64_woo_search_logic', $html );
+		$this->assertStringNotContainsString( 'shift64_woo_search_fuzzy_level', $html );
 	}
 
 	/**
@@ -491,7 +574,9 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 			array( 'results', 'coverage' ),
 			array( 'results', 'facets' ),
 			array( 'relevance', 'basic' ),
+			array( 'relevance', 'matching' ),
 			array( 'relevance', 'synonyms' ),
+			array( 'relevance', 'merchandising' ),
 			array( 'relevance', 'field-weights' ),
 			array( 'relevance', 'test-search' ),
 			array( 'relevance', 'compare-passes' ),

@@ -1235,18 +1235,27 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
+	// ── Relevance › Basic Ranking ──────────────────────────────
+
 	/**
-	 * Render the Search settings tab.
+	 * Render the Basic Ranking section — how a match is decided and ordered.
+	 *
+	 * Relocated from the legacy Search tab. These four controls answer the two
+	 * questions merchants ask first: must a product match every typed word or just
+	 * one of them, and what happens to products that are out of stock. Typo
+	 * tolerance and the fallback passes live one section over, in Matching &
+	 * Fallback, because tuning those is a different job done at a different time.
+	 *
+	 * The form carries only these four keys, so saving it can never overwrite a
+	 * setting owned by another section.
 	 */
-	private function render_search_tab() {
+	private function render_relevance_basic_section() {
 		?>
 		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
 
 			<h3><?php esc_html_e( 'Search Behavior', 'shift64-woo-search' ); ?></h3>
 			<table class="form-table">
 				<?php
-				$this->render_text_field( 'shift64_woo_search_full_limit', __( 'Full Search Results Limit', 'shift64-woo-search' ), '20', __( 'Max products for full search page.', 'shift64-woo-search' ), 'number' );
-				$this->render_text_field( 'shift64_woo_search_fuzzy_level', __( 'Fuzzy Level', 'shift64-woo-search' ), '1', __( 'Levenshtein distance 1-3.', 'shift64-woo-search' ), 'number' );
 				$this->render_select_field(
 					'shift64_woo_search_logic',
 					__( 'Search Logic', 'shift64-woo-search' ),
@@ -1255,12 +1264,6 @@ class Shift64_Woo_Search_Admin {
 						'AND' => 'AND — all terms must match',
 					)
 				);
-				?>
-			</table>
-
-			<h3><?php esc_html_e( 'Search Strategy', 'shift64-woo-search' ); ?></h3>
-			<table class="form-table">
-				<?php
 				$this->render_select_field(
 					'shift64_woo_search_strategy',
 					__( 'Search Mode', 'shift64-woo-search' ),
@@ -1270,6 +1273,57 @@ class Shift64_Woo_Search_Admin {
 					),
 					__( 'Strict-first runs a clean prefix query first. Fuzzy is only used as fallback.', 'shift64-woo-search' )
 				);
+				?>
+			</table>
+
+			<h3><?php esc_html_e( 'Out-of-Stock Products', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_select_field(
+					'shift64_woo_search_outofstock_mode',
+					__( 'Mode', 'shift64-woo-search' ),
+					array(
+						'exclude' => __( 'Exclude — never show', 'shift64-woo-search' ),
+						'show'    => __( 'Show — same ranking', 'shift64-woo-search' ),
+						'demote'  => __( 'Demote — lower score', 'shift64-woo-search' ),
+					)
+				);
+				$this->render_text_field( 'shift64_woo_search_outofstock_demote_factor', __( 'Demote Factor', 'shift64-woo-search' ), '0.3', __( '0.0–1.0.', 'shift64-woo-search' ), 'number', '0', '1', '0.1' );
+				?>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── Relevance › Matching & Fallback ────────────────────────
+
+	/**
+	 * Render the Matching & Fallback section — what happens when the query is messy.
+	 *
+	 * Relocated from the legacy Search tab. Everything here exists for one reason:
+	 * shoppers mistype, abbreviate, and pad queries with filler words. The controls
+	 * are grouped by the pass they govern — fuzzy distance and when a fallback pass
+	 * fires, which filler tokens may be dropped, and how diacritics and synonyms are
+	 * normalized before matching.
+	 *
+	 * `shift64_woo_search_full_limit` sits here rather than in Search Experience: it
+	 * sizes the full search endpoint, not the autocomplete dropdown, so it belongs
+	 * with the advanced matching behavior it bounds. Its label and semantics are
+	 * unchanged by the move.
+	 */
+	private function render_relevance_matching_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
+			<h3><?php esc_html_e( 'Fuzzy Matching', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_text_field( 'shift64_woo_search_fuzzy_level', __( 'Fuzzy Level', 'shift64-woo-search' ), '1', __( 'Levenshtein distance 1-3.', 'shift64-woo-search' ), 'number' );
 				$this->render_select_field(
 					'shift64_woo_search_fallback_trigger',
 					__( 'Fallback Trigger', 'shift64-woo-search' ),
@@ -1289,13 +1343,57 @@ class Shift64_Woo_Search_Admin {
 						'3' => '3 — aggressive',
 					)
 				);
+				?>
+			</table>
+
+			<h3><?php esc_html_e( 'Token Reduction', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
 				$this->render_checkbox_field( 'shift64_woo_search_token_reduction_enabled', __( 'Token Reduction', 'shift64-woo-search' ), 'yes', __( 'Drop weak trailing tokens before fuzzy fallback.', 'shift64-woo-search' ) );
 				$this->render_text_field( 'shift64_woo_search_weak_tokens', __( 'Weak Tokens', 'shift64-woo-search' ), 'do,na,z,i,w,od,po,za,ze,we,o,u,a,e', __( 'Comma-separated.', 'shift64-woo-search' ) );
 				$this->render_checkbox_field( 'shift64_woo_search_drop_trailing_weak_token_only', __( 'Drop Trailing Only', 'shift64-woo-search' ), 'yes' );
+				?>
+			</table>
+
+			<h3><?php esc_html_e( 'Normalization', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
 				$this->render_checkbox_field( 'shift64_woo_search_diacritics_normalization', __( 'Diacritics Normalization', 'shift64-woo-search' ), 'yes', __( 'Match Polish chars without diacritics (ł→l, ó→o, etc). Requires rebuild.', 'shift64-woo-search' ) );
 				$this->render_checkbox_field( 'shift64_woo_search_fuzzy_synonyms', __( 'Fuzzy Synonyms', 'shift64-woo-search' ), 'no', __( 'Match synonyms even with typos or partial input (prefix + Levenshtein).', 'shift64-woo-search' ) );
 				?>
 			</table>
+
+			<h3><?php esc_html_e( 'Result Limits', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_text_field( 'shift64_woo_search_full_limit', __( 'Full Search Results Limit', 'shift64-woo-search' ), '20', __( 'Max products for full search page.', 'shift64-woo-search' ), 'number' );
+				?>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── Relevance › Merchandising ──────────────────────────────
+
+	/**
+	 * Render the Merchandising section — deliberate thumbs on the ranking scale.
+	 *
+	 * Relocated from the legacy Search tab. This is the one place where a merchant
+	 * overrides organic ranking on purpose, which is why it is its own section
+	 * rather than a block at the bottom of Basic Ranking.
+	 *
+	 * These rules boost *products* by their category or tag. The similarly named
+	 * editors under Search Experience › Category Suggestions shape the category list
+	 * inside the autocomplete dropdown instead — different option, different surface.
+	 */
+	private function render_relevance_merchandising_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
 
 			<h3><?php esc_html_e( 'Relevance Boosts', 'shift64-woo-search' ); ?></h3>
 			<table class="form-table">
@@ -1306,22 +1404,6 @@ class Shift64_Woo_Search_Admin {
 					'',
 					__( 'One rule per line. Format: category-or-tag|factor (global) or query|category-or-tag|factor (query-specific). Lines starting with # are comments. Factor is clamped to 1-200, but factors compound with promoted (×1.5) and title-start (×2/×3) — values above ~5 can crowd out organic ranking, so use sparingly. Example: Promocja|1.2 or papier|Promocja|1.5. No index rebuild required.', 'shift64-woo-search' )
 				);
-				?>
-			</table>
-
-			<h3><?php esc_html_e( 'Out-of-Stock Products', 'shift64-woo-search' ); ?></h3>
-			<table class="form-table">
-				<?php
-				$this->render_select_field(
-					'shift64_woo_search_outofstock_mode',
-					__( 'Mode', 'shift64-woo-search' ),
-					array(
-						'exclude' => __( 'Exclude — never show', 'shift64-woo-search' ),
-						'show'    => __( 'Show — same ranking', 'shift64-woo-search' ),
-						'demote'  => __( 'Demote — lower score', 'shift64-woo-search' ),
-					)
-				);
-				$this->render_text_field( 'shift64_woo_search_outofstock_demote_factor', __( 'Demote Factor', 'shift64-woo-search' ), '0.3', __( '0.0–1.0.', 'shift64-woo-search' ), 'number', '0', '1', '0.1' );
 				?>
 			</table>
 

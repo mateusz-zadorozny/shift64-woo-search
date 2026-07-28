@@ -42,9 +42,9 @@ class Shift64_Woo_Search_Admin_Routes {
 	 * Each section declares a translated label and the explicit
 	 * `Shift64_Woo_Search_Admin` method that renders it.
 	 *
-	 * Several sections deliberately point at a broader legacy renderer as a
-	 * placeholder: the route exists and is stable from now on, while the split of the
-	 * underlying form into per-section markup lands in later phases.
+	 * The remaining System sections deliberately point at the broader
+	 * `render_redis_tab` as a placeholder: the route exists and is stable from now
+	 * on, while the split of that form into per-section markup lands in a later phase.
 	 *
 	 * @return array<string, array{label: string, default: string, sections: array<string, array{label: string, callback: string}>}> Ordered workspace map.
 	 */
@@ -102,11 +102,11 @@ class Shift64_Woo_Search_Admin_Routes {
 				'sections' => array(
 					'basic'          => array(
 						'label'    => __( 'Basic Ranking', 'shift64-woo-search' ),
-						'callback' => 'render_search_tab',
+						'callback' => 'render_relevance_basic_section',
 					),
 					'matching'       => array(
 						'label'    => __( 'Matching & Fallback', 'shift64-woo-search' ),
-						'callback' => 'render_search_tab',
+						'callback' => 'render_relevance_matching_section',
 					),
 					'synonyms'       => array(
 						'label'    => __( 'Synonyms', 'shift64-woo-search' ),
@@ -117,7 +117,7 @@ class Shift64_Woo_Search_Admin_Routes {
 					),
 					'merchandising'  => array(
 						'label'    => __( 'Merchandising', 'shift64-woo-search' ),
-						'callback' => 'render_search_tab',
+						'callback' => 'render_relevance_merchandising_section',
 					),
 					'field-weights'  => array(
 						'label'    => __( 'Field Weights', 'shift64-woo-search' ),

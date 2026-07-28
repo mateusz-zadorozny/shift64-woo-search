@@ -16,7 +16,7 @@
 | 2 | 2.1 | Extract credential-safe settings persistence seam with sentinel tests | done | 7acf749 |
 | 2 | 2.2 | Relocate Search Experience sections to canonical routes | done | a9c2cdc |
 | 2 | 2.3 | Relocate Results & Filters sections to canonical routes | done | a058629 |
-| 2 | 2.4 | Relocate Relevance sections to canonical routes | todo | — |
+| 2 | 2.4 | Relocate Relevance sections to canonical routes | done | 1cd57ed |
 | 3 | 3.1 | Relocate Insights and System sections to canonical routes | todo | — |
 | 3 | 3.2 | Canonical internal links, legacy-search relocation notice, secondary-nav CSS | todo | — |
 | 4 | 4.1 | Add focused IA regression suite (test-admin-settings-information-architecture.php) | todo | — |

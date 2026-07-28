@@ -146,10 +146,10 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 			'experience/category-suggestions' => array( 'experience', 'category-suggestions', 'render_experience_category_suggestions_section' ),
 			'results/coverage'                => array( 'results', 'coverage', 'render_results_coverage_section' ),
 			'results/facets'                  => array( 'results', 'facets', 'render_results_facets_section' ),
-			'relevance/basic'                 => array( 'relevance', 'basic', 'render_search_tab' ),
-			'relevance/matching'              => array( 'relevance', 'matching', 'render_search_tab' ),
+			'relevance/basic'                 => array( 'relevance', 'basic', 'render_relevance_basic_section' ),
+			'relevance/matching'              => array( 'relevance', 'matching', 'render_relevance_matching_section' ),
 			'relevance/synonyms'              => array( 'relevance', 'synonyms', 'render_synonys64ws_tab' ),
-			'relevance/merchandising'         => array( 'relevance', 'merchandising', 'render_search_tab' ),
+			'relevance/merchandising'         => array( 'relevance', 'merchandising', 'render_relevance_merchandising_section' ),
 			'relevance/field-weights'         => array( 'relevance', 'field-weights', 'render_weights_tab' ),
 			'relevance/test-search'           => array( 'relevance', 'test-search', 'render_test_tab' ),
 			'relevance/compare-passes'        => array( 'relevance', 'compare-passes', 'render_tuning_tab' ),
@@ -187,6 +187,17 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 				"Registry declares {$callback}(), which does not exist on Shift64_Woo_Search_Admin."
 			);
 		}
+	}
+
+	/**
+	 * The legacy Search tab was a mixed page whose fields now live in four different
+	 * sections. Its renderer is gone rather than kept as a shim, so nothing can
+	 * accidentally render an owned field at two addresses; the `search` alias reaches
+	 * Basic Ranking through the registry instead.
+	 */
+	public function test_the_legacy_search_renderer_is_gone() {
+		$this->assertFalse( method_exists( Shift64_Woo_Search_Admin::class, 'render_search_tab' ) );
+		$this->assertNotContains( 'render_search_tab', $this->declared_callbacks() );
 	}
 
 	// ── Legacy aliases ─────────────────────────────────────────
@@ -354,23 +365,24 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 
 	public function hostile_tab_provider() {
 		return array(
-			'array'              => array( array( 'relevance' ) ),
-			'nested array'       => array( array( 'tab' => array( 'system' ) ) ),
-			'path traversal'     => array( '../../etc/passwd' ),
-			'markup'             => array( '<script>alert(1)</script>' ),
-			'constructor'        => array( '__construct' ),
-			'public method'      => array( 'render_page' ),
-			'private renderer'   => array( 'render_redis_tab' ),
-			'legacy method name' => array( 'render_search_tab' ),
-			'empty string'       => array( '' ),
-			'null'               => array( null ),
-			'wrong case'         => array( 'SEARCH' ),
-			'wrong case slug'    => array( 'Relevance' ),
-			'padded slug'        => array( ' relevance ' ),
-			'integer'            => array( 0 ),
-			'boolean'            => array( true ),
-			'float'              => array( 1.5 ),
-			'object'             => array( new stdClass() ),
+			'array'            => array( array( 'relevance' ) ),
+			'nested array'     => array( array( 'tab' => array( 'system' ) ) ),
+			'path traversal'   => array( '../../etc/passwd' ),
+			'markup'           => array( '<script>alert(1)</script>' ),
+			'constructor'      => array( '__construct' ),
+			'public method'    => array( 'render_page' ),
+			'private renderer' => array( 'render_redis_tab' ),
+			'section renderer' => array( 'render_relevance_basic_section' ),
+			'removed renderer' => array( 'render_search_tab' ),
+			'empty string'     => array( '' ),
+			'null'             => array( null ),
+			'wrong case'       => array( 'SEARCH' ),
+			'wrong case slug'  => array( 'Relevance' ),
+			'padded slug'      => array( ' relevance ' ),
+			'integer'          => array( 0 ),
+			'boolean'          => array( true ),
+			'float'            => array( 1.5 ),
+			'object'           => array( new stdClass() ),
 		);
 	}
 
@@ -386,7 +398,7 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 			array(
 				'workspace' => 'relevance',
 				'section'   => 'basic',
-				'callback'  => 'render_search_tab',
+				'callback'  => 'render_relevance_basic_section',
 			),
 			Shift64_Woo_Search_Admin_Routes::resolve( 'relevance', $section )
 		);
