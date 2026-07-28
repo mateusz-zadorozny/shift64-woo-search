@@ -186,6 +186,16 @@ class Shift64_Woo_Search_Admin {
 				<h2 class="shift64-woo-search-admin__section-title"><?php echo esc_html( $sections[ $route['section'] ]['label'] ); ?></h2>
 				<?php
 				/*
+				 * The relocation notice keys off the *raw* requested tab, not the resolved
+				 * route: `tab=search` and `tab=relevance&section=basic` land on the same
+				 * renderer, and only the first one is a returning bookmark that needs
+				 * telling where the rest of the old page went.
+				 */
+				if ( 'search' === $requested_tab ) {
+					$this->render_legacy_search_relocation_notice();
+				}
+
+				/*
 				 * Safe variable method call: `$route['callback']` is always a string the
 				 * route registry itself declared. Request input selects which registry
 				 * entry is used, but never contributes to the method name.
@@ -196,6 +206,62 @@ class Shift64_Woo_Search_Admin {
 				}
 				?>
 			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render the relocation notice for bookmarks that still point at `tab=search`.
+	 *
+	 * The old Search tab was the mixed page: ranking, fuzzy matching, autocomplete
+	 * sizing, and archive coverage all shared one form. The alias lands returning
+	 * bookmarks on Relevance › Basic Ranking, which holds the ranking half — so the
+	 * only thing left to explain is where the other halves went.
+	 *
+	 * Deliberately stateless: the notice is markup-dismissible through WordPress's own
+	 * client-side handler and nothing more. Remembering a dismissal would mean writing
+	 * user meta or an option on a page view, and "rendering a route never writes" is a
+	 * contract this notice is not allowed to be the exception to. It disappears for
+	 * good the moment the merchant updates the bookmark, which is the point.
+	 */
+	private function render_legacy_search_relocation_notice() {
+		$matching_link   = sprintf(
+			'<a href="%1$s">%2$s</a>',
+			esc_url( $this->get_route_url( 'relevance', 'matching' ) ),
+			esc_html__( 'Matching & Fallback', 'shift64-woo-search' )
+		);
+		$experience_link = sprintf(
+			'<a href="%1$s">%2$s</a>',
+			esc_url( $this->get_route_url( 'experience', 'autocomplete' ) ),
+			esc_html__( 'Search Experience', 'shift64-woo-search' )
+		);
+		$results_link    = sprintf(
+			'<a href="%1$s">%2$s</a>',
+			esc_url( $this->get_route_url( 'results', 'coverage' ) ),
+			esc_html__( 'Results & Filters', 'shift64-woo-search' )
+		);
+		?>
+		<div class="notice notice-info is-dismissible shift64-woo-search-admin__relocation-notice">
+			<p>
+				<strong><?php esc_html_e( 'The old Search tab has been split up.', 'shift64-woo-search' ); ?></strong>
+				<?php
+				printf(
+					/* translators: %s: link to the Relevance › Matching & Fallback section. */
+					esc_html__( 'Its ranking controls are on this page. Typo tolerance, fallback passes, and the full-search limit are one section over, under %s.', 'shift64-woo-search' ),
+					wp_kses_post( $matching_link )
+				);
+				?>
+			</p>
+			<p>
+				<?php
+				printf(
+					/* translators: 1: link to the Search Experience workspace. 2: link to the Results & Filters workspace. */
+					esc_html__( 'The rest of the old page changed workspace: autocomplete and suggestion settings now live in %1$s, and archive coverage and price sorting in %2$s.', 'shift64-woo-search' ),
+					wp_kses_post( $experience_link ),
+					wp_kses_post( $results_link )
+				);
+				?>
+			</p>
 		</div>
 		<?php
 	}
@@ -1050,7 +1116,21 @@ class Shift64_Woo_Search_Admin {
 
 				<p class="submit">
 					<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Filter Settings', 'shift64-woo-search' ); ?></button>
-					<span style="color:#d63638;margin-left:12px;font-size:13px"><?php esc_html_e( 'After changing attributes, rebuild the index on the Index tab.', 'shift64-woo-search' ); ?></span>
+					<span style="color:#d63638;margin-left:12px;font-size:13px">
+						<?php
+						$index_link = sprintf(
+							'<a href="%1$s">%2$s</a>',
+							esc_url( $this->get_route_url( 'system', 'index' ) ),
+							esc_html__( 'System › Index & Health', 'shift64-woo-search' )
+						);
+
+						printf(
+							/* translators: %s: link to the System › Index & Health section. */
+							esc_html__( 'After changing attributes, rebuild the index on %s.', 'shift64-woo-search' ),
+							wp_kses_post( $index_link )
+						);
+						?>
+					</span>
 					<span id="s64ws-filters-status" class="shift64-woo-search-status"></span>
 				</p>
 			</form>
@@ -1647,7 +1727,8 @@ class Shift64_Woo_Search_Admin {
 				<?php endforeach; ?>
 			</ul>
 		<?php endif; ?>
-		<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=shift64-woo-search&tab=stats' ) ); ?>"><?php esc_html_e( 'View full statistics', 'shift64-woo-search' ); ?> &rarr;</a></p>
+		<?php // Canonical route. The legacy `tab=stats` alias still resolves here, but internal links point at the destination, not the alias. ?>
+		<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=shift64-woo-search&tab=insights&section=statistics' ) ); ?>"><?php esc_html_e( 'View full statistics', 'shift64-woo-search' ); ?> &rarr;</a></p>
 		<?php
 	}
 

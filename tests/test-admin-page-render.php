@@ -474,6 +474,77 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 		);
 	}
 
+	// ── Legacy relocation notice ───────────────────────────────
+
+	/**
+	 * Landing on Basic Ranking answers "where did ranking go" but not "where did the
+	 * rest of the Search tab go". The notice has to name the two workspaces that took
+	 * the other halves, and it has to link there — telling a merchant a setting moved
+	 * without a way to reach it is worse than saying nothing.
+	 */
+	public function test_legacy_search_bookmark_renders_the_relocation_notice() {
+		$html = $this->render( 'search', null );
+
+		$this->assertStringContainsString( 'shift64-woo-search-admin__relocation-notice', $html );
+		$this->assertStringContainsString( 'The old Search tab has been split up.', $html );
+
+		$this->assertMatchesRegularExpression( '#<a href="[^"]*tab=experience[^"]*">Search Experience</a>#', $html );
+		$this->assertMatchesRegularExpression( '#<a href="[^"]*tab=results[^"]*">Results &amp; Filters</a>#', $html );
+		$this->assertMatchesRegularExpression( '#<a href="[^"]*tab=relevance[^"]*">Matching &amp; Fallback</a>#', $html );
+	}
+
+	/**
+	 * The notice belongs to the alias, not to the destination. It renders above the
+	 * section content, and only for someone who actually arrived on the old URL.
+	 */
+	public function test_relocation_notice_precedes_the_basic_ranking_form() {
+		$html = $this->render( 'search', null );
+
+		$notice = strpos( $html, 'shift64-woo-search-admin__relocation-notice' );
+		$form   = strpos( $html, 'id="s64ws-settings-form"' );
+
+		$this->assertIsInt( $notice );
+		$this->assertIsInt( $form );
+		$this->assertLessThan( $form, $notice, 'The relocation notice must render above the section content.' );
+	}
+
+	/**
+	 * Reaching Basic Ranking by its canonical address means nothing moved out from
+	 * under you, so the notice would be noise.
+	 *
+	 * @dataProvider notice_free_route_provider
+	 *
+	 * @param string      $tab     Requested `tab` value.
+	 * @param string|null $section Requested `section` value.
+	 */
+	public function test_canonical_routes_render_no_relocation_notice( $tab, $section ) {
+		$this->assertStringNotContainsString( 'shift64-woo-search-admin__relocation-notice', $this->render( $tab, $section ) );
+	}
+
+	public function notice_free_route_provider() {
+		return array(
+			'canonical basic'    => array( 'relevance', 'basic' ),
+			'workspace default'  => array( 'relevance', null ),
+			'canonical matching' => array( 'relevance', 'matching' ),
+			'other alias'        => array( 'frontend', null ),
+			'overview'           => array( 'overview', null ),
+		);
+	}
+
+	/**
+	 * The notice is a hint, not stored state: showing it must not write an option, and
+	 * neither must dismissing it — the dismissal is core's client-side one and is
+	 * never persisted.
+	 */
+	public function test_relocation_notice_stores_nothing() {
+		$before = $this->option_snapshot();
+
+		$this->render( 'search', null );
+
+		$this->assertSame( $before, $this->option_snapshot() );
+		$this->assertSame( '', get_user_meta( get_current_user_id(), 'shift64_woo_search_relocation_notice_dismissed', true ) );
+	}
+
 	/**
 	 * Matching & Fallback owns typo tolerance, token reduction, normalization, and the
 	 * full-search limit that bounds the endpoint those passes feed.
@@ -697,6 +768,37 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 				sprintf( 'Rendering tab=%s section=%s changed stored options.', (string) $tab, (string) $section )
 			);
 		}
+	}
+
+	// ── Canonical internal links ───────────────────────────────
+
+	/**
+	 * Aliases exist for bookmarks the plugin cannot edit. Links the plugin *does*
+	 * own have no excuse to keep using them, so the dashboard widget points at the
+	 * canonical Insights route rather than the legacy `tab=stats`.
+	 */
+	public function test_dashboard_widget_links_to_the_canonical_statistics_route() {
+		Shift64_Woo_Search_Stats::create_table();
+
+		ob_start();
+		$this->admin->render_dashboard_widget();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'tab=insights', $html );
+		$this->assertStringContainsString( 'section=statistics', $html );
+		$this->assertStringNotContainsString( 'tab=stats', $html );
+	}
+
+	/**
+	 * The Facets form tells merchants to rebuild after an attribute change. It used
+	 * to name a tab that no longer exists; it now links to the section that owns the
+	 * rebuild.
+	 */
+	public function test_facets_rebuild_hint_links_to_the_canonical_index_route() {
+		$html = $this->render( 'results', 'facets' );
+
+		$this->assertMatchesRegularExpression( '#<a href="[^"]*tab=system[^"]*section=index">#', $html );
+		$this->assertStringNotContainsString( 'the Index tab', $html );
 	}
 
 	/**
