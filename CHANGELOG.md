@@ -1,3 +1,10 @@
+## [0.9.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.9.0...v0.9.1) (2026-07-28)
+
+
+### Bug Fixes
+
+* **demo-data:** carry the whole seed into the demo SKU ([#23](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/23)) ([#32](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/32)) ([b0900a4](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/b0900a4bc4ba0804c114d15cd9f425da987dae6d))
+
 # [0.9.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.8.0...v0.9.0) (2026-07-28)
 
 
