@@ -11,11 +11,11 @@
 
 | Phase | Step | Title | Status | Commit |
 |-------|------|-------|--------|--------|
-| 1 | 1.1 | Add fixed route registry/resolver with full unit coverage | done | bdd22ee |
-| 1 | 1.2 | Render six-workspace navigation shell, Overview landing, registry dispatch | done | 77d06b5 |
-| 2 | 2.1 | Extract credential-safe settings persistence seam with sentinel tests | done | c1012e5 |
-| 2 | 2.2 | Relocate Search Experience sections to canonical routes | done | 20e4fcb |
-| 2 | 2.3 | Relocate Results & Filters sections to canonical routes | done | 54ac76d |
+| 1 | 1.1 | Add fixed route registry/resolver with full unit coverage | done | d075047 |
+| 1 | 1.2 | Render six-workspace navigation shell, Overview landing, registry dispatch | done | 469ce67 |
+| 2 | 2.1 | Extract credential-safe settings persistence seam with sentinel tests | done | 7acf749 |
+| 2 | 2.2 | Relocate Search Experience sections to canonical routes | done | a9c2cdc |
+| 2 | 2.3 | Relocate Results & Filters sections to canonical routes | done | a058629 |
 | 2 | 2.4 | Relocate Relevance sections to canonical routes | todo | — |
 | 3 | 3.1 | Relocate Insights and System sections to canonical routes | todo | — |
 | 3 | 3.2 | Canonical internal links, legacy-search relocation notice, secondary-nav CSS | todo | — |

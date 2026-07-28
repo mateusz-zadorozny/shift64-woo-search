@@ -1,25 +1,25 @@
 # Handoff — 2026-07-28-admin-settings-information-architecture
 
-**Last updated:** 2026-07-28T15:20:00Z
+**Last updated:** 2026-07-28T21:13:11Z
 **Branch:** feat/admin-settings-information-architecture
 **PR:** not yet opened
-**Current phase/step:** Phase 1 Step 1.1
-**Last commit:** — (run folder commit pending)
+**Current phase/step:** Phase 2 Step 2.4
+**Last commit:** a058629 — feat(admin): relocate Results & Filters sections to canonical routes
 
 ## What just happened
-- Run folder created; plan drafted from `.ai/specs/2026-07-22-admin-settings-information-architecture.md`.
-- Worktree created from origin/main (1d8829c, v0.9.1), composer deps installed.
+- Checkpoint 1 passed: Steps 1.1–2.3 landed (registry + resolver, six-workspace nav shell + Overview, credential-safe persistence seam, Search Experience and Results & Filters relocated). Full gate green: composer validate, phpcs, phpunit 377/377, node --check.
+- PLAN.md Commit column reconciled to real SHAs.
 
 ## Next concrete action
-- Implement Step 1.1: fixed route registry/resolver (`admin/class-shift64-woo-search-admin-routes.php`) + `tests/test-admin-routes.php`.
+- Implement Step 2.4: relocate Relevance sections (basic, matching, synonyms, merchandising, field-weights, test-search, compare-passes); after it `render_search_tab` must have no owned fields left.
 
 ## Blockers / open questions
 - none
 
 ## Environment caveats
-- Dev runtime runnable: yes (LocalWP site `block-theme-testing`; plugin dir is the live plugin)
-- Browser / UI checks: planned at checkpoint 1 and final gate; unit gate is hermetic (no WP/Redis)
-- Database/migration state: clean — spec forbids any data migration
+- Dev runtime runnable: yes, but the live LocalWP site loads the PRIMARY worktree (on `main`) — browser QA cannot exercise this isolated worktree mid-run; deferred to final gate / manual QA (needs-qa).
+- Browser / UI checks: skipped at checkpoint 1 (reason above); render-level PHPUnit suites cover nav markup, aria-current, Synonyms regression, render-without-write.
+- Database/migration state: clean — no data migration in this spec.
 
 ## Worktree
 - Path: .ai/tmp/om-auto-create-pr-loop/admin-settings-information-architecture-20260728-171406
