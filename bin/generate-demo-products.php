@@ -4,13 +4,18 @@
  *
  * Run through WP-CLI:
  *
- * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=48 mode=variable seed=6464
- * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=48 mode=mixed seed=6464 reset
- * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=48 variation-skus
+ * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=48
+ * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=50000 mode=mixed catalog=all batch=1000 seed=6464 reset variation-skus
+ * wp eval-file wp-content/plugins/shift64-woo-search/bin/generate-demo-products.php count=5000 catalog=tech mode=simple
  *
- * The generator creates one parent product per color. Color is a visible
- * global attribute, while size is the variation attribute. A generated name
- * therefore looks like "Athena T-Shirt Green", with XS-XXL variations.
+ * Products are drawn from four catalog verticals (apparel, tech, home,
+ * beauty). Names use a five-segment tuple —
+ * "[Prefix] [Series] [Item] [Spec] [Finish]" — which spans more than five
+ * million combinations, so runs up to 100,000 parents stay collision free.
+ * SKUs are deterministic: DEMO-[VERTICAL]-[SEED]-[ID].
+ *
+ * The catalog data and the combinatorics live in demo-product-catalog.php so
+ * they can be unit tested without WP-CLI or WooCommerce.
  *
  * @package Shift64_Woo_Search
  */
@@ -20,99 +25,108 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 	return;
 }
 
+require_once __DIR__ . '/demo-product-catalog.php';
+
 if ( ! class_exists( 'WooCommerce' ) || ! class_exists( 'WC_Product_Variable' ) ) {
 	WP_CLI::error( 'WooCommerce must be active.' );
 }
 
 if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 	/**
-	 * Creates a repeatable apparel catalog for local search testing.
+	 * Creates a repeatable multi-vertical catalog for local search testing.
 	 */
 	class Shift64_Woo_Search_Demo_Product_Generator {
 
 		/** Meta marker used to identify products owned by this generator. */
-		const GENERATED_META_KEY = '_shift64_woo_search_demo_generated';
+		const GENERATED_META_KEY = Shift64_Woo_Search_Demo_Catalog::GENERATED_META_KEY;
 
-		/** @var int Number of parent products to create. */
-		private $count;
-
-		/** @var string Product mode: variable, simple, or mixed. */
-		private $mode;
-
-		/** @var int Deterministic random seed. */
-		private $seed;
-
-		/** @var bool Whether to delete previously generated products first. */
-		private $reset;
-
-		/** @var bool Whether generated variations receive their own SKUs. */
-		private $variation_skus;
+		/** @var array<string,mixed> Parsed CLI options. */
+		private $options;
 
 		/** @var int Number of variations created during the current run. */
 		private $variation_count = 0;
 
+		/** @var array<string,array<string,int>> Category term IDs keyed by vertical and category key. */
+		private $category_ids = array();
+
+		/** @var array<string,array<int,int>> Brand term IDs keyed by vertical. */
+		private $brand_ids = array();
+
+		/** @var array<string,array> Global attribute data keyed by attribute slug. */
+		private $attributes = array();
+
 		/**
 		 * Constructor.
 		 *
-		 * @param int    $count Parent product count.
-		 * @param string $mode  Product mode.
-		 * @param int    $seed  Random seed.
-		 * @param bool   $reset          Delete previous demo products first.
-		 * @param bool   $variation_skus Whether variations receive deterministic SKUs.
+		 * @param array $options Options produced by Shift64_Woo_Search_Demo_Catalog::parse_args().
 		 */
-		public function __construct( $count, $mode, $seed, $reset, $variation_skus ) {
-			$this->count          = $count;
-			$this->mode           = $mode;
-			$this->seed           = $seed;
-			$this->reset          = $reset;
-			$this->variation_skus = $variation_skus;
+		public function __construct( $options ) {
+			$this->options = $options;
 		}
 
 		/**
 		 * Generate the catalog.
 		 */
 		public function run() {
-			mt_srand( $this->seed );
+			mt_srand( $this->options['seed'] );
 
-			if ( $this->reset ) {
+			// Taxonomy and comment counts are recalculated once, after the run.
+			wp_defer_term_counting( true );
+			wp_defer_comment_counting( true );
+
+			try {
+				$this->generate();
+			} finally {
+				wp_defer_term_counting( false );
+				wp_defer_comment_counting( false );
+			}
+		}
+
+		/**
+		 * Run the reset, taxonomy setup, and creation loop.
+		 */
+		private function generate() {
+			if ( $this->options['reset'] ) {
 				$this->delete_generated_products();
 			}
 
-			$category_ids = $this->ensure_categories();
-			$brand_ids    = $this->ensure_brands();
-			$color_data   = $this->ensure_attribute( 'Color', 'color', $this->get_colors() );
-			$size_data    = $this->ensure_attribute( 'Size', 'size', $this->get_sizes() );
-			$combinations = $this->build_combinations( $this->count );
+			$this->warn_about_variation_volume();
 
-			$progress = \WP_CLI\Utils\make_progress_bar( 'Generating demo products', $this->count );
+			foreach ( $this->used_verticals() as $vertical ) {
+				$this->category_ids[ $vertical ] = $this->ensure_categories( $vertical );
+				$this->brand_ids[ $vertical ]    = $this->ensure_brands( $vertical );
+				$this->ensure_vertical_attributes( $vertical );
+			}
+
+			$count    = $this->options['count'];
+			$progress = \WP_CLI\Utils\make_progress_bar( 'Generating demo products', $count );
 			$created  = 0;
 			$skipped  = 0;
 
-			for ( $index = 0; $index < $this->count; ++$index ) {
-				$combination = $combinations[ $index ];
-				$sku         = sprintf( 'DEMO%02d%04d', $this->seed % 100, $index + 1 );
+			for ( $index = 0; $index < $count; ++$index ) {
+				$vertical    = Shift64_Woo_Search_Demo_Catalog::vertical_for_index( $this->options['catalog'], $index );
+				$ordinal     = Shift64_Woo_Search_Demo_Catalog::ordinal_for_index( $this->options['catalog'], $index );
+				$combination = Shift64_Woo_Search_Demo_Catalog::build_combination( $vertical, $ordinal, $this->options['seed'] );
+				$sku         = Shift64_Woo_Search_Demo_Catalog::build_sku( $vertical, $this->options['seed'], $index );
 
 				if ( wc_get_product_id_by_sku( $sku ) ) {
 					++$skipped;
 					$progress->tick();
+					$this->maybe_flush( $index );
 					continue;
 				}
 
-				$product_mode = $this->mode;
-				if ( 'mixed' === $product_mode ) {
-					$product_mode = 0 === $index % 4 ? 'simple' : 'variable';
-				}
-
-				if ( 'simple' === $product_mode ) {
-					$this->create_simple_product( $combination, $sku, $category_ids, $color_data, $size_data, $index );
+				if ( 'variable' === $this->product_mode( $index ) ) {
+					$product_id = $this->create_variable_product( $combination, $sku, $index );
 				} else {
-					$this->create_variable_product( $combination, $sku, $category_ids, $color_data, $size_data, $index );
+					$product_id = $this->create_simple_product( $combination, $sku, $index );
 				}
 
-				$this->assign_brands( wc_get_product_id_by_sku( $sku ), $brand_ids, $index );
+				$this->assign_brands( $product_id, $vertical, $index );
 
 				++$created;
 				$progress->tick();
+				$this->maybe_flush( $index );
 			}
 
 			$progress->finish();
@@ -129,90 +143,186 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 		}
 
 		/**
-		 * Delete only products created by this generator.
+		 * Resolve the product type for an index.
+		 *
+		 * Delegates to the catalog module so the mixed-mode split stays pure and
+		 * unit tested; see Shift64_Woo_Search_Demo_Catalog::product_mode().
+		 *
+		 * @param int $index Zero-based product index.
+		 * @return string
+		 */
+		private function product_mode( $index ) {
+			return Shift64_Woo_Search_Demo_Catalog::product_mode(
+				$this->options['mode'],
+				$this->options['catalog'],
+				$index
+			);
+		}
+
+		/**
+		 * Verticals touched by this run.
+		 *
+		 * @return string[]
+		 */
+		private function used_verticals() {
+			if ( 'all' === $this->options['catalog'] ) {
+				return Shift64_Woo_Search_Demo_Catalog::vertical_keys();
+			}
+			return array( $this->options['catalog'] );
+		}
+
+		/**
+		 * Warn when the run would create a very large number of variation posts.
+		 */
+		private function warn_about_variation_volume() {
+			if ( 'simple' === $this->options['mode'] ) {
+				return;
+			}
+
+			$parents    = 'variable' === $this->options['mode'] ? $this->options['count'] : intdiv( $this->options['count'], 4 );
+			$max_terms  = 0;
+			foreach ( $this->used_verticals() as $vertical ) {
+				$data      = Shift64_Woo_Search_Demo_Catalog::vertical( $vertical );
+				$max_terms = max( $max_terms, count( $data['variation']['values'] ) );
+			}
+			$estimate = $parents * $max_terms;
+
+			if ( $estimate > Shift64_Woo_Search_Demo_Catalog::VARIATION_WARNING_THRESHOLD ) {
+				WP_CLI::warning(
+					sprintf(
+						'This run may create around %d variation records. Consider mode=simple or a lower count if the database is constrained.',
+						$estimate
+					)
+				);
+			}
+		}
+
+		/**
+		 * Flush object cache and collect cycles once per batch.
+		 *
+		 * @param int $index Zero-based product index.
+		 */
+		private function maybe_flush( $index ) {
+			if ( 0 !== ( $index + 1 ) % $this->options['batch'] ) {
+				return;
+			}
+
+			wp_cache_flush();
+			if ( function_exists( 'gc_collect_cycles' ) ) {
+				gc_collect_cycles();
+			}
+		}
+
+		/**
+		 * Delete only products created by this generator, in batches.
 		 */
 		private function delete_generated_products() {
-			$product_ids = get_posts(
-				array(
-					'post_type'      => 'product',
-					'post_status'    => 'any',
-					'posts_per_page' => -1,
-					'fields'         => 'ids',
-					'meta_key'       => self::GENERATED_META_KEY,
-					'meta_value'     => 'yes',
-				)
-			);
+			$batch   = $this->options['batch'];
+			$deleted = 0;
 
-			if ( empty( $product_ids ) ) {
+			do {
+				$product_ids = get_posts(
+					array(
+						'post_type'              => array( 'product', 'product_variation' ),
+						'post_status'            => 'any',
+						'posts_per_page'         => $batch,
+						'fields'                 => 'ids',
+						'no_found_rows'          => true,
+						'update_post_term_cache' => false,
+						'meta_key'               => self::GENERATED_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+						'meta_value'             => 'yes', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+					)
+				);
+
+				$removed = 0;
+				foreach ( $product_ids as $product_id ) {
+					$product = wc_get_product( $product_id );
+					if ( $product ) {
+						$product->delete( true );
+					} else {
+						wp_delete_post( $product_id, true );
+					}
+					if ( ! get_post( $product_id ) ) {
+						++$removed;
+					}
+					++$deleted;
+				}
+
+				if ( ! empty( $product_ids ) && 0 === $removed ) {
+					WP_CLI::warning( 'Reset stopped: a batch of generated products could not be deleted.' );
+					break;
+				}
+
+				wp_cache_flush();
+				if ( function_exists( 'gc_collect_cycles' ) ) {
+					gc_collect_cycles();
+				}
+			} while ( ! empty( $product_ids ) );
+
+			if ( 0 === $deleted ) {
 				WP_CLI::log( 'Reset requested: no previously generated products found.' );
 				return;
 			}
 
-			$progress = \WP_CLI\Utils\make_progress_bar( 'Deleting previous demo products', count( $product_ids ) );
-			foreach ( $product_ids as $product_id ) {
-				$product = wc_get_product( $product_id );
-				if ( $product ) {
-					$product->delete( true );
-				}
-				$progress->tick();
-			}
-			$progress->finish();
+			WP_CLI::log( sprintf( 'Reset: deleted %d previously generated posts.', $deleted ) );
 		}
 
 		/**
-		 * Create the apparel category hierarchy.
+		 * Create the category hierarchy of a vertical.
 		 *
-		 * @return array<string,int> Category IDs keyed by garment category key.
+		 * @param string $vertical Vertical key.
+		 * @return array<string,int> Category term IDs keyed by category key.
 		 */
-		private function ensure_categories() {
-			$clothing = $this->ensure_term( 'Clothing', 'product_cat', 0 );
-			$tops     = $this->ensure_term( 'Tops', 'product_cat', $clothing );
-			$bottoms  = $this->ensure_term( 'Bottoms', 'product_cat', $clothing );
-			$outer    = $this->ensure_term( 'Outerwear', 'product_cat', $clothing );
+		private function ensure_categories( $vertical ) {
+			$data   = Shift64_Woo_Search_Demo_Catalog::vertical( $vertical );
+			$root   = $this->ensure_term( $data['root'], 'product_cat', 0 );
+			$groups = array();
+			$ids    = array();
 
-			return array(
-				't_shirts' => $this->ensure_term( 'T-Shirts', 'product_cat', $tops ),
-				'shirts'   => $this->ensure_term( 'Shirts', 'product_cat', $tops ),
-				'hoodies'  => $this->ensure_term( 'Hoodies', 'product_cat', $tops ),
-				'sweaters' => $this->ensure_term( 'Sweaters', 'product_cat', $tops ),
-				'trousers' => $this->ensure_term( 'Trousers', 'product_cat', $bottoms ),
-				'jeans'    => $this->ensure_term( 'Jeans', 'product_cat', $bottoms ),
-				'shorts'   => $this->ensure_term( 'Shorts', 'product_cat', $bottoms ),
-				'skirts'   => $this->ensure_term( 'Skirts', 'product_cat', $bottoms ),
-				'jackets'  => $this->ensure_term( 'Jackets', 'product_cat', $outer ),
-				'coats'    => $this->ensure_term( 'Coats', 'product_cat', $outer ),
-				'dresses'  => $this->ensure_term( 'Dresses', 'product_cat', $clothing ),
-			);
+			foreach ( $data['categories'] as $key => $path ) {
+				list( $group, $leaf ) = $path;
+				$parent               = $root;
+				if ( '' !== $group ) {
+					if ( ! isset( $groups[ $group ] ) ) {
+						$groups[ $group ] = $this->ensure_term( $group, 'product_cat', $root );
+					}
+					$parent = $groups[ $group ];
+				}
+				$ids[ $key ] = $this->ensure_term( $leaf, 'product_cat', $parent );
+			}
+
+			return $ids;
 		}
 
 		/**
-		 * Create the fictional brand hierarchy.
+		 * Create the fictional brand hierarchy of a vertical.
 		 *
-		 * Includes one parent with two children so the indexer's brand
-		 * ancestor-chain handling and the parent-brand filter are exercised
-		 * locally.
+		 * Each vertical keeps one parent brand with children so the indexer's
+		 * brand ancestor-chain handling and the parent-brand filter are
+		 * exercised locally.
 		 *
+		 * @param string $vertical Vertical key.
 		 * @return array<int,int> Brand term IDs, or an empty array when the store
 		 *                        has no product_brand taxonomy.
 		 */
-		private function ensure_brands() {
+		private function ensure_brands( $vertical ) {
 			if ( ! taxonomy_exists( 'product_brand' ) ) {
 				WP_CLI::warning( 'Taxonomy product_brand is not registered (WooCommerce 9.4+ required) — skipping brand seeding.' );
 				return array();
 			}
 
-			$aeon = $this->ensure_term( 'Aeon Atelier', 'product_brand', 0 );
+			$data      = Shift64_Woo_Search_Demo_Catalog::vertical( $vertical );
+			$brand_ids = array();
 
-			return array(
-				$this->ensure_term( 'Helios Supply', 'product_brand', 0 ),
-				$this->ensure_term( 'Nyx Workshop', 'product_brand', 0 ),
-				$this->ensure_term( 'Orpheus Goods', 'product_brand', 0 ),
-				$this->ensure_term( 'Selene Studio', 'product_brand', 0 ),
-				$this->ensure_term( 'Thalia Union', 'product_brand', 0 ),
-				$aeon,
-				$this->ensure_term( 'Aeon Everyday', 'product_brand', $aeon ),
-				$this->ensure_term( 'Aeon Reserve', 'product_brand', $aeon ),
-			);
+			foreach ( $data['brands'] as $parent_name => $children ) {
+				$parent_id   = $this->ensure_term( $parent_name, 'product_brand', 0 );
+				$brand_ids[] = $parent_id;
+				foreach ( $children as $child_name ) {
+					$brand_ids[] = $this->ensure_term( $child_name, 'product_brand', $parent_id );
+				}
+			}
+
+			return $brand_ids;
 		}
 
 		/**
@@ -221,14 +331,14 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 		 * Distribution: ~80% one brand, ~10% two brands, ~10% none — enough to
 		 * exercise the single, multi-brand, and brandless paths. Selection is
 		 * derived from the product index rather than mt_rand() so it is
-		 * reproducible AND leaves the existing seeded random stream untouched,
-		 * keeping previously generated catalogs byte-identical.
+		 * reproducible and leaves the seeded random stream untouched.
 		 *
-		 * @param int   $product_id Product ID.
-		 * @param array $brand_ids  Available brand term IDs.
-		 * @param int   $index      Zero-based product index.
+		 * @param int    $product_id Product ID.
+		 * @param string $vertical   Vertical key.
+		 * @param int    $index      Zero-based product index.
 		 */
-		private function assign_brands( $product_id, $brand_ids, $index ) {
+		private function assign_brands( $product_id, $vertical, $index ) {
+			$brand_ids = isset( $this->brand_ids[ $vertical ] ) ? $this->brand_ids[ $vertical ] : array();
 			if ( empty( $brand_ids ) || ! $product_id ) {
 				return;
 			}
@@ -279,7 +389,26 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 		}
 
 		/**
+		 * Ensure the global attributes a vertical needs.
+		 *
+		 * Color carries the finish segment; the vertical's own variation and
+		 * extra attributes cover size, material, capacity, and connectivity.
+		 *
+		 * @param string $vertical Vertical key.
+		 */
+		private function ensure_vertical_attributes( $vertical ) {
+			$data = Shift64_Woo_Search_Demo_Catalog::vertical( $vertical );
+
+			$this->ensure_attribute( 'Color', 'color', $data['finishes'] );
+			$this->ensure_attribute( $data['variation']['label'], $data['variation']['slug'], $data['variation']['values'] );
+			$this->ensure_attribute( $data['extra']['label'], $data['extra']['slug'], $data['extra']['values'] );
+		}
+
+		/**
 		 * Ensure a global WooCommerce attribute and all of its terms exist.
+		 *
+		 * Results are memoized per run, and repeated calls merge newly seen
+		 * values into the cached term map.
 		 *
 		 * @param string $label  Attribute label.
 		 * @param string $slug   Attribute slug without the pa_ prefix.
@@ -322,77 +451,63 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 				);
 			}
 
-			$terms = array();
-			foreach ( $values as $position => $value ) {
+			$terms    = isset( $this->attributes[ $slug ]['terms'] ) ? $this->attributes[ $slug ]['terms'] : array();
+			$position = count( $terms );
+			foreach ( $values as $value ) {
+				if ( isset( $terms[ $value ] ) ) {
+					continue;
+				}
 				$term_id = $this->ensure_term( $value, $taxonomy, 0 );
 				update_term_meta( $term_id, 'order_' . $taxonomy, $position );
 				$terms[ $value ] = get_term( $term_id, $taxonomy );
+				++$position;
 			}
 
-			return array(
+			$this->attributes[ $slug ] = array(
 				'id'       => (int) $attribute_id,
 				'taxonomy' => $taxonomy,
 				'terms'    => $terms,
 			);
+
+			return $this->attributes[ $slug ];
 		}
 
 		/**
-		 * Build balanced, unique name combinations.
+		 * Create a variable product whose variations follow the vertical's
+		 * variation attribute (size, capacity, or material).
 		 *
-		 * Each source list is shuffled independently and then cycled. The list
-		 * lengths are pairwise co-prime enough to keep the first 1000 tuples
-		 * unique while guaranteeing early coverage of every garment and color.
-		 *
-		 * @param int $count Number of combinations to build.
-		 * @return array<int,array{myth:string,garment:array,color:string}>
-		 */
-		private function build_combinations( $count ) {
-			$myths    = $this->get_myth_names();
-			$garments = $this->get_garments();
-			$colors   = $this->get_colors();
-			shuffle( $myths );
-			shuffle( $garments );
-			shuffle( $colors );
-
-			$combinations = array();
-			for ( $index = 0; $index < $count; ++$index ) {
-				$combinations[] = array(
-					'myth'    => $myths[ $index % count( $myths ) ],
-					'garment' => $garments[ $index % count( $garments ) ],
-					'color'   => $colors[ $index % count( $colors ) ],
-				);
-			}
-			return $combinations;
-		}
-
-		/**
-		 * Create a variable product whose variations represent sizes.
-		 *
-		 * @param array $data         Name combination.
+		 * @param array  $combination Name combination.
 		 * @param string $sku         Parent SKU.
-		 * @param array $category_ids Category map.
-		 * @param array $color_data   Color attribute data.
-		 * @param array $size_data    Size attribute data.
-		 * @param int   $index        Zero-based product index.
+		 * @param int    $index       Zero-based product index.
+		 * @return int Product ID.
 		 */
-		private function create_variable_product( $data, $sku, $category_ids, $color_data, $size_data, $index ) {
+		private function create_variable_product( $combination, $sku, $index ) {
+			$data           = Shift64_Woo_Search_Demo_Catalog::vertical( $combination['vertical'] );
+			$color_data     = $this->attributes['color'];
+			$variation_data = $this->attributes[ $data['variation']['slug'] ];
+
 			$product = new WC_Product_Variable();
-			$this->apply_common_product_data( $product, $data, $sku, $category_ids, $index );
+			$this->apply_common_product_data( $product, $combination, $sku, $index );
 
-			$color_term = $color_data['terms'][ $data['color'] ];
-			$color_attr = $this->make_attribute( $color_data, array( $color_term->term_id ), true, false, 0 );
-			$size_ids   = array();
-			foreach ( $size_data['terms'] as $size_term ) {
-				$size_ids[] = $size_term->term_id;
+			$color_term     = $color_data['terms'][ $combination['finish'] ];
+			$variation_ids  = array();
+			$variation_list = array();
+			foreach ( $data['variation']['values'] as $value ) {
+				$term                     = $variation_data['terms'][ $value ];
+				$variation_ids[]          = $term->term_id;
+				$variation_list[ $value ] = $term;
 			}
-			$size_attr = $this->make_attribute( $size_data, $size_ids, true, true, 1 );
 
-			$product->set_attributes( array( $color_attr, $size_attr ) );
+			$product->set_attributes(
+				array(
+					$this->make_attribute( $color_data, array( $color_term->term_id ), true, false, 0 ),
+					$this->make_attribute( $variation_data, $variation_ids, true, true, 1 ),
+				)
+			);
 			$product_id = $product->save();
 
-			$base_price = (float) $data['garment']['price'];
-			foreach ( $size_data['terms'] as $size_name => $size_term ) {
-				$variation_sku = $this->variation_skus ? $sku . strtoupper( $size_term->slug ) : '';
+			foreach ( $variation_list as $value => $term ) {
+				$variation_sku = $this->options['variation_skus'] ? $sku . '-' . strtoupper( $term->slug ) : '';
 				if ( '' !== $variation_sku && wc_get_product_id_by_sku( $variation_sku ) ) {
 					WP_CLI::warning( sprintf( 'Skipping variation with duplicate SKU "%s".', $variation_sku ) );
 					continue;
@@ -406,12 +521,12 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 					if ( '' !== $variation_sku ) {
 						$variation->set_sku( $variation_sku );
 					}
-					$variation->set_attributes( array( $size_data['taxonomy'] => $size_term->slug ) );
-					$variation->set_regular_price( wc_format_decimal( $base_price, 2 ) );
+					$variation->set_attributes( array( $variation_data['taxonomy'] => $term->slug ) );
+					$variation->set_regular_price( wc_format_decimal( (float) $combination['price'], 2 ) );
 					$variation->set_manage_stock( true );
 					$variation->set_stock_quantity( mt_rand( 3, 40 ) );
 					$variation->set_stock_status( 'instock' );
-					$variation->set_description( sprintf( '%s in size %s.', $product->get_name(), $size_name ) );
+					$variation->set_description( sprintf( '%s in %s %s.', $product->get_name(), strtolower( $data['variation']['label'] ), $value ) );
 					$variation->update_meta_data( self::GENERATED_META_KEY, 'yes' );
 					$variation->save();
 				} catch ( WC_Data_Exception $exception ) {
@@ -428,69 +543,80 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 
 			WC_Product_Variable::sync( $product_id, true );
 			wc_delete_product_transients( $product_id );
+
+			return (int) $product_id;
 		}
 
 		/**
-		 * Create a simple product with visible color and size attributes.
+		 * Create a simple product with visible attributes.
 		 *
-		 * @param array $data         Name combination.
+		 * @param array  $combination Name combination.
 		 * @param string $sku         Product SKU.
-		 * @param array $category_ids Category map.
-		 * @param array $color_data   Color attribute data.
-		 * @param array $size_data    Size attribute data.
-		 * @param int   $index        Zero-based product index.
+		 * @param int    $index       Zero-based product index.
+		 * @return int Product ID.
 		 */
-		private function create_simple_product( $data, $sku, $category_ids, $color_data, $size_data, $index ) {
-			$product = new WC_Product_Simple();
-			$this->apply_common_product_data( $product, $data, $sku, $category_ids, $index );
+		private function create_simple_product( $combination, $sku, $index ) {
+			$data           = Shift64_Woo_Search_Demo_Catalog::vertical( $combination['vertical'] );
+			$color_data     = $this->attributes['color'];
+			$variation_data = $this->attributes[ $data['variation']['slug'] ];
+			$extra_data     = $this->attributes[ $data['extra']['slug'] ];
 
-			$color_term = $color_data['terms'][ $data['color'] ];
-			$size_names = array_keys( $size_data['terms'] );
-			$size_name  = $size_names[ $index % count( $size_names ) ];
-			$size_term  = $size_data['terms'][ $size_name ];
+			$product = new WC_Product_Simple();
+			$this->apply_common_product_data( $product, $combination, $sku, $index );
+
+			$color_term     = $color_data['terms'][ $combination['finish'] ];
+			$variation_vals = $data['variation']['values'];
+			$variation_term = $variation_data['terms'][ $variation_vals[ $index % count( $variation_vals ) ] ];
+			$extra_vals     = $data['extra']['values'];
+			$extra_term     = $extra_data['terms'][ $extra_vals[ $index % count( $extra_vals ) ] ];
 
 			$product->set_attributes(
 				array(
 					$this->make_attribute( $color_data, array( $color_term->term_id ), true, false, 0 ),
-					$this->make_attribute( $size_data, array( $size_term->term_id ), true, false, 1 ),
+					$this->make_attribute( $variation_data, array( $variation_term->term_id ), true, false, 1 ),
+					$this->make_attribute( $extra_data, array( $extra_term->term_id ), true, false, 2 ),
 				)
 			);
-			$product->set_regular_price( wc_format_decimal( $data['garment']['price'], 2 ) );
+			$product->set_regular_price( wc_format_decimal( (float) $combination['price'], 2 ) );
 			$product->set_manage_stock( true );
 			$product->set_stock_quantity( mt_rand( 3, 40 ) );
 			$product->set_stock_status( 'instock' );
-			$product->save();
+
+			return (int) $product->save();
 		}
 
 		/**
 		 * Set fields shared by simple and variable products.
 		 *
-		 * @param WC_Product $product      Product instance.
-		 * @param array      $data         Name combination.
-		 * @param string     $sku          Product SKU.
-		 * @param array      $category_ids Category map.
-		 * @param int        $index        Zero-based product index.
+		 * @param WC_Product $product     Product instance.
+		 * @param array      $combination Name combination.
+		 * @param string     $sku         Product SKU.
+		 * @param int        $index       Zero-based product index.
 		 */
-		private function apply_common_product_data( $product, $data, $sku, $category_ids, $index ) {
-			$garment      = $data['garment'];
-			$product_name = sprintf( '%s %s %s', $data['myth'], $garment['name'], $data['color'] );
-			$materials    = array( 'organic cotton', 'soft jersey', 'brushed fleece', 'lightweight denim', 'recycled fabric' );
-			$styles       = array( 'everyday', 'minimal', 'relaxed', 'tailored', 'sport-inspired', 'classic' );
-			$material     = $materials[ mt_rand( 0, count( $materials ) - 1 ) ];
-			$style        = $styles[ mt_rand( 0, count( $styles ) - 1 ) ];
+		private function apply_common_product_data( $product, $combination, $sku, $index ) {
+			$product_name = Shift64_Woo_Search_Demo_Catalog::build_name( $combination );
+			$category_ids = $this->category_ids[ $combination['vertical'] ];
 
 			$product->set_name( $product_name );
 			$product->set_status( 'publish' );
 			$product->set_catalog_visibility( 'visible' );
 			$product->set_sku( $sku );
-			$product->set_category_ids( array( $category_ids[ $garment['category'] ] ) );
-			$product->set_short_description( sprintf( 'A %s %s design in %s.', $style, strtolower( $garment['name'] ), strtolower( $data['color'] ) ) );
+			$product->set_category_ids( array( $category_ids[ $combination['category'] ] ) );
+			$product->set_short_description(
+				sprintf(
+					'A %s %s in %s.',
+					strtolower( $combination['spec'] ),
+					strtolower( $combination['item'] ),
+					strtolower( $combination['finish'] )
+				)
+			);
 			$product->set_description(
 				sprintf(
-					'The %s is a %s wardrobe essential made from %s. Designed for comfortable daily wear and easy outfit pairing.',
+					'The %s belongs to the %s series and is built for everyday use. %s finish, %s specification.',
 					$product_name,
-					$style,
-					$material
+					$combination['series'],
+					$combination['finish'],
+					$combination['spec']
 				)
 			);
 			$product->set_menu_order( $index );
@@ -518,125 +644,24 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 			$attribute->set_variation( $variation );
 			return $attribute;
 		}
-
-		/**
-		 * Mythological collection names.
-		 *
-		 * @return string[]
-		 */
-		private function get_myth_names() {
-			return array(
-				'Achilles', 'Adonis', 'Apollo', 'Ares', 'Artemis', 'Athena', 'Atlas', 'Calypso',
-				'Circe', 'Clio', 'Daphne', 'Demeter', 'Dione', 'Echo', 'Eos', 'Gaia', 'Hector',
-				'Helios', 'Hera', 'Hermes', 'Iris', 'Jason', 'Leto', 'Maia', 'Medea', 'Nike',
-				'Nyx', 'Orion', 'Perseus', 'Phoebe', 'Rhea', 'Selene', 'Themis', 'Triton', 'Zeus',
-			);
-		}
-
-		/**
-		 * Garment definitions.
-		 *
-		 * @return array<int,array{name:string,category:string,price:float}>
-		 */
-		private function get_garments() {
-			return array(
-				array( 'name' => 'T-Shirt', 'category' => 't_shirts', 'price' => 29.90 ),
-				array( 'name' => 'Shirt', 'category' => 'shirts', 'price' => 54.90 ),
-				array( 'name' => 'Hoodie', 'category' => 'hoodies', 'price' => 74.90 ),
-				array( 'name' => 'Sweater', 'category' => 'sweaters', 'price' => 69.90 ),
-				array( 'name' => 'Trousers', 'category' => 'trousers', 'price' => 79.90 ),
-				array( 'name' => 'Jeans', 'category' => 'jeans', 'price' => 84.90 ),
-				array( 'name' => 'Shorts', 'category' => 'shorts', 'price' => 44.90 ),
-				array( 'name' => 'Skirt', 'category' => 'skirts', 'price' => 59.90 ),
-				array( 'name' => 'Jacket', 'category' => 'jackets', 'price' => 109.90 ),
-				array( 'name' => 'Coat', 'category' => 'coats', 'price' => 149.90 ),
-				array( 'name' => 'Dress', 'category' => 'dresses', 'price' => 89.90 ),
-			);
-		}
-
-		/**
-		 * Available colors.
-		 *
-		 * @return string[]
-		 */
-		private function get_colors() {
-			return array( 'Black', 'Blue', 'Cream', 'Gold', 'Green', 'Grey', 'Navy', 'Orange', 'Purple', 'Red', 'White', 'Yellow' );
-		}
-
-		/**
-		 * Available garment sizes.
-		 *
-		 * @return string[]
-		 */
-		private function get_sizes() {
-			return array( 'XS', 'S', 'M', 'L', 'XL', 'XXL' );
-		}
 	}
 }
 
 /**
- * Parse eval-file arguments.
+ * Parse eval-file arguments, reporting failures through WP-CLI.
  *
  * @param array $raw_args Arguments exposed by WP-CLI to eval-file.
- * @return array{count:int,mode:string,seed:int,reset:bool,variation_skus:bool}
+ * @return array{count:int,mode:string,catalog:string,batch:int,seed:int,reset:bool,variation_skus:bool}
  */
 function shift64_woo_search_parse_demo_product_args( $raw_args ) {
-	$options = array(
-		'count'          => 48,
-		'mode'           => 'variable',
-		'seed'           => 6464,
-		'reset'          => false,
-		'variation_skus' => false,
-	);
-
-	foreach ( $raw_args as $raw_arg ) {
-		$arg = ltrim( (string) $raw_arg, '-' );
-		if ( '' === $arg ) {
-			continue;
-		}
-		if ( 'reset' === $arg ) {
-			$options['reset'] = true;
-			continue;
-		}
-		if ( 'variation-skus' === $arg ) {
-			$options['variation_skus'] = true;
-			continue;
-		}
-		if ( false === strpos( $arg, '=' ) ) {
-			WP_CLI::error( sprintf( 'Unknown argument "%s". Use count=N, mode=variable|simple|mixed, seed=N, reset, or variation-skus.', $raw_arg ) );
-		}
-
-		list( $key, $value ) = array_map( 'trim', explode( '=', $arg, 2 ) );
-		if ( ! array_key_exists( $key, $options ) || 'reset' === $key ) {
-			WP_CLI::error( sprintf( 'Unknown option "%s".', $key ) );
-		}
-		$options[ $key ] = $value;
+	try {
+		return Shift64_Woo_Search_Demo_Catalog::parse_args( $raw_args );
+	} catch ( InvalidArgumentException $exception ) {
+		WP_CLI::error( $exception->getMessage() );
 	}
-
-	$options['count'] = (int) $options['count'];
-	$options['seed']  = (int) $options['seed'];
-	$options['mode']  = strtolower( (string) $options['mode'] );
-
-	if ( $options['count'] < 1 || $options['count'] > 1000 ) {
-		WP_CLI::error( 'count must be between 1 and 1000.' );
-	}
-	if ( $options['seed'] < 1 ) {
-		WP_CLI::error( 'seed must be a positive integer.' );
-	}
-	if ( ! in_array( $options['mode'], array( 'variable', 'simple', 'mixed' ), true ) ) {
-		WP_CLI::error( 'mode must be variable, simple, or mixed.' );
-	}
-
-	return $options;
 }
 
 $shift64_demo_raw_args = isset( $args ) && is_array( $args ) ? $args : array();
 $shift64_demo_options  = shift64_woo_search_parse_demo_product_args( $shift64_demo_raw_args );
-$shift64_demo_runner   = new Shift64_Woo_Search_Demo_Product_Generator(
-	$shift64_demo_options['count'],
-	$shift64_demo_options['mode'],
-	$shift64_demo_options['seed'],
-	$shift64_demo_options['reset'],
-	$shift64_demo_options['variation_skus']
-);
+$shift64_demo_runner   = new Shift64_Woo_Search_Demo_Product_Generator( $shift64_demo_options );
 $shift64_demo_runner->run();

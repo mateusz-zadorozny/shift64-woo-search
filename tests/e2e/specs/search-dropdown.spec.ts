@@ -35,7 +35,8 @@ test.describe('search dropdown', () => {
 
 		const firstProduct = traySection(page, 'products').locator(SEL.row).first();
 		await expect(firstProduct).toBeVisible();
-		await expect(firstProduct.locator(SEL.rowSku)).toContainText(/DEMO64/);
+		// SKUs are DEMO-[VERTICAL]-[SEED]-[ID], e.g. DEMO-APP-64-000009.
+		await expect(firstProduct.locator(SEL.rowSku)).toContainText(/DEMO-[A-Z]{3}-\d{2}-\d{6}/);
 		await expect(firstProduct.locator(SEL.rowCategory)).not.toBeEmpty();
 
 		const targetUrl = await firstProduct.getAttribute('data-url');
@@ -57,7 +58,7 @@ test.describe('search dropdown', () => {
 		await expect(rows).toHaveCount(3);
 
 		const texts = (await rows.allInnerTexts()).map((t) => t.trim().toLowerCase());
-		expect(texts.sort()).toEqual(['athena', 'hoodie', 't-shirt']);
+		expect(texts.sort()).toEqual(['headphones', 'serum', 'shirt']);
 	});
 
 	// Test 4: type "shirt" → Categories section suggests the Shirts category; click → archive.
@@ -74,8 +75,13 @@ test.describe('search dropdown', () => {
 	});
 
 	// Test 5: ArrowDown ×2 → second row active; Enter navigates to it; Escape closes the tray.
+	// Needs a query whose tray holds at least two rows, so nth(1) exists and
+	// carries a data-url. "shirt" matches two products (T-Shirt, Polo Shirt), is
+	// itself a seeded suggestion, and matches the Shirts categories. "athena" only
+	// ever reached two rows because it prefix-matched the old seeded suggestion
+	// list; on its own it matches a single product.
 	test('keyboard navigation activates rows, Enter navigates, Escape closes', async ({ page }) => {
-		await typeQuery(page, 'athena');
+		await typeQuery(page, 'shirt');
 		const rows = visibleTray(page).locator(SEL.row);
 		await expect(traySection(page, 'products').locator(SEL.row).first()).toBeVisible();
 
@@ -93,7 +99,7 @@ test.describe('search dropdown', () => {
 		// Escape closes the tray (valid only while result rows are rendered —
 		// the keydown handler ignores Escape on an empty tray).
 		await page.goto(SEARCH_PAGE);
-		await typeQuery(page, 'athena');
+		await typeQuery(page, 'shirt');
 		await expect(traySection(page, 'products').locator(SEL.row).first()).toBeVisible();
 		await searchInput(page).press('Escape');
 		await expect(visibleTray(page)).toHaveCount(0);
@@ -123,18 +129,21 @@ test.describe('search dropdown', () => {
 		expect(autocompleteQueries).toEqual(['at']);
 	});
 
-	// Test 7: submit "athena" → lands on /?s=athena&post_type=product with results.
+	// Test 7: submit "pulse" → lands on /?s=pulse&post_type=product with results.
+	// "pulse" is the most frequent name prefix in the seeded catalog (8 of 48),
+	// so the results page has plenty to render; "athena" now matches a single
+	// product and makes this a needlessly brittle assertion.
 	test('submitting the form lands on the results page with matching products', async ({ page }) => {
 		const input = searchInput(page);
-		await input.fill('athena');
+		await input.fill('pulse');
 		await input.press('Enter');
 
 		await page.waitForURL((url) => {
-			return url.searchParams.get('s') === 'athena' && url.searchParams.get('post_type') === 'product';
+			return url.searchParams.get('s') === 'pulse' && url.searchParams.get('post_type') === 'product';
 		});
 
 		const grid = page.locator(SEL.productsGrid).first();
 		await expect(grid).toBeVisible();
-		await expect(grid).toContainText(/Athena/);
+		await expect(grid).toContainText(/Pulse/);
 	});
 });

@@ -1,6 +1,6 @@
 # 50k Demo Product Generator Scaling
 
-> **Status:** draft
+> **Status:** implemented — issue #18, 2026-07-28
 
 ## TLDR
 

@@ -28,7 +28,7 @@ test('dead Redis degrades gracefully to native search', async ({ page }) => {
 	// fetch resolves would pass vacuously. Only after the fallback response has
 	// been handled does "no dropdown" prove the client's behavior.
 	const fallbackResponse = page.waitForResponse((res) => isAutocompleteRequest(res.request()));
-	await typeQuery(page, 'athena');
+	await typeQuery(page, 'pulse');
 	const clientResponse = await fallbackResponse;
 	expect((await clientResponse.json()).success).toBe(false);
 
@@ -36,16 +36,16 @@ test('dead Redis degrades gracefully to native search', async ({ page }) => {
 	// The response handler must also have cleared the pending loading placeholder.
 	await expect(page.locator('.shift64-woo-search-results__loading')).toHaveCount(0);
 
-	const res = await page.request.get(`${ENDPOINT_PATH}?q=athena&mode=autocomplete`);
+	const res = await page.request.get(`${ENDPOINT_PATH}?q=pulse&mode=autocomplete`);
 	expect(res.status()).toBe(200);
 	const body = await res.json();
 	expect(body.success).toBe(false);
-	expect(body.fallback).toContain('s=athena');
+	expect(body.fallback).toContain('s=pulse');
 
-	await page.goto('/?s=athena&post_type=product');
+	await page.goto('/?s=pulse&post_type=product');
 	const cards = page.locator(SEL.productsGrid).first().locator('li.product');
 	await expect(cards.first()).toBeVisible();
-	await expect(cards.first()).toContainText(/Athena/);
+	await expect(cards.first()).toContainText(/Pulse/);
 
 	expect(pageErrors).toEqual([]);
 });
@@ -66,11 +66,11 @@ test('cleared Redis host disables assets and native form submit works', async ({
 
 	// With no JS the form performs a genuine native GET submit.
 	const input = searchInput(page);
-	await input.fill('athena');
+	await input.fill('pulse');
 	await input.press('Enter');
-	await page.waitForURL(/[?&]s=athena.*post_type=product|[?&]post_type=product.*s=athena/);
+	await page.waitForURL(/[?&]s=pulse.*post_type=product|[?&]post_type=product.*s=pulse/);
 
 	const cards = page.locator(SEL.productsGrid).first().locator('li.product');
 	await expect(cards.first()).toBeVisible();
-	await expect(cards.first()).toContainText(/Athena/);
+	await expect(cards.first()).toContainText(/Pulse/);
 });

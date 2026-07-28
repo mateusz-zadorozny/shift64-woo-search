@@ -40,11 +40,11 @@ test.describe('failure modes (route-mocked)', () => {
 
 		// Prove the latch: typing a new valid query must not issue a request even
 		// after the debounce window — the bounded waitForRequest must time out.
-		await searchInput(page).fill('hoodie');
+		await searchInput(page).fill('pulse');
 		await expect(page.waitForRequest(isAutocompleteRequest, { timeout: 700 })).rejects.toThrow();
 
 		await searchInput(page).press('Enter');
-		await page.waitForURL(/[?&]s=hoodie/);
+		await page.waitForURL(/[?&]s=pulse/);
 		await expect(page.locator(SEL.productsGrid).first().locator('li.product').first()).toBeVisible();
 
 		expect(autocompleteCount).toBe(1);
@@ -59,13 +59,13 @@ test.describe('failure modes (route-mocked)', () => {
 			(route) => route.fulfill(rateLimitedResponse)
 		);
 
-		await typeQuery(page, 'athena');
+		await typeQuery(page, 'pulse');
 
 		const message = visibleTray(page).locator(SEL.empty);
 		await expect(message).toHaveText('Something went wrong. Please try again.');
 
 		await searchInput(page).press('Enter');
-		await page.waitForURL(/[?&]s=athena/);
+		await page.waitForURL(/[?&]s=pulse/);
 		await expect(page.locator(SEL.productsGrid).first().locator('li.product').first()).toBeVisible();
 	});
 
@@ -92,11 +92,11 @@ test.describe('failure modes (route-mocked)', () => {
 		await expect(visibleTray(page)).toHaveCount(0);
 
 		// Prove the latch before navigating: no request may fire for a new query.
-		await searchInput(page).fill('hoodie');
+		await searchInput(page).fill('pulse');
 		await expect(page.waitForRequest(isAutocompleteRequest, { timeout: 700 })).rejects.toThrow();
 
 		await searchInput(page).press('Enter');
-		await page.waitForURL(/[?&]s=hoodie/);
+		await page.waitForURL(/[?&]s=pulse/);
 		await expect(page.locator(SEL.productsGrid).first().locator('li.product').first()).toBeVisible();
 
 		expect(autocompleteCount).toBe(1);

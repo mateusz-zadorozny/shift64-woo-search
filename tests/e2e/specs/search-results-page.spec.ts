@@ -1,10 +1,20 @@
 import { expect, test } from '@playwright/test';
 import { SEL } from '../helpers/search';
 
-// "clothing" matches every seeded product through the category ancestor chain:
-// 48 results = 3 pages at 16/page, every color present — the broadest query the
-// deterministic catalog offers, used for filter and pagination journeys.
-const BROAD_QUERY = '/?s=clothing&post_type=product';
+// The seeded catalog spans four verticals (apparel, tech, home, beauty), so no
+// single category ancestor covers it any more — "clothing" now matches only the
+// 12 apparel products. Every generated description instead carries the shared
+// phrase "belongs to the <X> series and is built for everyday use", so "series"
+// matches all 48: 3 pages at 16/page, every color present. This is the broadest
+// query the deterministic catalog offers, used for filter and pagination
+// journeys. If the description template in bin/demo-product-catalog.php changes,
+// this constant must change with it.
+const BROAD_QUERY = '/?s=series&post_type=product';
+
+// "Pulse" is the most frequent name prefix in the seeded 48 (8 products, across
+// all four verticals and both product types) — enough for a meaningful relevance
+// assertion without depending on a single product.
+const RELEVANCE_QUERY = '/?s=pulse&post_type=product';
 
 function productCards(page: import('@playwright/test').Page) {
 	return page.locator(SEL.productsGrid).first().locator('li.product');
@@ -13,11 +23,11 @@ function productCards(page: import('@playwright/test').Page) {
 test.describe('search results page (Redis takeover)', () => {
 	// Test 8: takeover renders relevant results; orderby control shows Relevance.
 	test('renders relevant results with the relevance sort control', async ({ page }) => {
-		await page.goto('/?s=athena&post_type=product');
+		await page.goto(RELEVANCE_QUERY);
 
 		const cards = productCards(page);
 		await expect(cards.first()).toBeVisible();
-		await expect(cards.first()).toContainText(/Athena/);
+		await expect(cards.first()).toContainText(/Pulse/);
 
 		// Storefront renders the ordering control twice (above and below the
 		// loop); block themes render it once — assert on the first.
@@ -27,7 +37,10 @@ test.describe('search results page (Redis takeover)', () => {
 		await expect(orderby.locator('option[value="relevance"]')).toHaveText('Search relevance');
 	});
 
-	// Test 9: color facet checkbox → URL gains filter_pa_color=green; results filtered.
+	// Test 9: color facet checkbox → URL gains filter_pa_color=copper; results filtered.
+	// The multi-vertical catalog has no plain "Green" finish; "Copper" is a real
+	// seeded color shared by exactly two products (a tech monitor and a home
+	// pendant light), which keeps the post-filter result set on a single page.
 	test('checking a color facet filters the grid and updates the URL', async ({ page }) => {
 		await page.goto(BROAD_QUERY);
 
@@ -36,19 +49,19 @@ test.describe('search results page (Redis takeover)', () => {
 
 		// Desktop pills keep their checkbox lists inside a dropdown — open it first.
 		await filters.locator('[data-filter-key] .shift64-woo-search-filter__pill', { hasText: /color/i }).click();
-		await filters.locator(`${SEL.filterCheckbox}[data-taxonomy="pa_color"][data-slug="green"]`).check();
+		await filters.locator(`${SEL.filterCheckbox}[data-taxonomy="pa_color"][data-slug="copper"]`).check();
 
-		await expect(page).toHaveURL(/filter_pa_color=green/);
+		await expect(page).toHaveURL(/filter_pa_color=copper/);
 
 		const cards = productCards(page);
 		await expect(cards.first()).toBeVisible();
 		const count = await cards.count();
 		expect(count).toBeGreaterThan(0);
 		for (let i = 0; i < count; i++) {
-			await expect(cards.nth(i)).toContainText(/Green/);
+			await expect(cards.nth(i)).toContainText(/Copper/);
 		}
 
-		// Green narrows 48 results to a single page, so the swap must hide the
+		// Copper narrows 48 results to a single page, so the swap must hide the
 		// pagination control outright. Merely emptying it leaves a nav that
 		// still occupies its box — asserting on `display` rather than
 		// visibility is what distinguishes the two.
