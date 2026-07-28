@@ -82,9 +82,11 @@ and 8.5**. The floor is machine-checked: `.phpcs.xml.dist` runs `PHPCompatibilit
 
 The reviewer's job is what the sniffs cannot see:
 
-- `.phpcs.xml.dist` excludes `mu-plugins/`, `tests/`, and `bin/` — compatibility issues there
-  reach neither phpcs nor the compat sniffs. Read those diffs with the floor in mind.
-- A stdlib function newer than 8.3 (or a feature from 8.4+) in any excluded path is a Major
+- `.phpcs.xml.dist` excludes only `mu-plugins/` wholesale — compatibility issues there reach
+  neither phpcs nor the compat sniffs. Read those diffs with the floor in mind. `bin/` and
+  `tests/` are scanned, with per-sniff exclusions for rules that do not fit a CLI script or a
+  test file; `PHPCompatibilityWP` is not among them, so the floor is enforced there.
+- A stdlib function newer than 8.3 (or a feature from 8.4+) in `mu-plugins/` is a Major
   finding, same as it would be in scanned code.
 
 `PHPCompatibilityWP` is polyfill-aware: it will not flag functions WordPress core polyfills
