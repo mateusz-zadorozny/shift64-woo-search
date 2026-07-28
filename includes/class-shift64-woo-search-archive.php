@@ -379,6 +379,13 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		// drops sub-threshold fuzzy matches — without this the archive kept
 		// noise autocomplete had already discarded. Prefix passes above are
 		// deliberately not filtered. See Query::filter_low_scores().
+		//
+		// Known limit: price-sorted requests take the ft_search_with_offset()
+		// branch, which asks Redis to sort and so never fetches scores. A
+		// fuzzy pass under ?orderby=price therefore stays unfiltered and can
+		// still show what autocomplete would drop. Filtering it would mean
+		// re-fetching with WITHSCORES and paginating in PHP, losing the point
+		// of the SORTBY branch.
 		if ( 'strict_first' === $strategy && $this->is_empty_result( $result ) ) {
 			$ft_query = $search_query->build_fuzzy_query( $terms, $filters );
 			$this->log( 'Pass 4 (fuzzy)', $ft_query );
