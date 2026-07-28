@@ -5,6 +5,9 @@
  * @package Shift64_Woo_Search
  */
 
+/**
+ * Category facet splitting tests.
+ */
 class Category_Facet_Splitting_Test extends WP_UnitTestCase {
 
 	/**

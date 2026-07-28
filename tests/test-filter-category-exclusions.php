@@ -5,6 +5,9 @@
  * @package Shift64_Woo_Search
  */
 
+/**
+ * Category exclusion filtering tests.
+ */
 class Filter_Category_Exclusions_Test extends WP_UnitTestCase {
 
 	/**

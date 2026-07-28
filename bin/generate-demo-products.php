@@ -40,19 +40,39 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 		/** Meta marker used to identify products owned by this generator. */
 		const GENERATED_META_KEY = Shift64_Woo_Search_Demo_Catalog::GENERATED_META_KEY;
 
-		/** @var array<string,mixed> Parsed CLI options. */
+		/**
+		 * Parsed CLI options.
+		 *
+		 * @var array<string,mixed>
+		 */
 		private $options;
 
-		/** @var int Number of variations created during the current run. */
+		/**
+		 * Number of variations created during the current run.
+		 *
+		 * @var int
+		 */
 		private $variation_count = 0;
 
-		/** @var array<string,array<string,int>> Category term IDs keyed by vertical and category key. */
+		/**
+		 * Category term IDs keyed by vertical and category key.
+		 *
+		 * @var array<string,array<string,int>>
+		 */
 		private $category_ids = array();
 
-		/** @var array<string,array<int,int>> Brand term IDs keyed by vertical. */
+		/**
+		 * Brand term IDs keyed by vertical.
+		 *
+		 * @var array<string,array<int,int>>
+		 */
 		private $brand_ids = array();
 
-		/** @var array<string,array> Global attribute data keyed by attribute slug. */
+		/**
+		 * Global attribute data keyed by attribute slug.
+		 *
+		 * @var array<string,array>
+		 */
 		private $attributes = array();
 
 		/**
@@ -179,8 +199,8 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 				return;
 			}
 
-			$parents    = 'variable' === $this->options['mode'] ? $this->options['count'] : intdiv( $this->options['count'], 4 );
-			$max_terms  = 0;
+			$parents   = 'variable' === $this->options['mode'] ? $this->options['count'] : intdiv( $this->options['count'], 4 );
+			$max_terms = 0;
 			foreach ( $this->used_verticals() as $vertical ) {
 				$data      = Shift64_Woo_Search_Demo_Catalog::vertical( $vertical );
 				$max_terms = max( $max_terms, count( $data['variation']['values'] ) );
@@ -365,11 +385,11 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 		 *
 		 * @param string $name     Term name.
 		 * @param string $taxonomy Taxonomy name.
-		 * @param int    $parent   Parent term ID.
+		 * @param int    $parent_id Parent term ID.
 		 * @return int Term ID.
 		 */
-		private function ensure_term( $name, $taxonomy, $parent = 0 ) {
-			$existing = term_exists( $name, $taxonomy, $parent );
+		private function ensure_term( $name, $taxonomy, $parent_id = 0 ) {
+			$existing = term_exists( $name, $taxonomy, $parent_id );
 			if ( $existing ) {
 				return (int) ( is_array( $existing ) ? $existing['term_id'] : $existing );
 			}
@@ -378,7 +398,7 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 				$name,
 				$taxonomy,
 				array(
-					'parent' => $parent,
+					'parent' => $parent_id,
 				)
 			);
 			if ( is_wp_error( $created ) ) {
@@ -480,6 +500,7 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Product_Generator' ) ) {
 		 * @param string $sku         Parent SKU.
 		 * @param int    $index       Zero-based product index.
 		 * @return int Product ID.
+		 * @throws WC_Data_Exception When a variation rejects its generated data.
 		 */
 		private function create_variable_product( $combination, $sku, $index ) {
 			$data           = Shift64_Woo_Search_Demo_Catalog::vertical( $combination['vertical'] );

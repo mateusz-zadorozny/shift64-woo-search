@@ -216,7 +216,7 @@ class Query_Builder_Diacritics_Test extends WP_UnitTestCase {
 	/**
 	 * One-way source phrase containing a sub-2-char weak token ("z").
 	 *
-	 * get_search_terms() drops single-letter tokens, so the query "kosz z pedałem"
+	 * The get_search_terms() call drops single-letter tokens, so the query "kosz z pedałem"
 	 * tokenizes to ['kosz','pedałem']. The synonym key must be normalized through
 	 * the SAME pipeline (→ "kosz pedałem"), otherwise the literal key
 	 * "kosz z pedałem" never matches and the phrase silently fails to expand —

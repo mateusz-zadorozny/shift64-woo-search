@@ -5,6 +5,9 @@
  * @package Shift64_Woo_Search
  */
 
+/**
+ * Taxonomy archive interception tests.
+ */
 class Taxonomy_Archive_Test extends WP_UnitTestCase {
 
 	/**
@@ -33,7 +36,7 @@ class Taxonomy_Archive_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * is_scope_enabled returns false when the taxonomy is not in the scopes option.
+	 * The is_scope_enabled check returns false when the taxonomy is not in the scopes option.
 	 */
 	public function test_scope_disabled_when_not_in_option() {
 		update_option( 'shift64_woo_search_taxonomy_archive_scopes', array() );
@@ -43,7 +46,7 @@ class Taxonomy_Archive_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * is_scope_enabled returns true when the taxonomy is in the scopes option.
+	 * The is_scope_enabled check returns true when the taxonomy is in the scopes option.
 	 */
 	public function test_scope_enabled_when_in_option() {
 		update_option( 'shift64_woo_search_taxonomy_archive_scopes', array( 'product_cat' ) );
@@ -74,7 +77,7 @@ class Taxonomy_Archive_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * get_active_filters parses filter_pa_* query params into the shape
+	 * The get_active_filters helper parses filter_pa_* query params into the shape
 	 * expected by build_filter_parts (keyed by 'attr_pa_*') AND converts
 	 * URL slugs to term names — Redis index stores names, not slugs, so
 	 * a raw slug passthrough would silently miss all multi-word values
@@ -128,7 +131,7 @@ class Taxonomy_Archive_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * get_active_filters returns empty array when no filter_pa_* params are set.
+	 * The get_active_filters helper returns an empty array when no filter_pa_* params are set.
 	 *
 	 * Downstream consumers (Facets::compute, search_by_filters) must be
 	 * null/empty-safe — this guards the contract that intercept doesn't
@@ -143,7 +146,7 @@ class Taxonomy_Archive_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * filter_dimensions: exact name match is kept, non-listed dims are dropped.
+	 * Filter dimensions: exact name match is kept, non-listed dims are dropped.
 	 *
 	 * Bug #2: category archives showed "Kategoria" pastylka, but user is
 	 * already navigating inside a category — it's noise. SCOPE_MAP declares
@@ -174,7 +177,7 @@ class Taxonomy_Archive_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * filter_dimensions: wildcard `attr_pa_*` matches any attr_pa_ prefix,
+	 * Filter dimensions: wildcard `attr_pa_*` matches any attr_pa_ prefix,
 	 * categories is dropped — this is the product_cat scope's default.
 	 */
 	public function test_filter_dimensions_wildcard_matches_prefix() {
@@ -209,7 +212,7 @@ class Taxonomy_Archive_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * filter_dimensions: empty allowed list is a no-op (defensive default).
+	 * Filter dimensions: an empty allowed list is a no-op (defensive default).
 	 */
 	public function test_filter_dimensions_empty_allowed_is_noop() {
 		$archive = new Shift64_Woo_Search_Taxonomy_Archive();

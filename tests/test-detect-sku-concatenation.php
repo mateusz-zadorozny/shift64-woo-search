@@ -9,7 +9,7 @@
  * Pure-function tests for the SKU concatenation detector used by the
  * fuzzy SKU matching feature ("djm 201" → "djm201").
  *
- * detect_sku_concatenation is a static method with no Redis dependency,
+ * The detect_sku_concatenation method is static and has no Redis dependency,
  * so we call it directly without instantiating Shift64_Woo_Search_Query.
  */
 class Detect_Sku_Concatenation_Test extends WP_UnitTestCase {

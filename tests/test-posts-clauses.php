@@ -11,6 +11,9 @@
  * @package Shift64_Woo_Search
  */
 
+/**
+ * Block and widget query posts_clauses tests.
+ */
 class Posts_Clauses_Test extends WP_UnitTestCase {
 
 	/**
