@@ -418,12 +418,15 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
-	// ── Suggestions Tab ───────────────────────────────────────
+	// ── Search Experience › Query Suggestions ──────────────────
 
 	/**
-	 * Render the Suggestions tab for managing autocomplete suggestions.
+	 * Render the Query Suggestions section for managing autocomplete suggestions.
+	 *
+	 * Relocated verbatim from the legacy Suggestions tab: same markup, element ids,
+	 * and AJAX actions, so the admin script binds to it exactly as before.
 	 */
-	private function render_suggestions_tab() {
+	private function render_experience_query_suggestions_section() {
 		$suggestions = Shift64_Woo_Search_Suggestions::get_all();
 		?>
 		<div class="shift64-woo-search-suggestions">
@@ -500,7 +503,7 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
-	// ── Category Boost Tab ─────────────────────────────────────
+	// ── Search Experience › Category Suggestions ───────────────
 
 	/**
 	 * Resolve the configured per-category boosts into display rows.
@@ -569,12 +572,39 @@ class Shift64_Woo_Search_Admin {
 	}
 
 	/**
-	 * Render the Category Boost tab — per-category autocomplete multipliers.
+	 * Render the Category Suggestions section.
+	 *
+	 * Everything that shapes the autocomplete category list lives here, in the order
+	 * the resolver applies it: pins win over boosts, boosts order what remains, and
+	 * exclusions remove categories from the list entirely.
+	 *
+	 * The pins editor is a generic settings form and therefore submits only its own
+	 * key; the boost and exclusion editors keep their dedicated AJAX actions and the
+	 * category-blob refresh that goes with them.
 	 */
-	private function render_catboost_tab() {
+	private function render_experience_category_suggestions_section() {
 		$rows = $this->get_category_boost_rows();
 		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+			<table class="form-table">
+				<?php
+				$this->render_textarea_field(
+					'shift64_woo_search_category_pin_rules',
+					__( 'Category Suggestion Pins', 'shift64-woo-search' ),
+					'',
+					__( 'Pins a category to the top of the autocomplete category list for a query. One rule per line. Format: query|category or query|category|priority. Category is a name or slug; priority defaults to 1 (higher wins). A pin fires while the shopper types (prefix match either way) and can surface a category even when its name does not contain the query. Lines starting with # are comments. No index rebuild required.', 'shift64-woo-search' )
+				);
+				?>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+
 		<div class="shift64-woo-search-catboost">
+			<h3 style="margin-top:2em"><?php esc_html_e( 'Category boosts', 'shift64-woo-search' ); ?></h3>
 			<p class="description">
 				<?php esc_html_e( 'Relevance multiplier for category suggestions. Values above 1 promote a category and values below 1 demote it. Boosts apply within the same name-match level (exact, prefix, or substring) and take precedence over product count. Category pins have a higher priority than boosts.', 'shift64-woo-search' ); ?>
 			</p>
@@ -1143,8 +1173,6 @@ class Shift64_Woo_Search_Admin {
 			<h3><?php esc_html_e( 'Search Behavior', 'shift64-woo-search' ); ?></h3>
 			<table class="form-table">
 				<?php
-				$this->render_text_field( 'shift64_woo_search_min_query', __( 'Min Query Length', 'shift64-woo-search' ), '2', '', 'number' );
-				$this->render_text_field( 'shift64_woo_search_autocomplete_limit', __( 'Quick Search Results Limit', 'shift64-woo-search' ), '7', __( 'Max products shown in the dropdown.', 'shift64-woo-search' ), 'number' );
 				$this->render_text_field( 'shift64_woo_search_full_limit', __( 'Full Search Results Limit', 'shift64-woo-search' ), '20', __( 'Max products for full search page.', 'shift64-woo-search' ), 'number' );
 				$this->render_text_field( 'shift64_woo_search_fuzzy_level', __( 'Fuzzy Level', 'shift64-woo-search' ), '1', __( 'Levenshtein distance 1-3.', 'shift64-woo-search' ), 'number' );
 				$this->render_select_field(
@@ -1194,8 +1222,6 @@ class Shift64_Woo_Search_Admin {
 				$this->render_checkbox_field( 'shift64_woo_search_drop_trailing_weak_token_only', __( 'Drop Trailing Only', 'shift64-woo-search' ), 'yes' );
 				$this->render_checkbox_field( 'shift64_woo_search_diacritics_normalization', __( 'Diacritics Normalization', 'shift64-woo-search' ), 'yes', __( 'Match Polish chars without diacritics (ł→l, ó→o, etc). Requires rebuild.', 'shift64-woo-search' ) );
 				$this->render_checkbox_field( 'shift64_woo_search_fuzzy_synonyms', __( 'Fuzzy Synonyms', 'shift64-woo-search' ), 'no', __( 'Match synonyms even with typos or partial input (prefix + Levenshtein).', 'shift64-woo-search' ) );
-				$this->render_checkbox_field( 'shift64_woo_search_category_suggest_fuzzy', __( 'Category Suggestion Fuzzy', 'shift64-woo-search' ), 'no', __( 'Allow typo-tolerant matching in the autocomplete category section. Uses conservative Levenshtein distance 1 on category-name tokens; no index rebuild required.', 'shift64-woo-search' ) );
-				$this->render_checkbox_field( 'shift64_woo_search_brand_suggest_enabled', __( 'Brand Suggestions', 'shift64-woo-search' ), 'yes', __( 'Show a Brands section in the autocomplete dropdown. The section hides itself on stores that have no brands.', 'shift64-woo-search' ) );
 				?>
 			</table>
 
@@ -1207,12 +1233,6 @@ class Shift64_Woo_Search_Admin {
 					__( 'Category / Tag Boost Rules', 'shift64-woo-search' ),
 					'',
 					__( 'One rule per line. Format: category-or-tag|factor (global) or query|category-or-tag|factor (query-specific). Lines starting with # are comments. Factor is clamped to 1-200, but factors compound with promoted (×1.5) and title-start (×2/×3) — values above ~5 can crowd out organic ranking, so use sparingly. Example: Promocja|1.2 or papier|Promocja|1.5. No index rebuild required.', 'shift64-woo-search' )
-				);
-				$this->render_textarea_field(
-					'shift64_woo_search_category_pin_rules',
-					__( 'Category Suggestion Pins', 'shift64-woo-search' ),
-					'',
-					__( 'Pins a category to the top of the autocomplete category list for a query. One rule per line. Format: query|category or query|category|priority. Category is a name or slug; priority defaults to 1 (higher wins). A pin fires while the shopper types (prefix match either way) and can surface a category even when its name does not contain the query. Lines starting with # are comments. No index rebuild required.', 'shift64-woo-search' )
 				);
 				?>
 			</table>
@@ -1283,20 +1303,54 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
+	// ── Search Experience › Search Field ───────────────────────
+
 	/**
-	 * Render the Frontend settings tab.
+	 * Render the Search Field section — where the search box lives and how it reacts.
+	 *
+	 * Relocated from the legacy Frontend tab. The form carries only these four keys,
+	 * so submitting it can never touch a setting owned by another section.
 	 */
-	private function render_frontend_tab() {
+	private function render_experience_search_field_section() {
 		?>
 		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
 
-			<h3><?php esc_html_e( 'Frontend', 'shift64-woo-search' ); ?></h3>
 			<table class="form-table">
 				<?php
 				$this->render_text_field( 'shift64_woo_search_debounce', __( 'Debounce (ms)', 'shift64-woo-search' ), '150', '', 'number' );
 				$this->render_text_field( 'shift64_woo_search_input_selector', __( 'Input Selector', 'shift64-woo-search' ), '.shift64-woo-search-field__input' );
 				$this->render_text_field( 'shift64_woo_search_additional_selectors', __( 'Additional Selectors', 'shift64-woo-search' ), '', __( 'Comma-separated.', 'shift64-woo-search' ) );
 				$this->render_text_field( 'shift64_woo_search_button_selector', __( 'Search Button Selector', 'shift64-woo-search' ), '', __( 'CSS selector for the search submit button, e.g. .search-submit', 'shift64-woo-search' ) );
+				?>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── Search Experience › Autocomplete ───────────────────────
+
+	/**
+	 * Render the Autocomplete section — what the dropdown shows while shoppers type.
+	 *
+	 * Relocated from the legacy Search tab. `shift64_woo_search_full_limit` stays
+	 * behind with matching behaviour: it sizes the full results page, not the
+	 * dropdown, so it belongs with Relevance rather than here.
+	 */
+	private function render_experience_autocomplete_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
+			<table class="form-table">
+				<?php
+				$this->render_text_field( 'shift64_woo_search_min_query', __( 'Min Query Length', 'shift64-woo-search' ), '2', '', 'number' );
+				$this->render_text_field( 'shift64_woo_search_autocomplete_limit', __( 'Quick Search Results Limit', 'shift64-woo-search' ), '7', __( 'Max products shown in the dropdown.', 'shift64-woo-search' ), 'number' );
+				$this->render_checkbox_field( 'shift64_woo_search_category_suggest_fuzzy', __( 'Category Suggestion Fuzzy', 'shift64-woo-search' ), 'no', __( 'Allow typo-tolerant matching in the autocomplete category section. Uses conservative Levenshtein distance 1 on category-name tokens; no index rebuild required.', 'shift64-woo-search' ) );
+				$this->render_checkbox_field( 'shift64_woo_search_brand_suggest_enabled', __( 'Brand Suggestions', 'shift64-woo-search' ), 'yes', __( 'Show a Brands section in the autocomplete dropdown. The section hides itself on stores that have no brands.', 'shift64-woo-search' ) );
 				?>
 			</table>
 

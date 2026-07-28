@@ -283,6 +283,81 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 		);
 	}
 
+	// ── Search Experience sections ─────────────────────────────
+
+	/**
+	 * The Search Field section owns the four selector/debounce fields, reachable
+	 * through both the canonical route and the legacy `frontend` bookmark.
+	 *
+	 * @dataProvider search_field_route_provider
+	 *
+	 * @param string      $tab     Requested `tab` value.
+	 * @param string|null $section Requested `section` value.
+	 */
+	public function test_search_field_section_renders_the_frontend_selector_fields( $tab, $section ) {
+		$html = $this->render( $tab, $section );
+
+		foreach ( array( 'debounce', 'input_selector', 'additional_selectors', 'button_selector' ) as $field ) {
+			$this->assertStringContainsString( 'name="shift64_woo_search_' . $field . '"', $html );
+		}
+	}
+
+	public function search_field_route_provider() {
+		return array(
+			'canonical'         => array( 'experience', 'search-field' ),
+			'legacy alias'      => array( 'frontend', null ),
+			'workspace default' => array( 'experience', null ),
+		);
+	}
+
+	/**
+	 * Section forms submit only their own keys, so a section may render only the
+	 * fields it owns. Autocomplete owns the dropdown fields; `full_limit` sizes the
+	 * full results page and stays with Relevance.
+	 */
+	public function test_autocomplete_section_renders_only_the_fields_it_owns() {
+		$html = $this->render( 'experience', 'autocomplete' );
+
+		foreach ( array( 'min_query', 'autocomplete_limit', 'category_suggest_fuzzy', 'brand_suggest_enabled' ) as $field ) {
+			$this->assertStringContainsString( 'name="shift64_woo_search_' . $field . '"', $html );
+		}
+
+		$this->assertStringNotContainsString( 'shift64_woo_search_full_limit', $html );
+		$this->assertStringNotContainsString( 'shift64_woo_search_debounce', $html );
+	}
+
+	/**
+	 * The moved fields must not keep rendering at their old address as well —
+	 * two forms writing one option is exactly what section ownership rules out.
+	 */
+	public function test_relocated_experience_fields_no_longer_render_on_the_legacy_search_route() {
+		$html = $this->render( 'search', null );
+
+		foreach ( array( 'min_query', 'autocomplete_limit', 'category_suggest_fuzzy', 'brand_suggest_enabled', 'category_pin_rules' ) as $field ) {
+			$this->assertStringNotContainsString( 'shift64_woo_search_' . $field, $html );
+		}
+
+		// Still owned by Relevance until Step 2.4 moves it.
+		$this->assertStringContainsString( 'name="shift64_woo_search_category_boost_rules"', $html );
+	}
+
+	public function test_query_suggestions_section_renders_the_suggestions_manager() {
+		$this->assertStringContainsString( 's64ws-sug-table', $this->render( 'experience', 'query-suggestions' ) );
+	}
+
+	/**
+	 * Category Suggestions gathers the three editors that shape the autocomplete
+	 * category list: pins, boosts, and exclusions. Product ranking is not among them.
+	 */
+	public function test_category_suggestions_section_renders_pins_boosts_and_exclusions() {
+		$html = $this->render( 'experience', 'category-suggestions' );
+
+		$this->assertStringContainsString( 'name="shift64_woo_search_category_pin_rules"', $html );
+		$this->assertStringContainsString( 's64ws-cb-table', $html );
+		$this->assertStringContainsString( 's64ws-cx-table', $html );
+		$this->assertStringNotContainsString( 'shift64_woo_search_category_boost_rules', $html );
+	}
+
 	/**
 	 * Hostile `tab` values fall back to Overview. PHPUnit is configured to convert
 	 * notices, warnings, and deprecations into exceptions, so this also proves the
@@ -333,7 +408,9 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 			array( null, null ),
 			array( 'overview', null ),
 			array( 'experience', 'search-field' ),
+			array( 'experience', 'autocomplete' ),
 			array( 'experience', 'query-suggestions' ),
+			array( 'experience', 'category-suggestions' ),
 			array( 'relevance', 'basic' ),
 			array( 'relevance', 'synonyms' ),
 			array( 'relevance', 'field-weights' ),
@@ -342,6 +419,7 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 			// Legacy aliases reach the same renderers through the alias map.
 			array( 'frontend', null ),
 			array( 'suggestions', null ),
+			array( 'catboost', null ),
 			array( 'search', null ),
 			array( 'synonyms', null ),
 			array( 'weights', null ),

@@ -66,19 +66,19 @@ class Shift64_Woo_Search_Admin_Routes {
 				'sections' => array(
 					'search-field'         => array(
 						'label'    => __( 'Search Field', 'shift64-woo-search' ),
-						'callback' => 'render_frontend_tab',
+						'callback' => 'render_experience_search_field_section',
 					),
 					'autocomplete'         => array(
 						'label'    => __( 'Autocomplete', 'shift64-woo-search' ),
-						'callback' => 'render_search_tab',
+						'callback' => 'render_experience_autocomplete_section',
 					),
 					'query-suggestions'    => array(
 						'label'    => __( 'Query Suggestions', 'shift64-woo-search' ),
-						'callback' => 'render_suggestions_tab',
+						'callback' => 'render_experience_query_suggestions_section',
 					),
 					'category-suggestions' => array(
 						'label'    => __( 'Category Suggestions', 'shift64-woo-search' ),
-						'callback' => 'render_catboost_tab',
+						'callback' => 'render_experience_category_suggestions_section',
 					),
 				),
 			),

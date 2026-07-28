@@ -140,10 +140,10 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 	public function canonical_route_provider() {
 		return array(
 			'overview/overview'               => array( 'overview', 'overview', 'render_overview_tab' ),
-			'experience/search-field'         => array( 'experience', 'search-field', 'render_frontend_tab' ),
-			'experience/autocomplete'         => array( 'experience', 'autocomplete', 'render_search_tab' ),
-			'experience/query-suggestions'    => array( 'experience', 'query-suggestions', 'render_suggestions_tab' ),
-			'experience/category-suggestions' => array( 'experience', 'category-suggestions', 'render_catboost_tab' ),
+			'experience/search-field'         => array( 'experience', 'search-field', 'render_experience_search_field_section' ),
+			'experience/autocomplete'         => array( 'experience', 'autocomplete', 'render_experience_autocomplete_section' ),
+			'experience/query-suggestions'    => array( 'experience', 'query-suggestions', 'render_experience_query_suggestions_section' ),
+			'experience/category-suggestions' => array( 'experience', 'category-suggestions', 'render_experience_category_suggestions_section' ),
 			'results/coverage'                => array( 'results', 'coverage', 'render_search_tab' ),
 			'results/facets'                  => array( 'results', 'facets', 'render_filters_tab' ),
 			'relevance/basic'                 => array( 'relevance', 'basic', 'render_search_tab' ),
