@@ -42,9 +42,8 @@ class Shift64_Woo_Search_Admin_Routes {
 	 * Each section declares a translated label and the explicit
 	 * `Shift64_Woo_Search_Admin` method that renders it.
 	 *
-	 * The remaining System sections deliberately point at the broader
-	 * `render_redis_tab` as a placeholder: the route exists and is stable from now
-	 * on, while the split of that form into per-section markup lands in a later phase.
+	 * Every section names its own renderer — there are no placeholder mappings left,
+	 * so no two routes can silently share a form and overwrite each other's options.
 	 *
 	 * @return array<string, array{label: string, default: string, sections: array<string, array{label: string, callback: string}>}> Ordered workspace map.
 	 */
@@ -149,7 +148,7 @@ class Shift64_Woo_Search_Admin_Routes {
 				'sections' => array(
 					'connection'  => array(
 						'label'    => __( 'Connection', 'shift64-woo-search' ),
-						'callback' => 'render_redis_tab',
+						'callback' => 'render_system_connection_section',
 					),
 					'index'       => array(
 						'label'    => __( 'Index & Health', 'shift64-woo-search' ),
@@ -157,11 +156,11 @@ class Shift64_Woo_Search_Admin_Routes {
 					),
 					'security'    => array(
 						'label'    => __( 'Security & Traffic', 'shift64-woo-search' ),
-						'callback' => 'render_redis_tab',
+						'callback' => 'render_system_security_section',
 					),
 					'diagnostics' => array(
 						'label'    => __( 'Diagnostics', 'shift64-woo-search' ),
-						'callback' => 'render_redis_tab',
+						'callback' => 'render_system_diagnostics_section',
 					),
 				),
 			),

@@ -1136,12 +1136,27 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
-	// ── Settings Tab ───────────────────────────────────────────
+	// ── System › Connection ────────────────────────────────────
 
 	/**
-	 * Render the Redis connection and rate-limiting tab.
+	 * Render the Connection section — how this site reaches Redis.
+	 *
+	 * Relocated from the legacy Redis tab. Everything needed to open a connection
+	 * lives here and nowhere else: host, port, optional ACL credentials, database,
+	 * and the key prefix that isolates one site's keys from another's on a shared
+	 * server. Rate limiting and the generated SHORTINIT config used to share this
+	 * page; they are traffic policy and diagnostics, not connectivity, so they now
+	 * have sections of their own.
+	 *
+	 * Test Connection keeps its current behavior and ordering: the button posts the
+	 * connection fields as they stand in this form, so a merchant can prove a change
+	 * works before saving it. This migration does not touch that flow.
+	 *
+	 * The credential rows are hidden *and* disabled when authentication is off, so
+	 * they never reach the payload; the always-submitted hidden `no` value is what
+	 * tells the persistence seam that clearing stored credentials was deliberate.
 	 */
-	private function render_redis_tab() {
+	private function render_system_connection_section() {
 		?>
 		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
 
@@ -1193,6 +1208,75 @@ class Shift64_Woo_Search_Admin {
 					<th></th>
 					<td>
 						<button type="button" id="s64ws-test-connection" class="button"><?php esc_html_e( 'Test Connection', 'shift64-woo-search' ); ?></button>
+						<span id="s64ws-connection-status" class="shift64-woo-search-status"></span>
+					</td>
+				</tr>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── System › Security & Traffic ────────────────────────────
+
+	/**
+	 * Render the Security & Traffic section — the request budget per visitor.
+	 *
+	 * Relocated from the legacy Redis tab, where it sat below the connection
+	 * credentials for no better reason than both being "infrastructure". Capping
+	 * requests per IP is a traffic-policy decision, so it earns its own section — and
+	 * its own form, which submits exactly one key and therefore can never overwrite a
+	 * Redis credential owned by the Connection section.
+	 */
+	private function render_system_security_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
+			<h3><?php esc_html_e( 'Rate Limiting', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_text_field( 'shift64_woo_search_rate_limit', __( 'Max requests/sec per IP', 'shift64-woo-search' ), '30', __( '0 = disabled.', 'shift64-woo-search' ), 'number', '0', '1000', '1' );
+				?>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── System › Diagnostics ───────────────────────────────────
+
+	/**
+	 * Render the Diagnostics section — state of the generated SHORTINIT config.
+	 *
+	 * Moved verbatim from the legacy Redis tab. The plugin writes a small config file
+	 * into `mu-plugins/` so the fast SHORTINIT search endpoint can boot without
+	 * loading all of WordPress. That file is generated, not edited, so what a merchant
+	 * needs here is a status readout and a way to rebuild it — never a form field.
+	 *
+	 * The wrapper is still `#s64ws-settings-form` and carries no fields on purpose:
+	 * the admin script binds the Regenerate button inside its settings-form
+	 * initializer, so the button has to live inside that form for the existing
+	 * JavaScript to find it. Keeping the ids identical is what lets this section move
+	 * without a single line of script change. With no submit control and no named
+	 * inputs, the form can never post a save.
+	 */
+	private function render_system_diagnostics_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
+			<h3><?php esc_html_e( 'SHORTINIT Config', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<tr>
+					<th><?php esc_html_e( 'Generated config', 'shift64-woo-search' ); ?></th>
+					<td>
 						<button type="button" id="s64ws-regen-config" class="button"><?php esc_html_e( 'Regenerate SHORTINIT Config', 'shift64-woo-search' ); ?></button>
 						<span id="s64ws-connection-status" class="shift64-woo-search-status"></span>
 						<?php
@@ -1219,18 +1303,6 @@ class Shift64_Woo_Search_Admin {
 					</td>
 				</tr>
 			</table>
-
-			<h3><?php esc_html_e( 'Rate Limiting', 'shift64-woo-search' ); ?></h3>
-			<table class="form-table">
-				<?php
-				$this->render_text_field( 'shift64_woo_search_rate_limit', __( 'Max requests/sec per IP', 'shift64-woo-search' ), '30', __( '0 = disabled.', 'shift64-woo-search' ), 'number', '0', '1000', '1' );
-				?>
-			</table>
-
-			<p class="submit">
-				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
-				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
-			</p>
 		</form>
 		<?php
 	}

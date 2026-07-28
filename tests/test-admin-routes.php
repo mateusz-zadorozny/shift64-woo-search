@@ -154,10 +154,10 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 			'relevance/test-search'           => array( 'relevance', 'test-search', 'render_test_tab' ),
 			'relevance/compare-passes'        => array( 'relevance', 'compare-passes', 'render_tuning_tab' ),
 			'insights/statistics'             => array( 'insights', 'statistics', 'render_stats_tab' ),
-			'system/connection'               => array( 'system', 'connection', 'render_redis_tab' ),
+			'system/connection'               => array( 'system', 'connection', 'render_system_connection_section' ),
 			'system/index'                    => array( 'system', 'index', 'render_index_tab' ),
-			'system/security'                 => array( 'system', 'security', 'render_redis_tab' ),
-			'system/diagnostics'              => array( 'system', 'diagnostics', 'render_redis_tab' ),
+			'system/security'                 => array( 'system', 'security', 'render_system_security_section' ),
+			'system/diagnostics'              => array( 'system', 'diagnostics', 'render_system_diagnostics_section' ),
 		);
 	}
 
@@ -198,6 +198,32 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 	public function test_the_legacy_search_renderer_is_gone() {
 		$this->assertFalse( method_exists( Shift64_Woo_Search_Admin::class, 'render_search_tab' ) );
 		$this->assertNotContains( 'render_search_tab', $this->declared_callbacks() );
+	}
+
+	/**
+	 * The legacy Redis tab bundled connection credentials, rate limiting, and the
+	 * generated-config readout into one form. Phase 1 pointed three System routes at
+	 * it as a placeholder; each now owns its own renderer, and the shared one is gone
+	 * so the placeholder cannot creep back in.
+	 */
+	public function test_the_legacy_redis_renderer_is_gone() {
+		$this->assertFalse( method_exists( Shift64_Woo_Search_Admin::class, 'render_redis_tab' ) );
+		$this->assertNotContains( 'render_redis_tab', $this->declared_callbacks() );
+	}
+
+	/**
+	 * No two sections may share a renderer. A shared renderer is exactly how a
+	 * placeholder hides: the route looks correct, but the section renders — and saves
+	 * — fields another section owns. One callback per section is the structural
+	 * guarantee that every option has exactly one address.
+	 */
+	public function test_every_section_declares_its_own_renderer() {
+		$sections = 0;
+		foreach ( Shift64_Woo_Search_Admin_Routes::get_workspaces() as $workspace ) {
+			$sections += count( $workspace['sections'] );
+		}
+
+		$this->assertSame( $sections, count( $this->declared_callbacks() ), 'Two sections share a render callback.' );
 	}
 
 	// ── Legacy aliases ─────────────────────────────────────────
@@ -371,9 +397,9 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 			'markup'           => array( '<script>alert(1)</script>' ),
 			'constructor'      => array( '__construct' ),
 			'public method'    => array( 'render_page' ),
-			'private renderer' => array( 'render_redis_tab' ),
+			'private renderer' => array( 'render_system_connection_section' ),
 			'section renderer' => array( 'render_relevance_basic_section' ),
-			'removed renderer' => array( 'render_search_tab' ),
+			'removed renderer' => array( 'render_redis_tab' ),
 			'empty string'     => array( '' ),
 			'null'             => array( null ),
 			'wrong case'       => array( 'SEARCH' ),

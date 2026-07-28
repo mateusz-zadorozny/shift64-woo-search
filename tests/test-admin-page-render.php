@@ -518,6 +518,93 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'shift64_woo_search_fuzzy_level', $html );
 	}
 
+	// ── System sections ────────────────────────────────────────
+
+	/**
+	 * Connection owns everything needed to reach Redis, and only that. Rate limiting
+	 * and the SHORTINIT config readout shared this form before the split; if either
+	 * reappears here, saving the connection would post fields another section owns.
+	 *
+	 * The legacy `redis` bookmark lands on the same section through the alias map.
+	 *
+	 * @dataProvider connection_route_provider
+	 *
+	 * @param string      $tab     Requested `tab` value.
+	 * @param string|null $section Requested `section` value.
+	 */
+	public function test_connection_section_owns_the_redis_connection_fields( $tab, $section ) {
+		$html = $this->render( $tab, $section );
+
+		foreach ( array( 'redis_host', 'redis_port', 'redis_auth_enabled', 'redis_username', 'redis_password', 'redis_db', 'redis_prefix' ) as $field ) {
+			$this->assertStringContainsString( 'name="shift64_woo_search_' . $field . '"', $html );
+		}
+
+		$this->assertStringContainsString( 'id="s64ws-test-connection"', $html );
+		$this->assertStringContainsString( 'id="s64ws-connection-status"', $html );
+
+		$this->assertStringNotContainsString( 'shift64_woo_search_rate_limit', $html );
+		$this->assertStringNotContainsString( 's64ws-regen-config', $html );
+	}
+
+	public function connection_route_provider() {
+		return array(
+			'canonical'         => array( 'system', 'connection' ),
+			'workspace default' => array( 'system', null ),
+			'legacy alias'      => array( 'redis', null ),
+		);
+	}
+
+	/**
+	 * The password field stays masked and stays out of browser autofill, exactly as
+	 * before the move. This is the one field whose input type is a security property
+	 * rather than a styling choice.
+	 */
+	public function test_connection_password_field_stays_masked() {
+		$html = $this->render( 'system', 'connection' );
+
+		$this->assertMatchesRegularExpression(
+			'#<input type="password" id="shift64_woo_search_redis_password" name="shift64_woo_search_redis_password"[^>]*autocomplete="new-password"#',
+			$html
+		);
+	}
+
+	/**
+	 * Security & Traffic carries a single key. That is the whole point of giving it
+	 * its own section: its save can never reach a stored Redis credential, and the
+	 * page itself renders no credential field to leak one.
+	 */
+	public function test_security_section_owns_only_the_rate_limit() {
+		$html = $this->render( 'system', 'security' );
+
+		$this->assertStringContainsString( 'name="shift64_woo_search_rate_limit"', $html );
+
+		foreach ( array( 'redis_host', 'redis_port', 'redis_auth_enabled', 'redis_username', 'redis_password', 'redis_db', 'redis_prefix' ) as $field ) {
+			$this->assertStringNotContainsString( 'shift64_woo_search_' . $field, $html );
+		}
+
+		$this->assertStringNotContainsString( 'type="password"', $html );
+		$this->assertStringNotContainsString( 's64ws-test-connection', $html );
+	}
+
+	/**
+	 * Diagnostics is a readout plus one action. It keeps the ids the admin script
+	 * binds to — the button lives inside `#s64ws-settings-form` because that is where
+	 * the existing initializer looks for it — and carries no named input at all, so
+	 * there is nothing here a save could overwrite.
+	 */
+	public function test_diagnostics_section_owns_the_generated_config_readout() {
+		$html = $this->render( 'system', 'diagnostics' );
+
+		$this->assertStringContainsString( 'id="s64ws-settings-form"', $html );
+		$this->assertStringContainsString( 'id="s64ws-regen-config"', $html );
+		$this->assertStringContainsString( 'id="s64ws-connection-status"', $html );
+
+		$this->assertStringNotContainsString( 'shift64_woo_search_rate_limit', $html );
+		$this->assertStringNotContainsString( 'shift64_woo_search_redis_', $html );
+		$this->assertStringNotContainsString( 's64ws-test-connection', $html );
+		$this->assertStringNotContainsString( 'type="submit"', $html );
+	}
+
 	/**
 	 * Hostile `tab` values fall back to Overview. PHPUnit is configured to convert
 	 * notices, warnings, and deprecations into exceptions, so this also proves the
@@ -541,7 +628,7 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 			'markup'         => array( '<script>alert(1)</script>' ),
 			'constructor'    => array( '__construct' ),
 			'public method'  => array( 'render_page' ),
-			'private method' => array( 'render_redis_tab' ),
+			'private method' => array( 'render_system_connection_section' ),
 			'empty string'   => array( '' ),
 			'wrong case'     => array( 'Relevance' ),
 		);
@@ -580,6 +667,12 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 			array( 'relevance', 'field-weights' ),
 			array( 'relevance', 'test-search' ),
 			array( 'relevance', 'compare-passes' ),
+			// Insights and Index & Health need a live Redis/stats backend, so they are
+			// exercised in browser QA rather than here; the rest of System renders from
+			// options and one file check alone.
+			array( 'system', 'connection' ),
+			array( 'system', 'security' ),
+			array( 'system', 'diagnostics' ),
 			// Legacy aliases reach the same renderers through the alias map.
 			array( 'frontend', null ),
 			array( 'suggestions', null ),
@@ -590,6 +683,7 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 			array( 'weights', null ),
 			array( 'test', null ),
 			array( 'tuning', null ),
+			array( 'redis', null ),
 			array( 'nope', null ),
 		);
 
