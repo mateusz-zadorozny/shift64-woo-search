@@ -23,6 +23,11 @@ REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
 REDIS_PORT="${REDIS_PORT:-6379}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Term used by the verification tail to prove the index and endpoint work. It
+# must match several products in the seeded catalog and stay URL-safe; "shirt"
+# hits both the T-Shirt and the Polo Shirt in the apparel vertical.
+CANARY_QUERY="shirt"
+
 wpc() {
 	if [ -n "${WP_ROOT:-}" ]; then
 		"$WP_CLI_BIN" "$@" --path="$WP_ROOT"
@@ -75,7 +80,18 @@ log "Options (before setup/rebuild — they feed the generated config, the index
 wpc option update shift64_woo_search_rate_limit 1000
 # Baked into the suggestions blob by rebuild; focus-on-empty suggestions are
 # admin-curated and default empty, so test 3 needs them seeded.
-wpc option update shift64_woo_search_suggestions '["t-shirt","hoodie","athena"]' --format=json
+#
+# Seed EXACTLY three: mu-plugins/endpoint.php shuffles the stored list and slices
+# it to 3, so seeding more makes test 3 assert against a random subset and turns
+# it flaky.
+#
+# Each term must match real products in the seeded catalog — a suggestion that
+# leads to an empty results page is a broken fixture even when the test passes.
+# These three each match two products and span three verticals:
+#   shirt      → apparel (T-Shirt, Polo Shirt)
+#   headphones → tech    (Headphones, Studio Headphones)
+#   serum      → beauty  (Face Serum, Night Serum)
+wpc option update shift64_woo_search_suggestions '["shirt","headphones","serum"]' --format=json
 # Live options read at request time.
 wpc option update shift64_woo_search_archive_enabled yes
 wpc option update shift64_woo_search_taxonomy_archive_scopes '["product_cat"]' --format=json
@@ -109,16 +125,19 @@ echo "$HEALTH_OUT"
 echo "$HEALTH_OUT" | grep -q 'Index: OK' || { echo 'FATAL: index is not healthy after rebuild.' >&2; exit 1; }
 
 # Same for `test`: zero results is only a warning with exit code 0.
-TEST_OUT="$(wpc shift64-woo-search test "athena")"
+# Use a term with several matches in the seeded catalog, not a one-off: this gate
+# exists to prove the index works, so a canary that matches a single product
+# turns an ordinary catalog tweak into a provisioning failure.
+TEST_OUT="$(wpc shift64-woo-search test "$CANARY_QUERY")"
 echo "$TEST_OUT"
 RESULT_COUNT="$(echo "$TEST_OUT" | sed -n 's/^Results: \([0-9][0-9]*\).*/\1/p' | head -1)"
 if [ -z "$RESULT_COUNT" ] || [ "$RESULT_COUNT" -lt 1 ]; then
-	echo 'FATAL: `wp shift64-woo-search test "athena"` returned no results.' >&2
+	echo "FATAL: \`wp shift64-woo-search test \"$CANARY_QUERY\"\` returned no results." >&2
 	exit 1
 fi
 
 if [ -n "${BASE_URL:-}" ]; then
-	SMOKE_URL="${BASE_URL%/}/wp-content/mu-plugins/shift64-woo-search/endpoint.php?q=athena&mode=autocomplete"
+	SMOKE_URL="${BASE_URL%/}/wp-content/mu-plugins/shift64-woo-search/endpoint.php?q=${CANARY_QUERY}&mode=autocomplete"
 	echo "Smoke-curl: $SMOKE_URL"
 	if ! SMOKE_BODY="$(curl -sS -L --max-time 15 "$SMOKE_URL" 2>&1)"; then
 		echo "FATAL: endpoint smoke-curl failed: $SMOKE_BODY" >&2

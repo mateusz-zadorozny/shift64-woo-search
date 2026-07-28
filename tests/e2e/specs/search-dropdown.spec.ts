@@ -58,7 +58,7 @@ test.describe('search dropdown', () => {
 		await expect(rows).toHaveCount(3);
 
 		const texts = (await rows.allInnerTexts()).map((t) => t.trim().toLowerCase());
-		expect(texts.sort()).toEqual(['athena', 'hoodie', 't-shirt']);
+		expect(texts.sort()).toEqual(['headphones', 'serum', 'shirt']);
 	});
 
 	// Test 4: type "shirt" → Categories section suggests the Shirts category; click → archive.
