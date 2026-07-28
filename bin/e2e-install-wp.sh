@@ -6,12 +6,20 @@
 #
 # Assumes the MySQL service at 127.0.0.1:3306 (root/root, db wordpress_e2e).
 #
-# Storefront is installed deliberately: stock block themes render WooCommerce's
-# blockified archive templates, which never fire woocommerce_before_shop_loop —
-# the hook the filter bar (and the ordering control) depends on. A classic Woo
-# theme guarantees the shop-loop hooks the journey tests assert on.
+# Storefront is installed AND activated deliberately: stock block themes render
+# WooCommerce's blockified archive templates, which never fire
+# woocommerce_before_shop_loop — the hook the filter bar (and the ordering
+# control) depends on. A classic Woo theme guarantees the shop-loop hooks the
+# journey tests assert on, so it stays the default for the bulk of the suite.
 #
-# WordPress, WooCommerce, and Storefront versions are deliberately UNPINNED:
+# A block theme is installed alongside it but left INACTIVE: the block-theme
+# Playwright project (tests/e2e/block-theme/) activates it for the duration of
+# its own spec file and restores the previous theme afterwards. Installing it
+# here — rather than at switch time — keeps that switch a local `wp theme
+# activate` instead of a network install in the middle of a run.
+#
+# WordPress, WooCommerce, Storefront, and the block theme versions are
+# deliberately UNPINNED:
 # catching breakage against the latest ecosystem releases is part of what this
 # suite exists for. If an upstream release reds the gate, that is signal — pin
 # temporarily only to unblock an unrelated release, and file the breakage.
@@ -47,6 +55,9 @@ if ! wp core is-installed --path="$WP_ROOT" 2>/dev/null; then
 fi
 
 wp theme install storefront --activate --path="$WP_ROOT"
+# Inactive on purpose — see the header note; the block-theme e2e project
+# activates it and restores Storefront itself.
+wp theme install "${E2E_BLOCK_THEME:-twentytwentyfive}" --path="$WP_ROOT"
 wp plugin install woocommerce --activate --path="$WP_ROOT"
 
 ln -sfn "$PLUGIN_SRC" "$WP_ROOT/wp-content/plugins/shift64-woo-search"

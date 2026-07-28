@@ -38,7 +38,13 @@ rename, or delete spec files — their paths are referenced from other specs,
 `http://127.0.0.1:8889`; use `BASE_URL=http://<site>.local` for LocalWP).
 The suite's degraded project REALLY mutates the target site's Redis config
 and restores it in a teardown — if an aborted run leaves the site broken,
-re-run `npm run e2e:provision`. Never add Playwright to the agentic
+re-run `npm run e2e:provision`. The `block-theme` project likewise REALLY
+switches the site's theme (to `E2E_BLOCK_THEME`, default `twentytwentyfive`)
+and restores the previous one in the spec's `afterAll`; if a hard-killed run
+leaves the wrong theme active, run `wp theme activate storefront`. It exists
+because the rest of the suite runs on Storefront's classic markup, which hid
+the blockified-pagination bug in #15 — keep its scope to the AJAX-swap
+journeys. Never add Playwright to the agentic
 validation gate (`.ai/agentic.config.json` `validation.commands`): the gate
 must stay hermetic, and the degraded project would corrupt the dev site.
 CI enforcement lives in `.github/workflows/release.yml` (`e2e` job;
