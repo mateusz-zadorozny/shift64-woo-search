@@ -2,14 +2,14 @@
 # This file is distributed under the same license as the Shift64 Woo Search plugin.
 msgid ""
 msgstr ""
-"Project-Id-Version: Shift64 Woo Search 0.5.0\n"
+"Project-Id-Version: Shift64 Woo Search 0.9.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/shift64-woo-search\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-19T11:30:37+00:00\n"
+"POT-Creation-Date: 2026-07-28T21:54:59+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: shift64-woo-search\n"
@@ -18,9 +18,9 @@ msgstr ""
 #: shift64-woo-search.php:3
 #: admin/class-shift64-woo-search-admin.php:70
 #: admin/class-shift64-woo-search-admin.php:71
-#: admin/class-shift64-woo-search-admin.php:146
-#: admin/class-shift64-woo-search-admin.php:1246
-#: admin/class-shift64-woo-search-admin.php:1305
+#: admin/class-shift64-woo-search-admin.php:159
+#: admin/class-shift64-woo-search-admin.php:1637
+#: admin/class-shift64-woo-search-admin.php:1696
 msgid "Shift64 Woo Search"
 msgstr ""
 
@@ -34,902 +34,1044 @@ msgstr ""
 msgid "Mateusz Zadorożny"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:125
-msgid "Test Search"
+#: admin/class-shift64-woo-search-admin-routes.php:53
+#: admin/class-shift64-woo-search-admin-routes.php:57
+msgid "Overview"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:126
-msgid "Tuning"
+#: admin/class-shift64-woo-search-admin-routes.php:63
+#: admin/class-shift64-woo-search-admin.php:236
+msgid "Search Experience"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:127
+#: admin/class-shift64-woo-search-admin-routes.php:67
+msgid "Search Field"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:71
+msgid "Autocomplete"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:75
+msgid "Query Suggestions"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:79
+msgid "Category Suggestions"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:85
+#: admin/class-shift64-woo-search-admin.php:241
+msgid "Results & Filters"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:89
+msgid "Result Coverage"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:93
+msgid "Facets"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:99
+#: frontend/class-shift64-woo-search-filters.php:444
+msgid "Relevance"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:103
+msgid "Basic Ranking"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:107
+#: admin/class-shift64-woo-search-admin.php:231
+msgid "Matching & Fallback"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:111
 msgid "Synonyms"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:128
-msgid "Suggestions"
+#: admin/class-shift64-woo-search-admin-routes.php:118
+msgid "Merchandising"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:129
-msgid "Category Boost"
+#: admin/class-shift64-woo-search-admin-routes.php:122
+msgid "Field Weights"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:130
-msgid "Statistics"
+#: admin/class-shift64-woo-search-admin-routes.php:126
+msgid "Test Search"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:131
-msgid "Weights"
+#: admin/class-shift64-woo-search-admin-routes.php:130
+msgid "Compare Passes"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:132
-#: frontend/class-shift64-woo-search-filters.php:372
-#: frontend/class-shift64-woo-search-filters.php:392
-msgid "Filters"
+#: admin/class-shift64-woo-search-admin-routes.php:136
+msgid "Insights"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:133
-#: admin/class-shift64-woo-search-admin.php:913
-msgid "Index"
+#: admin/class-shift64-woo-search-admin-routes.php:140
+msgid "Search Statistics"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:134
-#: admin/class-shift64-woo-search-admin.php:902
-msgid "Redis"
+#: admin/class-shift64-woo-search-admin-routes.php:146
+msgid "System"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:135
-#: admin/class-shift64-woo-search-admin.php:186
+#: admin/class-shift64-woo-search-admin-routes.php:150
+#: admin/class-shift64-woo-search-admin.php:1154
+msgid "Connection"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:154
+msgid "Index & Health"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:158
+msgid "Security & Traffic"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin-routes.php:162
+msgid "Diagnostics"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:161
+msgid "Primary"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:169
+msgid "Sections"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:246
+msgid "The old Search tab has been split up."
+msgstr ""
+
+#. translators: %s: link to the Relevance › Matching & Fallback section.
+#: admin/class-shift64-woo-search-admin.php:250
+#, php-format
+msgid "Its ranking controls are on this page. Typo tolerance, fallback passes, and the full-search limit are one section over, under %s."
+msgstr ""
+
+#. translators: 1: link to the Search Experience workspace. 2: link to the Results & Filters workspace.
+#: admin/class-shift64-woo-search-admin.php:259
+#, php-format
+msgid "The rest of the old page changed workspace: autocomplete and suggestion settings now live in %1$s, and archive coverage and price sorting in %2$s."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:280
+msgid "Search field behaviour, autocomplete, and the query and category suggestions shoppers see."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:281
+msgid "Which listings the search backend serves, and the facets shoppers filter results with."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:282
+msgid "Matching, ranking, synonyms, merchandising, and the tools for evaluating them."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:283
+msgid "Search usage over time and the queries that come back empty."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:284
+msgid "Backend connection, index operations, traffic protection, and generated configuration."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:289
+msgid "Every setting, content list, tool, and report lives in one of the workspaces below. This page only points at them — nothing here changes your store."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:318
+msgid "Type a search query..."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:325
 #: frontend/class-shift64-woo-search-frontend.php:51
 #: frontend/class-shift64-woo-search-frontend.php:108
 #: includes/class-shift64-woo-search-blocks.php:483
 msgid "Search"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:136
-#: admin/class-shift64-woo-search-admin.php:1220
-msgid "Frontend"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:179
-msgid "Type a search query..."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:192
+#: admin/class-shift64-woo-search-admin.php:331
 msgid "Search Pass:"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:196
+#: admin/class-shift64-woo-search-admin.php:335
 msgid "FT.SEARCH query:"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:201
+#: admin/class-shift64-woo-search-admin.php:340
 msgid "Time:"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:205
+#: admin/class-shift64-woo-search-admin.php:344
 msgid "Results:"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:214
-#: admin/class-shift64-woo-search-admin.php:566
+#: admin/class-shift64-woo-search-admin.php:353
+#: admin/class-shift64-woo-search-admin.php:735
 msgid "ID"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:215
-#: admin/class-shift64-woo-search-admin.php:717
+#: admin/class-shift64-woo-search-admin.php:354
+#: admin/class-shift64-woo-search-admin.php:886
 msgid "Title"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:216
-#: admin/class-shift64-woo-search-admin.php:718
+#: admin/class-shift64-woo-search-admin.php:355
+#: admin/class-shift64-woo-search-admin.php:887
 msgid "SKU"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:217
-#: admin/class-shift64-woo-search-admin.php:522
-#: frontend/class-shift64-woo-search-filters.php:95
-#: frontend/class-shift64-woo-search-filters.php:102
+#: admin/class-shift64-woo-search-admin.php:356
+#: admin/class-shift64-woo-search-admin.php:691
+#: frontend/class-shift64-woo-search-filters.php:115
+#: frontend/class-shift64-woo-search-filters.php:122
 msgid "Category"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:218
+#: admin/class-shift64-woo-search-admin.php:357
 msgid "Stock"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:219
+#: admin/class-shift64-woo-search-admin.php:358
 msgid "Raw"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:220
+#: admin/class-shift64-woo-search-admin.php:359
 msgid "Final"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:221
-#: admin/class-shift64-woo-search-admin.php:293
-#: admin/class-shift64-woo-search-admin.php:375
-#: admin/class-shift64-woo-search-admin.php:524
-#: admin/class-shift64-woo-search-admin.php:567
-#: admin/class-shift64-woo-search-admin.php:947
+#: admin/class-shift64-woo-search-admin.php:360
+#: admin/class-shift64-woo-search-admin.php:432
+#: admin/class-shift64-woo-search-admin.php:517
+#: admin/class-shift64-woo-search-admin.php:693
+#: admin/class-shift64-woo-search-admin.php:736
+#: admin/class-shift64-woo-search-admin.php:1202
 msgid "Actions"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:228
+#: admin/class-shift64-woo-search-admin.php:367
 msgid "No results found."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:243
+#: admin/class-shift64-woo-search-admin.php:382
 msgid "Compare search passes side by side. All passes run regardless of results, so you can evaluate the impact of each strategy."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:248
+#: admin/class-shift64-woo-search-admin.php:387
 msgid "Enter a test query..."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:251
+#: admin/class-shift64-woo-search-admin.php:390
 msgid "Compare"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:260
+#: admin/class-shift64-woo-search-admin.php:399
 msgid "Enter a query and click Compare."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:276
+#: admin/class-shift64-woo-search-admin.php:415
 msgid "Synonym groups let RediSearch treat related terms as equivalent. Use comma for two-way, => for one-way (e.g. kosz nożny => kosz pedałowy)."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:281
+#: admin/class-shift64-woo-search-admin.php:420
 msgid "e.g. ręcznik, papier ręcznikowy — or one-way: kosz nożny => kosz pedałowy"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:283
+#: admin/class-shift64-woo-search-admin.php:422
 msgid "Add Group"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:292
+#: admin/class-shift64-woo-search-admin.php:431
 msgid "Terms"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:304
-#: admin/class-shift64-woo-search-admin.php:386
-#: admin/class-shift64-woo-search-admin.php:535
+#: admin/class-shift64-woo-search-admin.php:443
+#: admin/class-shift64-woo-search-admin.php:528
+#: admin/class-shift64-woo-search-admin.php:704
 msgid "Save"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:305
-#: admin/class-shift64-woo-search-admin.php:387
-#: admin/class-shift64-woo-search-admin.php:536
+#: admin/class-shift64-woo-search-admin.php:444
+#: admin/class-shift64-woo-search-admin.php:529
+#: admin/class-shift64-woo-search-admin.php:705
 msgid "Delete"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:310
+#: admin/class-shift64-woo-search-admin.php:449
 msgid "No synonym groups defined."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:317
-#: admin/class-shift64-woo-search-admin.php:399
+#: admin/class-shift64-woo-search-admin.php:456
+#: admin/class-shift64-woo-search-admin.php:541
 msgid "Export"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:320
-#: admin/class-shift64-woo-search-admin.php:339
-#: admin/class-shift64-woo-search-admin.php:402
-#: admin/class-shift64-woo-search-admin.php:421
+#: admin/class-shift64-woo-search-admin.php:459
+#: admin/class-shift64-woo-search-admin.php:478
+#: admin/class-shift64-woo-search-admin.php:544
+#: admin/class-shift64-woo-search-admin.php:563
 msgid "Import"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:325
+#: admin/class-shift64-woo-search-admin.php:464
 msgid "Load .txt file"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:331
+#: admin/class-shift64-woo-search-admin.php:470
 msgid ""
 "One group per line:\n"
 "ręcznik, papier ręcznikowy\n"
 "kosz nożny => kosz pedałowy"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:335
+#: admin/class-shift64-woo-search-admin.php:474
 msgid "Replace existing synonyms (uncheck to append)"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:358
+#: admin/class-shift64-woo-search-admin.php:500
 msgid "Search suggestions displayed in the autocomplete dropdown. They are sampled when the search field receives focus and filtered as the shopper types."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:363
+#: admin/class-shift64-woo-search-admin.php:505
 msgid "e.g. wall-mounted soap dispenser"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:365
+#: admin/class-shift64-woo-search-admin.php:507
 msgid "Add"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:374
+#: admin/class-shift64-woo-search-admin.php:516
 msgid "Suggestion"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:392
+#: admin/class-shift64-woo-search-admin.php:534
 msgid "No suggestions configured."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:407
+#: admin/class-shift64-woo-search-admin.php:549
 msgid "Load a .txt file"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:413
+#: admin/class-shift64-woo-search-admin.php:555
 msgid ""
 "One suggestion per line:\n"
 "wall-mounted soap dispenser\n"
 "automatic dispenser"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:417
+#: admin/class-shift64-woo-search-admin.php:559
 msgid "Replace existing suggestions (uncheck to append)"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:506
-msgid "Relevance multiplier for category suggestions. Values above 1 promote a category and values below 1 demote it. Boosts apply within the same name-match level (exact, prefix, or substring) and take precedence over product count. Category pins have a higher priority than boosts."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:511
-#: admin/class-shift64-woo-search-admin.php:554
-msgid "Category name, slug, or ID"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:514
-msgid "Add / Save"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:523
-msgid "Boost"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:541
-msgid "No category boosts configured."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:547
-msgid "Hide from suggestions"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:549
-msgid "Categories hidden from the autocomplete category section. Product results are unaffected. Use a slug or ID to distinguish categories with the same display name; the full hierarchy is shown below."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:556
-msgid "Hide category"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:564
-msgid "Path"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:565
-msgid "Slug"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:577
-msgid "Restore"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:582
-msgid "No hidden categories."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:617
-msgid "Refresh"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:618
-msgid "Delete older than 90 days"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:619
-msgid "Delete all stats"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:626
-msgid "Searches (7d)"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:630
-msgid "Searches (period)"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:634
-msgid "Avg Response"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:638
-msgid "Zero Results"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:642
-msgid "Search Volume"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:649
-msgid "Top Searches"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:651
-#: admin/class-shift64-woo-search-admin.php:665
-msgid "Query"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:651
-#: admin/class-shift64-woo-search-admin.php:665
-msgid "Count"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:651
-msgid "Avg Results"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:657
-#: admin/class-shift64-woo-search-admin.php:671
-msgid "No data."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:663
-msgid "Zero-Result Searches"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:688
-msgid "No data for this period."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:719
-msgid "Brands"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:720
-msgid "Categories"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:721
-msgid "Short Description"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:722
-msgid "Attributes"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:723
-msgid "Description"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:728
-msgid "Adjust field weights for search scoring. Changing weights requires a full index rebuild."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:746
-msgid "Apply & Rebuild"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:749
-msgid "Reset to Defaults"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:782
-msgid "Filter Attributes"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:783
-msgid "Select which product attributes appear as search result filters. Changing attribute selection requires an index rebuild."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:788
-msgid "No WooCommerce product attributes found."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:801
-msgid "Show as filter"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:810
-msgid "Category Filter"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:812
-msgid "Show Category Filter"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:812
-msgid "Display product category filter on search results pages."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:815
-msgid "Excluded Categories"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:835
-msgid "e.g. kolekcje-v2, shift64-woo-search-unique-1"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:838
-msgid "Comma-separated product category slugs or IDs to hide from the Category facet. No index rebuild required."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:844
-msgid "Brand Filter"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:849
-msgid "Show Brand Filter"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:863
-#: admin/class-shift64-woo-search-admin.php:1450
-msgid "Enabled"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:867
-msgid "Display the product brand filter on search results pages."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:869
-msgid "Unavailable: this store has no product_brand taxonomy. WooCommerce provides it from version 9.4 onwards."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:877
-msgid "Save Filter Settings"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:878
-msgid "After changing attributes, rebuild the index on the Index tab."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:899
-msgid "Connection"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:905
-msgid "Connected"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:907
-msgid "Unavailable"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:916
-msgid "Exists"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:918
-msgid "Not created"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:923
-msgid "WC Products"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:924
-msgid "published"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:928
-msgid "Redis Memory"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:950
-msgid "Rebuild Index"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:973
-msgid "Redis Connection"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:976
-msgid "Host"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:977
-msgid "Port"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:992
-msgid "Authentication"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:997
-msgid "Use username and password (Redis 6+ ACL)"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1002
-msgid "Username"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1008
-msgid "Password"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1014
-msgid "Database"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1015
-msgid "Key Prefix"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1015
-msgid "Isolates keys per site"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1020
-msgid "Test Connection"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1021
-msgid "Regenerate SHORTINIT Config"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1040
-msgid "SHORTINIT config not found — click Regenerate."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1048
-msgid "Rate Limiting"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1051
-msgid "Max requests/sec per IP"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1051
-msgid "0 = disabled."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1056
-#: admin/class-shift64-woo-search-admin.php:1206
-#: admin/class-shift64-woo-search-admin.php:1231
-msgid "Save Settings"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1070
-msgid "Search Behavior"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1073
-msgid "Min Query Length"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1074
-msgid "Quick Search Results Limit"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1074
-msgid "Max products shown in the dropdown."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1075
-msgid "Full Search Results Limit"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1075
-msgid "Max products for full search page."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1076
-msgid "Fuzzy Level"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1076
-msgid "Levenshtein distance 1-3."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1079
-msgid "Search Logic"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1088
-msgid "Search Strategy"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1093
-msgid "Search Mode"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1095
-msgid "Strict first, fuzzy fallback (recommended)"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1096
-msgid "Mixed — prefix + fuzzy in one query (legacy)"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1098
-msgid "Strict-first runs a clean prefix query first. Fuzzy is only used as fallback."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1102
-msgid "Fallback Trigger"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1104
-msgid "No results OR best score below threshold (recommended)"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1105
-msgid "Only when no results"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1107
-msgid "When to fall back to fuzzy."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1109
-msgid "Score Threshold"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1109
-msgid "Typical good match ~3+, garbage ~0.01."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1112
-msgid "Fallback Fuzzy Level"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1119
-msgid "Token Reduction"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1119
-msgid "Drop weak trailing tokens before fuzzy fallback."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1120
-msgid "Weak Tokens"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1120
-#: admin/class-shift64-woo-search-admin.php:1225
-msgid "Comma-separated."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1121
-msgid "Drop Trailing Only"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1122
-msgid "Diacritics Normalization"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1122
-msgid "Match Polish chars without diacritics (ł→l, ó→o, etc). Requires rebuild."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1123
-msgid "Fuzzy Synonyms"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1123
-msgid "Match synonyms even with typos or partial input (prefix + Levenshtein)."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1124
-msgid "Category Suggestion Fuzzy"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1124
-msgid "Allow typo-tolerant matching in the autocomplete category section. Uses conservative Levenshtein distance 1 on category-name tokens; no index rebuild required."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1125
-msgid "Brand Suggestions"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1125
-msgid "Show a Brands section in the autocomplete dropdown. The section hides itself on stores that have no brands."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1129
-msgid "Relevance Boosts"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1134
-msgid "Category / Tag Boost Rules"
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1136
-msgid "One rule per line. Format: category-or-tag|factor (global) or query|category-or-tag|factor (query-specific). Lines starting with # are comments. Factor is clamped to 1-200, but factors compound with promoted (×1.5) and title-start (×2/×3) — values above ~5 can crowd out organic ranking, so use sparingly. Example: Promocja|1.2 or papier|Promocja|1.5. No index rebuild required."
-msgstr ""
-
-#: admin/class-shift64-woo-search-admin.php:1140
+#: admin/class-shift64-woo-search-admin.php:659
 msgid "Category Suggestion Pins"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1142
+#: admin/class-shift64-woo-search-admin.php:661
 msgid "Pins a category to the top of the autocomplete category list for a query. One rule per line. Format: query|category or query|category|priority. Category is a name or slug; priority defaults to 1 (higher wins). A pin fires while the shopper types (prefix match either way) and can surface a category even when its name does not contain the query. Lines starting with # are comments. No index rebuild required."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1147
-msgid "Out-of-Stock Products"
+#: admin/class-shift64-woo-search-admin.php:667
+#: admin/class-shift64-woo-search-admin.php:998
+#: admin/class-shift64-woo-search-admin.php:1297
+#: admin/class-shift64-woo-search-admin.php:1327
+#: admin/class-shift64-woo-search-admin.php:1448
+#: admin/class-shift64-woo-search-admin.php:1526
+#: admin/class-shift64-woo-search-admin.php:1563
+#: admin/class-shift64-woo-search-admin.php:1592
+#: admin/class-shift64-woo-search-admin.php:1622
+msgid "Save Settings"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1152
-msgid "Mode"
+#: admin/class-shift64-woo-search-admin.php:673
+msgid "Category boosts"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1154
-msgid "Exclude — never show"
+#: admin/class-shift64-woo-search-admin.php:675
+msgid "Relevance multiplier for category suggestions. Values above 1 promote a category and values below 1 demote it. Boosts apply within the same name-match level (exact, prefix, or substring) and take precedence over product count. Category pins have a higher priority than boosts."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1155
-msgid "Show — same ranking"
+#: admin/class-shift64-woo-search-admin.php:680
+#: admin/class-shift64-woo-search-admin.php:723
+msgid "Category name, slug, or ID"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1156
-msgid "Demote — lower score"
+#: admin/class-shift64-woo-search-admin.php:683
+msgid "Add / Save"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1159
-msgid "Demote Factor"
+#: admin/class-shift64-woo-search-admin.php:692
+msgid "Boost"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1159
-msgid "0.0–1.0."
+#: admin/class-shift64-woo-search-admin.php:710
+msgid "No category boosts configured."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1163
+#: admin/class-shift64-woo-search-admin.php:716
+msgid "Hide from suggestions"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:718
+msgid "Categories hidden from the autocomplete category section. Product results are unaffected. Use a slug or ID to distinguish categories with the same display name; the full hierarchy is shown below."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:725
+msgid "Hide category"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:733
+msgid "Path"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:734
+msgid "Slug"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:746
+msgid "Restore"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:751
+msgid "No hidden categories."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:786
+msgid "Refresh"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:787
+msgid "Delete older than 90 days"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:788
+msgid "Delete all stats"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:795
+msgid "Searches (7d)"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:799
+msgid "Searches (period)"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:803
+msgid "Avg Response"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:807
+msgid "Zero Results"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:811
+msgid "Search Volume"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:818
+msgid "Top Searches"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:820
+#: admin/class-shift64-woo-search-admin.php:834
+msgid "Query"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:820
+#: admin/class-shift64-woo-search-admin.php:834
+msgid "Count"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:820
+msgid "Avg Results"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:826
+#: admin/class-shift64-woo-search-admin.php:840
+msgid "No data."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:832
+msgid "Zero-Result Searches"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:857
+msgid "No data for this period."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:888
+msgid "Brands"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:889
+msgid "Categories"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:890
+msgid "Short Description"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:891
+msgid "Attributes"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:892
+msgid "Description"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:897
+msgid "Adjust field weights for search scoring. Changing weights requires a full index rebuild."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:915
+msgid "Apply & Rebuild"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:918
+msgid "Reset to Defaults"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:950
 msgid "Archive / Search Results"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1166
+#: admin/class-shift64-woo-search-admin.php:953
 msgid "Redis Search Results"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1166
+#: admin/class-shift64-woo-search-admin.php:953
 msgid "Replace WooCommerce MySQL search on product search results pages with Redis."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1169
+#: admin/class-shift64-woo-search-admin.php:956
 msgid "Price Sorting"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1171
+#: admin/class-shift64-woo-search-admin.php:958
 msgid "Redis index prices (fast, base prices)"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1172
+#: admin/class-shift64-woo-search-admin.php:959
 msgid "DB prices for logged-in users (accurate B2B tiers)"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1174
+#: admin/class-shift64-woo-search-admin.php:961
 msgid "DB mode: logged-in users get prices from database (slower but accurate per-customer). Guests always use Redis."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1181
+#: admin/class-shift64-woo-search-admin.php:966
+msgid "Taxonomy Archives"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:973
 msgid "Taxonomy Archive Filters"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1198
+#: admin/class-shift64-woo-search-admin.php:990
 msgid "Enable Redis-backed filtering (faceted pills) on these taxonomy archives. Does not affect sorting — Redis acts as a filter, theme/WC handle order."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1223
+#: admin/class-shift64-woo-search-admin.php:1023
+msgid "Filter Attributes"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1024
+msgid "Select which product attributes appear as search result filters. Changing attribute selection requires an index rebuild."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1029
+msgid "No WooCommerce product attributes found."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1042
+msgid "Show as filter"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1051
+msgid "Category Filter"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1053
+msgid "Show Category Filter"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1053
+msgid "Display product category filter on search results pages."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1056
+msgid "Excluded Categories"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1076
+msgid "e.g. kolekcje-v2, shift64-woo-search-unique-1"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1079
+msgid "Comma-separated product category slugs or IDs to hide from the Category facet. No index rebuild required."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1085
+msgid "Brand Filter"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1090
+msgid "Show Brand Filter"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1104
+#: admin/class-shift64-woo-search-admin.php:1842
+msgid "Enabled"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1108
+msgid "Display the product brand filter on search results pages."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1110
+msgid "Unavailable: this store has no product_brand taxonomy. WooCommerce provides it from version 9.4 onwards."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1118
+msgid "Save Filter Settings"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1124
+msgid "System › Index & Health"
+msgstr ""
+
+#. translators: %s: link to the System › Index & Health section.
+#: admin/class-shift64-woo-search-admin.php:1129
+#, php-format
+msgid "After changing attributes, rebuild the index on %s."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1157
+msgid "Redis"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1160
+msgid "Connected"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1162
+msgid "Unavailable"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1168
+msgid "Index"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1171
+msgid "Exists"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1173
+msgid "Not created"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1178
+msgid "WC Products"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1179
+msgid "published"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1183
+msgid "Redis Memory"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1205
+msgid "Rebuild Index"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1243
+msgid "Redis Connection"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1246
+msgid "Host"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1247
+msgid "Port"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1262
+msgid "Authentication"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1267
+msgid "Use username and password (Redis 6+ ACL)"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1272
+msgid "Username"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1278
+msgid "Password"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1284
+msgid "Database"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1285
+msgid "Key Prefix"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1285
+msgid "Isolates keys per site"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1290
+msgid "Test Connection"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1319
+msgid "Rate Limiting"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1322
+msgid "Max requests/sec per IP"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1322
+msgid "0 = disabled."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1355
+msgid "SHORTINIT Config"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1358
+msgid "Generated config"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1360
+msgid "Regenerate SHORTINIT Config"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1379
+msgid "SHORTINIT config not found — click Regenerate."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1408
+msgid "Search Behavior"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1413
+msgid "Search Logic"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1421
+msgid "Search Mode"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1423
+msgid "Strict first, fuzzy fallback (recommended)"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1424
+msgid "Mixed — prefix + fuzzy in one query (legacy)"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1426
+msgid "Strict-first runs a clean prefix query first. Fuzzy is only used as fallback."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1431
+msgid "Out-of-Stock Products"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1436
+msgid "Mode"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1438
+msgid "Exclude — never show"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1439
+msgid "Show — same ranking"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1440
+msgid "Demote — lower score"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1443
+msgid "Demote Factor"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1443
+msgid "0.0–1.0."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1475
+msgid "Fuzzy Matching"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1478
+msgid "Fuzzy Level"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1478
+msgid "Levenshtein distance 1-3."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1481
+msgid "Fallback Trigger"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1483
+msgid "No results OR best score below threshold (recommended)"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1484
+msgid "Only when no results"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1486
+msgid "When to fall back to fuzzy."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1488
+msgid "Score Threshold"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1488
+msgid "Typical good match ~3+, garbage ~0.01."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1491
+msgid "Fallback Fuzzy Level"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1501
+#: admin/class-shift64-woo-search-admin.php:1504
+msgid "Token Reduction"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1504
+msgid "Drop weak trailing tokens before fuzzy fallback."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1505
+msgid "Weak Tokens"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1505
+#: admin/class-shift64-woo-search-admin.php:1586
+msgid "Comma-separated."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1506
+msgid "Drop Trailing Only"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1510
+msgid "Normalization"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1513
+msgid "Diacritics Normalization"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1513
+msgid "Match Polish chars without diacritics (ł→l, ó→o, etc). Requires rebuild."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1514
+msgid "Fuzzy Synonyms"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1514
+msgid "Match synonyms even with typos or partial input (prefix + Levenshtein)."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1518
+msgid "Result Limits"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1521
+msgid "Full Search Results Limit"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1521
+msgid "Max products for full search page."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1550
+msgid "Relevance Boosts"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1555
+msgid "Category / Tag Boost Rules"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1557
+msgid "One rule per line. Format: category-or-tag|factor (global) or query|category-or-tag|factor (query-specific). Lines starting with # are comments. Factor is clamped to 1-200, but factors compound with promoted (×1.5) and title-start (×2/×3) — values above ~5 can crowd out organic ranking, so use sparingly. Example: Promocja|1.2 or papier|Promocja|1.5. No index rebuild required."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1584
 msgid "Debounce (ms)"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1224
+#: admin/class-shift64-woo-search-admin.php:1585
 msgid "Input Selector"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1225
+#: admin/class-shift64-woo-search-admin.php:1586
 msgid "Additional Selectors"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1226
+#: admin/class-shift64-woo-search-admin.php:1587
 msgid "Search Button Selector"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1226
+#: admin/class-shift64-woo-search-admin.php:1587
 msgid "CSS selector for the search submit button, e.g. .search-submit"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1265
+#: admin/class-shift64-woo-search-admin.php:1614
+msgid "Min Query Length"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1615
+msgid "Quick Search Results Limit"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1615
+msgid "Max products shown in the dropdown."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1616
+msgid "Category Suggestion Fuzzy"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1616
+msgid "Allow typo-tolerant matching in the autocomplete category section. Uses conservative Levenshtein distance 1 on category-name tokens; no index rebuild required."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1617
+msgid "Brand Suggestions"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1617
+msgid "Show a Brands section in the autocomplete dropdown. The section hides itself on stores that have no brands."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1656
 msgid "Promoted in search"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1269
+#: admin/class-shift64-woo-search-admin.php:1660
 msgid "Excluded from search"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1320
+#: admin/class-shift64-woo-search-admin.php:1711
 msgid "searches (7d)"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1321
+#: admin/class-shift64-woo-search-admin.php:1712
 msgid "avg response"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1324
+#: admin/class-shift64-woo-search-admin.php:1715
 msgid "Top searches:"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1332
+#: admin/class-shift64-woo-search-admin.php:1723
 msgid "Zero-result searches:"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1339
+#: admin/class-shift64-woo-search-admin.php:1731
 msgid "View full statistics"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2037
+#: admin/class-shift64-woo-search-admin.php:2354
 msgid "Filter settings saved. Rebuild index only if you changed filter attributes."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2064
-#: admin/class-shift64-woo-search-admin.php:2205
+#: admin/class-shift64-woo-search-admin.php:2381
+#: admin/class-shift64-woo-search-admin.php:2522
 msgid "Category required."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2067
+#: admin/class-shift64-woo-search-admin.php:2384
 msgid "Boost must be greater than 0."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2080
-#: admin/class-shift64-woo-search-admin.php:2210
+#: admin/class-shift64-woo-search-admin.php:2397
+#: admin/class-shift64-woo-search-admin.php:2527
 msgid "Category not found."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2094
+#: admin/class-shift64-woo-search-admin.php:2411
 msgid "Boost saved."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2122
+#: admin/class-shift64-woo-search-admin.php:2439
 msgid "Boost removed."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2218
+#: admin/class-shift64-woo-search-admin.php:2535
 msgid "Category hidden."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2240
+#: admin/class-shift64-woo-search-admin.php:2557
 msgid "Category restored."
 msgstr ""
 
-#: frontend/class-shift64-woo-search-filters.php:115
-#: frontend/class-shift64-woo-search-filters.php:122
+#: frontend/class-shift64-woo-search-filters.php:135
+#: frontend/class-shift64-woo-search-filters.php:142
 msgid "Brand"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-filters.php:180
-#: frontend/class-shift64-woo-search-filters.php:415
+#: frontend/class-shift64-woo-search-filters.php:200
+#: frontend/class-shift64-woo-search-filters.php:435
 msgid "Clear filters"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-filters.php:380
-#: frontend/class-shift64-woo-search-filters.php:435
+#: frontend/class-shift64-woo-search-filters.php:392
+#: frontend/class-shift64-woo-search-filters.php:412
+msgid "Filters"
+msgstr ""
+
+#: frontend/class-shift64-woo-search-filters.php:400
+#: frontend/class-shift64-woo-search-filters.php:455
 msgid "Sort"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-filters.php:393
-#: frontend/class-shift64-woo-search-filters.php:436
+#: frontend/class-shift64-woo-search-filters.php:413
+#: frontend/class-shift64-woo-search-filters.php:456
 msgid "Close"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-filters.php:410
+#: frontend/class-shift64-woo-search-filters.php:430
 msgid "Show results"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-filters.php:424
-msgid "Relevance"
-msgstr ""
-
-#: frontend/class-shift64-woo-search-filters.php:425
+#: frontend/class-shift64-woo-search-filters.php:445
 #: includes/class-shift64-woo-search-archive.php:614
 msgid "Price: low to high"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-filters.php:426
+#: frontend/class-shift64-woo-search-filters.php:446
 #: includes/class-shift64-woo-search-archive.php:615
 msgid "Price: high to low"
 msgstr ""
 
 #. translators: %d: number of selected filter options.
-#: frontend/class-shift64-woo-search-filters.php:489
+#: frontend/class-shift64-woo-search-filters.php:509
 #, php-format
 msgid "%d selected"
 msgid_plural "%d selected"
@@ -991,23 +1133,23 @@ msgstr ""
 msgid "Search relevance"
 msgstr ""
 
-#: includes/class-shift64-woo-search-archive.php:776
-#: includes/class-shift64-woo-search-archive.php:883
+#: includes/class-shift64-woo-search-archive.php:784
+#: includes/class-shift64-woo-search-archive.php:891
 msgid "Home"
 msgstr ""
 
-#: includes/class-shift64-woo-search-archive.php:778
-#: includes/class-shift64-woo-search-archive.php:885
+#: includes/class-shift64-woo-search-archive.php:786
+#: includes/class-shift64-woo-search-archive.php:893
 msgid "Search results"
 msgstr ""
 
-#: includes/class-shift64-woo-search-archive.php:781
-#: includes/class-shift64-woo-search-archive.php:828
+#: includes/class-shift64-woo-search-archive.php:789
+#: includes/class-shift64-woo-search-archive.php:836
 msgid "Search results for:"
 msgstr ""
 
 #. translators: %s: search query.
-#: includes/class-shift64-woo-search-archive.php:860
+#: includes/class-shift64-woo-search-archive.php:868
 #, php-format
 msgid "Search results for: \"%s\""
 msgstr ""
@@ -1161,17 +1303,17 @@ msgstr ""
 msgid "Shift64 Woo Search requires WooCommerce to be active."
 msgstr ""
 
-#: shift64-woo-search.php:575
-#: shift64-woo-search.php:588
+#: shift64-woo-search.php:577
+#: shift64-woo-search.php:590
 msgid "Shift64 Woo Search:"
 msgstr ""
 
-#: shift64-woo-search.php:576
+#: shift64-woo-search.php:578
 msgid "Redis connection not configured. Run: wp shift64-woo-search setup"
 msgstr ""
 
 #. translators: %1$s: Redis host, %2$s: Redis port.
-#: shift64-woo-search.php:592
+#: shift64-woo-search.php:594
 #, php-format
 msgid "Cannot connect to Redis at %1$s:%2$s. Search will fall back to default WooCommerce search."
 msgstr ""

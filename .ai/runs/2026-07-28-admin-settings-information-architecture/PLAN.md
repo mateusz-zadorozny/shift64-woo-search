@@ -20,7 +20,7 @@
 | 3 | 3.1 | Relocate Insights and System sections to canonical routes | done | ad15235 |
 | 3 | 3.2 | Canonical internal links, legacy-search relocation notice, secondary-nav CSS | done | 2d85900 |
 | 4 | 4.1 | Add focused IA regression suite (test-admin-settings-information-architecture.php) | done | 4a77ada |
-| 4 | 4.2 | Docs and i18n: spec status flip, specs index, BACKWARD_COMPATIBILITY, makepot | todo | — |
+| 4 | 4.2 | Docs and i18n: spec status flip, specs index, BACKWARD_COMPATIBILITY, makepot | done | 9a52060 |
 
 ## Goal
 

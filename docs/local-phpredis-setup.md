@@ -7,8 +7,9 @@
 bin/install-phpredis-local.sh
 ```
 
-Then in WP Admin: **WooCommerce → Shift64 Woo Search → Settings → Test Connection**
-should turn green. Click **Regenerate SHORTINIT Config** for good measure.
+Then in WP Admin: **WooCommerce → Shift64 Woo Search → System → Connection → Test Connection**
+should turn green. Then click **Regenerate SHORTINIT Config** under **System → Diagnostics** for
+good measure.
 
 When to re-run:
 - Local upgrades the bundled PHP (e.g. `php-8.4.18+1` → `php-8.4.19+0`).

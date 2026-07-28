@@ -1,6 +1,6 @@
 # Admin Settings Information Architecture
 
-> **Status:** draft — not implemented (admin still renders the legacy twelve-tab layout).
+> **Status:** implemented — PR #33, 2026-07-28.
 
 ## TLDR
 
