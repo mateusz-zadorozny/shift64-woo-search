@@ -26,6 +26,17 @@ export default defineConfig({
 			name: 'main',
 			testDir: 'tests/e2e/specs',
 		},
+		// Second, blockified projection of the AJAX-swap journeys (#17). It
+		// REALLY switches the target site's theme, but the switch is bounded by
+		// the spec file's beforeAll/afterAll rather than by a setup/teardown
+		// project pair: a spec file is the unit a worker runs to completion, so
+		// no other project can observe the switched theme, and no dependency
+		// edge has to be threaded through the degraded chain's teardown.
+		{
+			name: 'block-theme',
+			testDir: 'tests/e2e/block-theme',
+			dependencies: ['main'],
+		},
 		// The degraded chain REALLY mutates the target site's Redis config.
 		// Ordering is enforced by dependencies. restore-env may also run when
 		// the degrade setup was skipped (e.g. a red `main`) — that is safe by
@@ -35,7 +46,15 @@ export default defineConfig({
 			name: 'degrade-env',
 			testDir: 'tests/e2e/degraded',
 			testMatch: /degrade\.setup\.ts/,
-			dependencies: ['main'],
+			// Depends on block-theme, not main. Both are state-mutating chains;
+			// if they merely shared `main` as a dependency, their relative order
+			// would rest on undocumented intra-stage scheduling, and a
+			// degrade-env that ran first would point Redis at a dead port and
+			// red the block-theme journeys (which need the takeover live).
+			// Making the edge explicit forces main -> block-theme -> degrade-env
+			// -> degraded. block-theme is a DEPENDENCY here, not a dependent, so
+			// restore-env still fires as soon as `degraded` is done.
+			dependencies: ['block-theme'],
 			teardown: 'restore-env',
 		},
 		{

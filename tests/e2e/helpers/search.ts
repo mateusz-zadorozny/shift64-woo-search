@@ -29,7 +29,10 @@ export const SEL = {
 	productsGrid:
 		'.kwt-products-wrap, ul.products, .products, .wc-block-grid__products, .wp-block-woocommerce-product-template',
 	orderbySelect: '.woocommerce-ordering select.orderby',
-	pagination: 'nav.woocommerce-pagination',
+	// Classic Woo markup plus the blockified nav block themes render instead
+	// (mirrors the AJAX pagination script's SELECTORS.pagination).
+	pagination: 'nav.woocommerce-pagination, nav.wp-block-query-pagination',
+	resultCount: '.woocommerce-result-count',
 	price: '.woocommerce-Price-amount',
 } as const;
 

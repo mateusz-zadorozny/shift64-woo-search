@@ -22,6 +22,12 @@ export function wpCli(args: string[]): string {
 }
 
 /**
+ * The block theme the block-theme project switches to. Installed (inactive) by
+ * bin/e2e-install-wp.sh; override to match a differently-provisioned site.
+ */
+export const BLOCK_THEME = process.env.E2E_BLOCK_THEME || 'twentytwentyfive';
+
+/**
  * Where the degrade setup records the site's original Redis connection so the
  * restore teardown puts back what was actually there — not env defaults.
  * Lives under test-results/ (gitignored, wiped by Playwright between runs).
