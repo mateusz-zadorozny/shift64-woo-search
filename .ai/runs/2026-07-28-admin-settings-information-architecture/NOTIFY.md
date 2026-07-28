@@ -12,3 +12,10 @@
 - UI browser checks skipped: live LocalWP site loads the primary worktree (main), not this isolated worktree; render-level PHPUnit covers nav/markup/no-write; browser QA deferred to final gate + manual QA.
 - Decisions: PLAN.md Commit column reconciled at checkpoints (amend-flow SHA drift); category_pin_rules moved from old Search tab to experience/category-suggestions per spec ownership table.
 - Executor delegation: Steps 1.1–2.3 each implemented by one sequential general-purpose executor subagent (Opus), dispatched and verified by the main session.
+
+## 2026-07-28T21:59:26Z — final gate passed (Steps 2.4–4.2; run subsumes checkpoint 2)
+- All 10 Steps done (d075047..a1677ff). Full gate green: composer validate --strict, phpcs, phpunit 459/7549, node --check (both JS files), makepot (slug-forced; caveat recorded).
+- Integration suite (Playwright E2E) skipped with recorded reason: live site runs the primary worktree on main; suite mutates site Redis config; storefront out of blast radius. Admin covered by 134 new PHPUnit tests; browser QA deferred to manual QA (needs-qa).
+- Style compliance pass skipped — no design-system skill/lint in repo.
+- Executor delegation: Steps 2.4–4.2 each one sequential general-purpose executor (Opus).
+- Next: self code-review + BC review, then open draft PR.

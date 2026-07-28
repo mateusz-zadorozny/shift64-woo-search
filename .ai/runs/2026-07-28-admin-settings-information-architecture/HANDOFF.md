@@ -1,25 +1,25 @@
 # Handoff — 2026-07-28-admin-settings-information-architecture
 
-**Last updated:** 2026-07-28T21:13:11Z
+**Last updated:** 2026-07-28T21:59:26Z
 **Branch:** feat/admin-settings-information-architecture
-**PR:** not yet opened
-**Current phase/step:** Phase 2 Step 2.4
-**Last commit:** a058629 — feat(admin): relocate Results & Filters sections to canonical routes
+**PR:** not yet opened (next action)
+**Current phase/step:** all 10 Steps done; final gate passed; pre-PR self-review in progress
+**Last commit:** a1677ff — docs(admin): document IA migration, flip spec status, refresh pot
 
 ## What just happened
-- Checkpoint 1 passed: Steps 1.1–2.3 landed (registry + resolver, six-workspace nav shell + Overview, credential-safe persistence seam, Search Experience and Results & Filters relocated). Full gate green: composer validate, phpcs, phpunit 377/377, node --check.
-- PLAN.md Commit column reconciled to real SHAs.
+- Steps 2.4–4.2 landed (Relevance, Insights/System, links+notice+CSS, IA regression suite, docs/i18n).
+- Final gate green: composer validate --strict, phpcs, phpunit 459/7549, node --check both JS files, makepot. See final-gate-checks.md (integration-suite and style-pass skips recorded there).
 
 ## Next concrete action
-- Implement Step 2.4: relocate Relevance sections (basic, matching, synonyms, merchandising, field-weights, test-search, compare-passes); after it `render_search_tab` must have no owned fields left.
+- Run om-code-review + BACKWARD_COMPATIBILITY self-review over origin/main..HEAD, then open the draft PR (expected #33 — spec status flip references it; verify at create-pr and fixup if different).
 
 ## Blockers / open questions
 - none
 
 ## Environment caveats
-- Dev runtime runnable: yes, but the live LocalWP site loads the PRIMARY worktree (on `main`) — browser QA cannot exercise this isolated worktree mid-run; deferred to final gate / manual QA (needs-qa).
-- Browser / UI checks: skipped at checkpoint 1 (reason above); render-level PHPUnit suites cover nav markup, aria-current, Synonyms regression, render-without-write.
-- Database/migration state: clean — no data migration in this spec.
+- Dev runtime runnable: yes, but live LocalWP site loads the primary worktree (main) — browser QA of this branch deferred to manual QA (needs-qa; qaGate on).
+- Browser / UI checks: skipped with recorded reasons (checkpoint-1-checks.md, final-gate-checks.md).
+- Database/migration state: clean — zero data migration by spec.
 
 ## Worktree
 - Path: .ai/tmp/om-auto-create-pr-loop/admin-settings-information-architecture-20260728-171406
