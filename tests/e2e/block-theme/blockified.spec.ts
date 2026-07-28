@@ -45,8 +45,9 @@ import { SEL } from '../helpers/search';
  */
 
 // 48 results = 3 pages at 16/page — the same broad query the Storefront
-// journeys use.
-const BROAD_QUERY = '/?s=clothing&post_type=product';
+// journeys use. "series" (not "clothing") is what spans the whole multi-vertical
+// catalog; see the comment in specs/search-results-page.spec.ts.
+const BROAD_QUERY = '/?s=series&post_type=product';
 const PAGE_2 = /\/page\/2\/|[?&]paged=2/;
 
 const MU_FIXTURE = 'shift64-e2e-force-page-reload.php';

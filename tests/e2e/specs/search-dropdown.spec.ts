@@ -35,7 +35,8 @@ test.describe('search dropdown', () => {
 
 		const firstProduct = traySection(page, 'products').locator(SEL.row).first();
 		await expect(firstProduct).toBeVisible();
-		await expect(firstProduct.locator(SEL.rowSku)).toContainText(/DEMO64/);
+		// SKUs are DEMO-[VERTICAL]-[SEED]-[ID], e.g. DEMO-APP-64-000009.
+		await expect(firstProduct.locator(SEL.rowSku)).toContainText(/DEMO-[A-Z]{3}-\d{2}-\d{6}/);
 		await expect(firstProduct.locator(SEL.rowCategory)).not.toBeEmpty();
 
 		const targetUrl = await firstProduct.getAttribute('data-url');
@@ -123,18 +124,21 @@ test.describe('search dropdown', () => {
 		expect(autocompleteQueries).toEqual(['at']);
 	});
 
-	// Test 7: submit "athena" → lands on /?s=athena&post_type=product with results.
+	// Test 7: submit "pulse" → lands on /?s=pulse&post_type=product with results.
+	// "pulse" is the most frequent name prefix in the seeded catalog (8 of 48),
+	// so the results page has plenty to render; "athena" now matches a single
+	// product and makes this a needlessly brittle assertion.
 	test('submitting the form lands on the results page with matching products', async ({ page }) => {
 		const input = searchInput(page);
-		await input.fill('athena');
+		await input.fill('pulse');
 		await input.press('Enter');
 
 		await page.waitForURL((url) => {
-			return url.searchParams.get('s') === 'athena' && url.searchParams.get('post_type') === 'product';
+			return url.searchParams.get('s') === 'pulse' && url.searchParams.get('post_type') === 'product';
 		});
 
 		const grid = page.locator(SEL.productsGrid).first();
 		await expect(grid).toBeVisible();
-		await expect(grid).toContainText(/Athena/);
+		await expect(grid).toContainText(/Pulse/);
 	});
 });

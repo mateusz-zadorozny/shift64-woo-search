@@ -12,8 +12,11 @@ test('category archive is intercepted and renders the facet bar', async ({ page 
 
 	const count = await cards.count();
 	expect(count).toBeGreaterThan(0);
+	// The T-Shirts category holds both "T-Shirt" and "Polo Shirt" items in the
+	// multi-vertical catalog, so match the shared "Shirt" token rather than the
+	// narrower "T-Shirt" one.
 	for (let i = 0; i < count; i++) {
-		await expect(cards.nth(i)).toContainText(/T-Shirt/);
+		await expect(cards.nth(i)).toContainText(/Shirt/);
 	}
 
 	const filters = page.locator(SEL.filters).first();
