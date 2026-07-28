@@ -1,3 +1,10 @@
+# [0.9.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.8.0...v0.9.0) (2026-07-28)
+
+
+### Features
+
+* **demo-data:** add a reset-only flag to tear down without reseeding ([#24](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/24)) ([#29](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/29)) ([e70d9ed](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/e70d9ed4c723b22b51ba73772803ebf52fa58b32))
+
 # [0.8.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.7.1...v0.8.0) (2026-07-28)
 
 
