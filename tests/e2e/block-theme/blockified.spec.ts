@@ -5,64 +5,65 @@ import { BLOCK_THEME, wpCli } from '../helpers/env';
 import { SEL } from '../helpers/search';
 
 /**
- * Second, blockified projection of the AJAX-swap journeys (issue #17).
+ * Blockified (block-theme) projection of the pagination journeys — issue #17.
  *
- * The rest of the suite runs on Storefront, which renders classic WooCommerce
- * markup. That made a whole class of frontend bug invisible to CI: #15 was
- * exactly that — the AJAX pagination script matched only
- * nav.woocommerce-pagination, so on block themes the current-page indicator
- * never moved, and the regression assertion added for it passed on Storefront
- * with AND without the fix.
+ * The rest of the suite runs on Storefront, whose classic WooCommerce markup
+ * hid a whole class of frontend bug from CI (#15). This file adds the missing
+ * projection: a real block theme rendering WooCommerce's Product Collection.
  *
- * Scope is deliberately the "minimum viable version" from #17: the AJAX swap
- * journeys (grid + pagination indicator + result count), not the whole suite.
- * The facet/ordering journeys stay Storefront-only — they lean on the
- * shop-loop hooks that blockified archive templates never fire, and making
- * them work on a block theme is its own design problem.
+ * WHAT THIS FILE ASSERTS IS AN OWNERSHIP CONTRACT, NOT "the plugin swaps
+ * everything". Per the decision on #20, pagination ownership is:
+ *
+ *   | context                                    | owner            |
+ *   |--------------------------------------------|------------------|
+ *   | classic Woo markup, Kadence, custom pager   | THIS PLUGIN      |
+ *   | Product Collection + data-wp-router-region  | WooCommerce (IA) |
+ *   | Product Collection + forcePageReload        | the browser      |
+ *
+ * Scenario 1 (classic markup, plugin owns the AJAX swap) is already covered on
+ * Storefront by tests/e2e/specs/search-results-page.spec.ts — it is not
+ * duplicated here. This file covers the two block-theme columns.
+ *
+ * EXPECTED FAILURES: the ownership model is decided but NOT YET IMPLEMENTED
+ * (#20). The plugin currently intercepts pagination clicks everywhere, so the
+ * ownership assertions below are marked `test.fail()`. That is deliberate:
+ * they run against real behavior, keep the suite green while production is
+ * still wrong, and turn RED the moment #20 lands — which is the signal to drop
+ * the marker. They must NOT be relaxed into passing tests, because a passing
+ * version of these assertions would codify the opposite contract.
+ *
+ * Measured on the pre-#20 code, for reference:
+ *   - enhanced click  -> 2 fetches of the target page, 2 history entries
+ *   - forcePageReload -> plugin still intercepts; no real navigation
  *
  * REAL environment mutation, like the degraded project: this file activates a
- * block theme AND installs a test-only mu-plugin in beforeAll, then restores
- * both in afterAll. The bounds are beforeAll/afterAll rather than a Playwright
- * setup/teardown project on purpose — a spec file is the unit a worker runs to
- * completion, so no other project can observe the switched theme, and afterAll
- * still runs when a test fails. If a run is hard-killed in between, restore
- * with `wp theme activate storefront` and delete
+ * block theme in beforeAll and restores the previous one in afterAll, and the
+ * forcePageReload describe installs/removes a test-only mu-plugin around
+ * itself. The bounds are beforeAll/afterAll rather than a Playwright
+ * setup/teardown project pair on purpose — a spec file is the unit a worker
+ * runs to completion, so no other project can observe the switched theme, and
+ * afterAll still runs when a test fails. If a run is hard-killed in between,
+ * restore with `wp theme activate storefront` and delete
  * wp-content/mu-plugins/shift64-e2e-force-page-reload.php.
- *
- * The mu-plugin turns OFF WooCommerce's enhanced (Interactivity-API)
- * pagination — see force-page-reload.mu.php for why that is load-bearing
- * rather than incidental. Short version: with it on, Woo updates the
- * pagination block itself and the journey passes even against #15's pre-fix
- * code, which would make this whole project a green no-op.
  */
 
-// Same broad query the Storefront journeys use: 48 results = 3 pages at 16/page.
+// 48 results = 3 pages at 16/page — the same broad query the Storefront
+// journeys use.
 const BROAD_QUERY = '/?s=clothing&post_type=product';
+const PAGE_2 = /\/page\/2\/|[?&]paged=2/;
 
 const MU_FIXTURE = 'shift64-e2e-force-page-reload.php';
 
 let originalTheme = '';
-let installedMuPath = '';
 
 test.beforeAll(() => {
 	originalTheme = wpCli(['theme', 'list', '--status=active', '--field=name']).trim();
 	if (originalTheme !== BLOCK_THEME) {
 		wpCli(['theme', 'activate', BLOCK_THEME]);
 	}
-
-	const muDir = wpCli(['eval', 'echo WPMU_PLUGIN_DIR;']).trim();
-	if (!muDir) {
-		throw new Error('Could not resolve WPMU_PLUGIN_DIR from the target install.');
-	}
-	installedMuPath = join(muDir, MU_FIXTURE);
-	// __dirname, not import.meta: Playwright transpiles specs to CJS.
-	copyFileSync(join(__dirname, 'force-page-reload.mu.php'), installedMuPath);
 });
 
 test.afterAll(() => {
-	if (installedMuPath) {
-		rmSync(installedMuPath, { force: true });
-	}
 	if (originalTheme && originalTheme !== BLOCK_THEME) {
 		wpCli(['theme', 'activate', originalTheme]);
 	}
@@ -72,74 +73,160 @@ function productCards(page: import('@playwright/test').Page) {
 	return page.locator(SEL.productsGrid).first().locator('li.product');
 }
 
-// The projection is only worth anything if the theme really renders blockified
-// markup. Without this guard a theme that quietly falls back to classic markup
-// would turn the whole project into a green no-op — the exact failure mode #17
-// exists to close.
-test('the block theme really renders blockified archive markup', async ({ page }) => {
-	await page.goto(BROAD_QUERY);
+/**
+ * Count document/fetch requests for the *target* page only. Scoping to page 2
+ * matters: WooCommerce prefetches page 3 on hover, so counting "any paged
+ * request" would fold an unrelated, legitimate prefetch into the duplicate.
+ */
+function countTargetRequests(page: import('@playwright/test').Page): { total: () => number } {
+	let n = 0;
+	page.on('request', (req) => {
+		const type = req.resourceType();
+		if ((type === 'document' || type === 'fetch' || type === 'xhr') && PAGE_2.test(req.url())) {
+			n += 1;
+		}
+	});
+	return { total: () => n };
+}
 
-	await expect(productCards(page).first()).toBeVisible();
+test.describe('block theme + enhanced pagination (WooCommerce owns navigation)', () => {
+	// The projection is only worth anything if the theme really renders
+	// blockified markup with the Interactivity API live. Without this guard, a
+	// theme that quietly fell back to classic markup would make every
+	// assertion below meaningless.
+	test('renders blockified markup with the Interactivity API in charge', async ({ page }) => {
+		await page.goto(BROAD_QUERY);
 
-	// WooCommerce's Product Template block, not a classic ul.products loop.
-	await expect(page.locator('.wp-block-woocommerce-product-template').first()).toBeAttached();
-	// The blockified nav — the element #15's bug could not see.
-	await expect(page.locator('nav.wp-block-query-pagination').first()).toBeAttached();
-	await expect(page.locator('nav.woocommerce-pagination')).toHaveCount(0);
+		await expect(productCards(page).first()).toBeVisible();
+		await expect(page.locator('.wp-block-woocommerce-product-template').first()).toBeAttached();
+		await expect(page.locator('nav.wp-block-query-pagination').first()).toBeAttached();
+		await expect(page.locator('nav.woocommerce-pagination')).toHaveCount(0);
 
-	// The mu-plugin fixture must really have disabled Woo's enhanced
-	// pagination. If a future WooCommerce stops honoring forcePageReload, the
-	// router region comes back, Woo starts updating the pagination block
-	// itself, and the journey below would pass no matter what this plugin
-	// does — the no-op failure mode this project exists to prevent. Fail here
-	// instead, loudly.
-	await expect(page.locator('[data-wp-router-region^="wc-product-collection"]')).toHaveCount(0);
+		// Enhanced pagination really is on: the router region is what makes
+		// WooCommerce the owner in this column of the matrix.
+		await expect(
+			page.locator('[data-wp-router-region^="wc-product-collection"]').first()
+		).toBeAttached();
+	});
+
+	// Outcome-level correctness. This passes today (both handlers happen to
+	// produce the right end state) and must KEEP passing after #20, when Woo
+	// alone produces it — which is exactly why it is not marked as failing.
+	test('paging lands on the right page without a full reload', async ({ page }) => {
+		await page.goto(BROAD_QUERY);
+
+		const cards = productCards(page);
+		await expect(cards.first()).toBeVisible();
+		const firstTitleBefore = await cards.first().innerText();
+
+		await page.evaluate(() => {
+			(window as unknown as Record<string, unknown>).__e2eNoReload = true;
+		});
+
+		await page.locator('a.page-numbers', { hasText: '2' }).first().click();
+
+		await expect(page).toHaveURL(PAGE_2);
+		await expect(cards.first()).not.toHaveText(firstTitleBefore);
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+
+		const noFullReload = await page.evaluate(
+			() => (window as unknown as Record<string, unknown>).__e2eNoReload === true
+		);
+		expect(noFullReload).toBe(true);
+	});
+
+	// OWNERSHIP (expected to fail until #20). WooCommerce owns this click, so
+	// the target page must be fetched exactly once. Today the plugin's
+	// delegated handler fetches it as well, so the browser issues two.
+	test('fetches the target page exactly once — no duplicate plugin swap', async ({ page }) => {
+		test.fail();
+
+		await page.goto(BROAD_QUERY);
+		await expect(productCards(page).first()).toBeVisible();
+
+		const requests = countTargetRequests(page);
+		await page.locator('a.page-numbers', { hasText: '2' }).first().click();
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+		// Let any second, duplicate fetch arrive before counting.
+		await page.waitForTimeout(2000);
+
+		expect(requests.total()).toBe(1);
+	});
+
+	// OWNERSHIP (expected to fail until #20). Back/forward is the user-visible
+	// cost of dual ownership: the plugin pushes its own history entry and Woo
+	// pushes another, so ONE click stacks TWO entries and the user has to press
+	// Back twice to leave page 2.
+	test('one click creates one history entry, and Back returns to page 1', async ({ page }) => {
+		test.fail();
+
+		await page.goto(BROAD_QUERY);
+		await expect(productCards(page).first()).toBeVisible();
+
+		const historyBefore = await page.evaluate(() => history.length);
+
+		await page.locator('a.page-numbers', { hasText: '2' }).first().click();
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+		await page.waitForTimeout(2000);
+
+		const historyAfter = await page.evaluate(() => history.length);
+		expect(historyAfter - historyBefore).toBe(1);
+
+		await page.goBack();
+		await expect(page).not.toHaveURL(PAGE_2);
+	});
 });
 
-// The blockified counterpart of the Storefront pagination journey. This is the
-// assertion that actually fails without the #15 fix: the grid and the URL
-// update either way, only the current-page indicator stays behind.
-test('pagination swaps the grid, the indicator, and the result count via AJAX', async ({ page }) => {
-	await page.goto(BROAD_QUERY);
+test.describe('block theme + forcePageReload (the browser owns navigation)', () => {
+	let installedMuPath = '';
 
-	const cards = productCards(page);
-	await expect(cards.first()).toBeVisible();
-	const firstTitleBefore = await cards.first().innerText();
-
-	const resultCount = page.locator(SEL.resultCount).first();
-	await expect(resultCount).toBeVisible();
-	const countTextBefore = await resultCount.innerText();
-
-	// Tag the live count element. The count reports the query total, not the
-	// page slice, so its TEXT is identical before and after — asserting on text
-	// alone would pass even if the swap never touched it. The swap replaces the
-	// element via outerHTML, so the tag disappearing is what actually proves it
-	// was replaced rather than left alone.
-	await resultCount.evaluate((el) => el.setAttribute('data-e2e-pre-swap', '1'));
-
-	// A full navigation would wipe this flag; the AJAX swap must keep it.
-	await page.evaluate(() => {
-		(window as unknown as Record<string, unknown>).__e2eNoReload = true;
+	test.beforeAll(() => {
+		const muDir = wpCli(['eval', 'echo WPMU_PLUGIN_DIR;']).trim();
+		if (!muDir) {
+			throw new Error('Could not resolve WPMU_PLUGIN_DIR from the target install.');
+		}
+		installedMuPath = join(muDir, MU_FIXTURE);
+		// __dirname, not import.meta: Playwright transpiles specs to CJS.
+		copyFileSync(join(__dirname, 'force-page-reload.mu.php'), installedMuPath);
 	});
 
-	await page.locator('a.page-numbers', { hasText: '2' }).first().click();
-
-	await expect(page).toHaveURL(/(\/page\/2\/|[?&]paged=2)/);
-	await expect(cards.first()).not.toHaveText(firstTitleBefore);
-
-	// The blockified current-page marker is span.page-numbers.current with
-	// aria-current="page". Before the #15 fix this stayed on "1".
-	await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
-
-	// The result count was genuinely swapped: the pre-swap tag is gone (proving
-	// the element was replaced, not merely left in place), and the replacement
-	// still reports the query total rather than a stale or empty value.
-	await expect(resultCount).toBeVisible();
-	await expect(resultCount).toHaveText(countTextBefore);
-	await expect(page.locator('[data-e2e-pre-swap]')).toHaveCount(0);
-
-	const flagSurvived = await page.evaluate(() => {
-		return (window as unknown as Record<string, unknown>).__e2eNoReload === true;
+	test.afterAll(() => {
+		if (installedMuPath) {
+			rmSync(installedMuPath, { force: true });
+		}
 	});
-	expect(flagSurvived).toBe(true);
+
+	// Guard: the fixture really put the site in the third column of the matrix.
+	test('renders blockified markup with enhanced pagination disabled', async ({ page }) => {
+		await page.goto(BROAD_QUERY);
+
+		await expect(productCards(page).first()).toBeVisible();
+		await expect(page.locator('nav.wp-block-query-pagination').first()).toBeAttached();
+		await expect(page.locator('[data-wp-router-region^="wc-product-collection"]')).toHaveCount(0);
+	});
+
+	// OWNERSHIP (expected to fail until #20). With forcePageReload the site has
+	// explicitly asked for plain browser navigation. The plugin must respect
+	// that rather than substitute its own AJAX swap; today it intercepts the
+	// click, so no real navigation happens.
+	test('performs a real page navigation instead of an AJAX swap', async ({ page }) => {
+		test.fail();
+
+		await page.goto(BROAD_QUERY);
+		await expect(productCards(page).first()).toBeVisible();
+
+		// A genuine navigation discards this flag; an AJAX swap preserves it.
+		await page.evaluate(() => {
+			(window as unknown as Record<string, unknown>).__e2eNoReload = true;
+		});
+
+		await page.locator('a.page-numbers', { hasText: '2' }).first().click();
+		await expect(page).toHaveURL(PAGE_2);
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+
+		const flagSurvived = await page.evaluate(
+			() => (window as unknown as Record<string, unknown>).__e2eNoReload === true
+		);
+		expect(flagSurvived).toBe(false);
+	});
 });
