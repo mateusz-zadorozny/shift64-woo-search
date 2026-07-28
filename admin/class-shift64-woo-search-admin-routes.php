@@ -88,11 +88,11 @@ class Shift64_Woo_Search_Admin_Routes {
 				'sections' => array(
 					'coverage' => array(
 						'label'    => __( 'Result Coverage', 'shift64-woo-search' ),
-						'callback' => 'render_search_tab',
+						'callback' => 'render_results_coverage_section',
 					),
 					'facets'   => array(
 						'label'    => __( 'Facets', 'shift64-woo-search' ),
-						'callback' => 'render_filters_tab',
+						'callback' => 'render_results_facets_section',
 					),
 				),
 			),

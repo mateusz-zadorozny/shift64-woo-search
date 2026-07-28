@@ -864,17 +864,89 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
-	// ── Index Tab ──────────────────────────────────────────────
+	// ── Results & Filters › Result Coverage ────────────────────
 
 	/**
-	 * Render the Index tab showing connection status and rebuild actions.
+	 * Render the Result Coverage section — where Redis serves the listing.
+	 *
+	 * Relocated from the legacy Search tab. These three settings decide which
+	 * storefront listings Redis answers at all; how those results are then ranked
+	 * belongs to Relevance, and which facets shoppers see belongs to Facets.
+	 *
+	 * The taxonomy scopes need an index rebuild to take effect, while the other two
+	 * are runtime switches — hence the separate headings. They deliberately share
+	 * one Save action: splitting them would mean two forms writing one section.
 	 */
-	// ── Filters Tab ───────────────────────────────────────────
+	private function render_results_coverage_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
+			<h3><?php esc_html_e( 'Archive / Search Results', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_checkbox_field( 'shift64_woo_search_archive_enabled', __( 'Redis Search Results', 'shift64-woo-search' ), 'no', __( 'Replace WooCommerce MySQL search on product search results pages with Redis.', 'shift64-woo-search' ) );
+				$this->render_select_field(
+					'shift64_woo_search_price_sort_mode',
+					__( 'Price Sorting', 'shift64-woo-search' ),
+					array(
+						'redis' => __( 'Redis index prices (fast, base prices)', 'shift64-woo-search' ),
+						'db'    => __( 'DB prices for logged-in users (accurate B2B tiers)', 'shift64-woo-search' ),
+					),
+					__( 'DB mode: logged-in users get prices from database (slower but accurate per-customer). Guests always use Redis.', 'shift64-woo-search' )
+				);
+				?>
+			</table>
+
+			<h3><?php esc_html_e( 'Taxonomy Archives', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$enabled_scopes = (array) get_option( 'shift64_woo_search_taxonomy_archive_scopes', array() );
+				$scope_map      = Shift64_Woo_Search_Taxonomy_Archive::get_scope_map();
+				?>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Taxonomy Archive Filters', 'shift64-woo-search' ); ?></th>
+					<td>
+						<fieldset>
+							<?php foreach ( $scope_map as $taxonomy => $config ) : ?>
+								<label style="display:block; margin-bottom:6px;">
+									<input type="checkbox"
+										name="shift64_woo_search_taxonomy_archive_scopes[]"
+										value="<?php echo esc_attr( $taxonomy ); ?>"
+										<?php checked( in_array( $taxonomy, $enabled_scopes, true ), true ); ?>
+									/>
+									<code><?php echo esc_html( $taxonomy ); ?></code>
+									<span style="color:#666;">
+										→ <?php echo esc_html( $config['redis_field'] ); ?>
+									</span>
+								</label>
+							<?php endforeach; ?>
+							<p class="description">
+								<?php esc_html_e( 'Enable Redis-backed filtering (faceted pills) on these taxonomy archives. Does not affect sorting — Redis acts as a filter, theme/WC handle order.', 'shift64-woo-search' ); ?>
+							</p>
+						</fieldset>
+					</td>
+				</tr>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── Results & Filters › Facets ─────────────────────────────
 
 	/**
-	 * Render the Filters tab — attribute selection for faceted search.
+	 * Render the Facets section — the filters shoppers see beside their results.
+	 *
+	 * Relocated wholesale from the legacy Filters tab. All four filter groups stay
+	 * in this one specialized form on purpose: its `shift64_woo_search_save_filters`
+	 * handler writes every field it owns on each save, so splitting the form would
+	 * make one half clear the other half's options.
 	 */
-	private function render_filters_tab() {
+	private function render_results_facets_section() {
 		$attribute_taxonomies = wc_get_attribute_taxonomies();
 		$selected             = get_option( 'shift64_woo_search_filter_attributes', array() );
 		if ( ! is_array( $selected ) ) {
@@ -1251,48 +1323,6 @@ class Shift64_Woo_Search_Admin {
 				);
 				$this->render_text_field( 'shift64_woo_search_outofstock_demote_factor', __( 'Demote Factor', 'shift64-woo-search' ), '0.3', __( '0.0–1.0.', 'shift64-woo-search' ), 'number', '0', '1', '0.1' );
 				?>
-			</table>
-
-			<h3><?php esc_html_e( 'Archive / Search Results', 'shift64-woo-search' ); ?></h3>
-			<table class="form-table">
-				<?php
-				$this->render_checkbox_field( 'shift64_woo_search_archive_enabled', __( 'Redis Search Results', 'shift64-woo-search' ), 'no', __( 'Replace WooCommerce MySQL search on product search results pages with Redis.', 'shift64-woo-search' ) );
-				$this->render_select_field(
-					'shift64_woo_search_price_sort_mode',
-					__( 'Price Sorting', 'shift64-woo-search' ),
-					array(
-						'redis' => __( 'Redis index prices (fast, base prices)', 'shift64-woo-search' ),
-						'db'    => __( 'DB prices for logged-in users (accurate B2B tiers)', 'shift64-woo-search' ),
-					),
-					__( 'DB mode: logged-in users get prices from database (slower but accurate per-customer). Guests always use Redis.', 'shift64-woo-search' )
-				);
-
-				$enabled_scopes = (array) get_option( 'shift64_woo_search_taxonomy_archive_scopes', array() );
-				$scope_map      = Shift64_Woo_Search_Taxonomy_Archive::get_scope_map();
-				?>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Taxonomy Archive Filters', 'shift64-woo-search' ); ?></th>
-					<td>
-						<fieldset>
-							<?php foreach ( $scope_map as $taxonomy => $config ) : ?>
-								<label style="display:block; margin-bottom:6px;">
-									<input type="checkbox"
-										name="shift64_woo_search_taxonomy_archive_scopes[]"
-										value="<?php echo esc_attr( $taxonomy ); ?>"
-										<?php checked( in_array( $taxonomy, $enabled_scopes, true ), true ); ?>
-									/>
-									<code><?php echo esc_html( $taxonomy ); ?></code>
-									<span style="color:#666;">
-										→ <?php echo esc_html( $config['redis_field'] ); ?>
-									</span>
-								</label>
-							<?php endforeach; ?>
-							<p class="description">
-								<?php esc_html_e( 'Enable Redis-backed filtering (faceted pills) on these taxonomy archives. Does not affect sorting — Redis acts as a filter, theme/WC handle order.', 'shift64-woo-search' ); ?>
-							</p>
-						</fieldset>
-					</td>
-				</tr>
 			</table>
 
 			<p class="submit">

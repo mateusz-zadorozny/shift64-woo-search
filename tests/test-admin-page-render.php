@@ -358,6 +358,83 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'shift64_woo_search_category_boost_rules', $html );
 	}
 
+	// ── Results & Filters sections ─────────────────────────────
+
+	/**
+	 * Result Coverage owns which listings Redis serves — and nothing else. In
+	 * particular it must not carry the Facets form, which posts through a different,
+	 * non-partial handler.
+	 *
+	 * @dataProvider coverage_route_provider
+	 *
+	 * @param string      $tab     Requested `tab` value.
+	 * @param string|null $section Requested `section` value.
+	 */
+	public function test_result_coverage_section_owns_the_redis_listing_switches( $tab, $section ) {
+		$html = $this->render( $tab, $section );
+
+		$this->assertStringContainsString( 'name="shift64_woo_search_archive_enabled"', $html );
+		$this->assertStringContainsString( 'name="shift64_woo_search_price_sort_mode"', $html );
+		$this->assertStringContainsString( 'name="shift64_woo_search_taxonomy_archive_scopes[]"', $html );
+
+		$this->assertStringNotContainsString( 'filter_attributes', $html );
+		$this->assertStringNotContainsString( 's64ws-filters-form', $html );
+	}
+
+	public function coverage_route_provider() {
+		return array(
+			'canonical'         => array( 'results', 'coverage' ),
+			'workspace default' => array( 'results', null ),
+		);
+	}
+
+	/**
+	 * The four filter groups stay in the single specialized form, reachable from the
+	 * canonical route and the legacy `filters` bookmark alike.
+	 *
+	 * WooCommerce is absent from the unit harness, so `wc_get_attribute_taxonomies()`
+	 * is stubbed in `tests/bootstrap.php` as a store with no global attributes. That
+	 * covers the form itself and its category/brand controls; per-attribute rows need
+	 * a real WooCommerce data layer and are left to browser QA.
+	 *
+	 * @dataProvider facets_route_provider
+	 *
+	 * @param string      $tab     Requested `tab` value.
+	 * @param string|null $section Requested `section` value.
+	 */
+	public function test_facets_section_renders_the_specialized_filters_form( $tab, $section ) {
+		$html = $this->render( $tab, $section );
+
+		$this->assertStringContainsString( 'id="s64ws-filters-form"', $html );
+		$this->assertStringContainsString( 'id="s64ws-filters-status"', $html );
+		$this->assertStringContainsString( 'name="shift64_woo_search_filter_categories_enabled"', $html );
+		$this->assertStringContainsString( 'name="shift64_woo_search_filter_categories_excluded"', $html );
+		$this->assertStringContainsString( 'name="shift64_woo_search_filter_brands_enabled"', $html );
+	}
+
+	public function facets_route_provider() {
+		return array(
+			'canonical'    => array( 'results', 'facets' ),
+			'legacy alias' => array( 'filters', null ),
+		);
+	}
+
+	/**
+	 * Coverage moved out of the legacy Search tab; it must not keep rendering there,
+	 * while the fields Step 2.4 relocates stay put for now.
+	 */
+	public function test_relocated_coverage_fields_no_longer_render_on_the_legacy_search_route() {
+		$html = $this->render( 'search', null );
+
+		foreach ( array( 'archive_enabled', 'price_sort_mode', 'taxonomy_archive_scopes' ) as $field ) {
+			$this->assertStringNotContainsString( 'shift64_woo_search_' . $field, $html );
+		}
+
+		// Still owned by Relevance until Step 2.4 moves them.
+		$this->assertStringContainsString( 'name="shift64_woo_search_logic"', $html );
+		$this->assertStringContainsString( 'name="shift64_woo_search_full_limit"', $html );
+	}
+
 	/**
 	 * Hostile `tab` values fall back to Overview. PHPUnit is configured to convert
 	 * notices, warnings, and deprecations into exceptions, so this also proves the
@@ -411,6 +488,8 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 			array( 'experience', 'autocomplete' ),
 			array( 'experience', 'query-suggestions' ),
 			array( 'experience', 'category-suggestions' ),
+			array( 'results', 'coverage' ),
+			array( 'results', 'facets' ),
 			array( 'relevance', 'basic' ),
 			array( 'relevance', 'synonyms' ),
 			array( 'relevance', 'field-weights' ),
@@ -420,6 +499,7 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 			array( 'frontend', null ),
 			array( 'suggestions', null ),
 			array( 'catboost', null ),
+			array( 'filters', null ),
 			array( 'search', null ),
 			array( 'synonyms', null ),
 			array( 'weights', null ),
