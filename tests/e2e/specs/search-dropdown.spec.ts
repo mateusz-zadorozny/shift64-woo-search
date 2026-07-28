@@ -75,12 +75,13 @@ test.describe('search dropdown', () => {
 	});
 
 	// Test 5: ArrowDown ×2 → second row active; Enter navigates to it; Escape closes the tray.
-	// Needs a query with at least two product rows so nth(1) exists and carries a
-	// data-url. "pulse" is the most frequent name prefix in the seeded catalog
-	// (8 of 48); "athena" matches a single product and only ever reached two rows
-	// because it also prefix-matched a seeded suggestion.
+	// Needs a query whose tray holds at least two rows, so nth(1) exists and
+	// carries a data-url. "shirt" matches two products (T-Shirt, Polo Shirt), is
+	// itself a seeded suggestion, and matches the Shirts categories. "athena" only
+	// ever reached two rows because it prefix-matched the old seeded suggestion
+	// list; on its own it matches a single product.
 	test('keyboard navigation activates rows, Enter navigates, Escape closes', async ({ page }) => {
-		await typeQuery(page, 'pulse');
+		await typeQuery(page, 'shirt');
 		const rows = visibleTray(page).locator(SEL.row);
 		await expect(traySection(page, 'products').locator(SEL.row).first()).toBeVisible();
 
@@ -98,7 +99,7 @@ test.describe('search dropdown', () => {
 		// Escape closes the tray (valid only while result rows are rendered —
 		// the keydown handler ignores Escape on an empty tray).
 		await page.goto(SEARCH_PAGE);
-		await typeQuery(page, 'pulse');
+		await typeQuery(page, 'shirt');
 		await expect(traySection(page, 'products').locator(SEL.row).first()).toBeVisible();
 		await searchInput(page).press('Escape');
 		await expect(visibleTray(page)).toHaveCount(0);
