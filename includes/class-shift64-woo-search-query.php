@@ -175,8 +175,13 @@ class Shift64_Woo_Search_Query {
 			}
 		}
 
-		// Filter out low-score garbage from ANY pass.
-		$results = $this->filter_low_scores( $results );
+		// Filter out low-score garbage from fuzzy passes only. Prefix passes
+		// are exact matches — see filter_low_scores(). The archive path
+		// (Shift64_Woo_Search_Archive::execute_search) applies the same rule,
+		// so both modes agree on which products match.
+		if ( self::pass_is_fuzzy( $search_pass ) ) {
+			$results = self::filter_low_scores( $results, (float) ( $this->config['fallback_score_threshold'] ?? 0.5 ) );
+		}
 
 		$elapsed = ( microtime( true ) - $start_time ) * 1000;
 
@@ -1750,24 +1755,41 @@ class Shift64_Woo_Search_Query {
 	}
 
 	/**
+	 * Whether a search pass produced fuzzy (approximate) matches.
+	 *
+	 * Only these passes are score-filtered. Prefix passes return exact
+	 * lexical matches, whose TFIDF score reflects term rarity rather than
+	 * match quality — filtering them would drop legitimate matches purely
+	 * for being common. See filter_low_scores().
+	 *
+	 * @param string $search_pass Pass name recorded by search().
+	 * @return bool
+	 */
+	public static function pass_is_fuzzy( $search_pass ) {
+		return in_array( $search_pass, array( 'fuzzy', 'mixed' ), true );
+	}
+
+	/**
 	 * Filter out results below the score threshold.
 	 *
-	 * @param array $results Search results.
+	 * Applies to fuzzy passes only. RediSearch TFIDF scores scale with term
+	 * rarity, so a common-but-exact prefix match can score below the
+	 * threshold while being a perfectly good result; suppressing it here
+	 * made autocomplete disagree with the archive, which never filtered.
+	 *
+	 * @param array  $results   Search results.
+	 * @param float  $threshold Minimum score to keep; <= 0 disables filtering.
+	 * @param string $score_key Key holding the score.
 	 * @return array
 	 */
-	private function filter_low_scores( $results ) {
-		if ( empty( $results ) ) {
-			return $results;
-		}
-
-		$threshold = (float) ( $this->config['fallback_score_threshold'] ?? 0.5 );
-		if ( $threshold <= 0 ) {
+	public static function filter_low_scores( $results, $threshold, $score_key = '_score' ) {
+		if ( empty( $results ) || $threshold <= 0 ) {
 			return $results;
 		}
 
 		$filtered = array();
 		foreach ( $results as $r ) {
-			if ( isset( $r['_score'] ) && $r['_score'] >= $threshold ) {
+			if ( isset( $r[ $score_key ] ) && $r[ $score_key ] >= $threshold ) {
 				$filtered[] = $r;
 			}
 		}
