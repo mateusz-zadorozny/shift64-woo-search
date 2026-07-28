@@ -1965,6 +1965,10 @@ class Shift64_Woo_Search_Admin {
 
 	/**
 	 * AJAX handler for saving plugin settings.
+	 *
+	 * Request plumbing only — allowlisting, sanitization, and the credential
+	 * cleanup live in Shift64_Woo_Search_Admin_Settings::persist(), which any
+	 * section form can therefore call with just its own fields.
 	 */
 	public function ajax_save_setting() {
 		check_ajax_referer( 'shift64_woo_search_admin', 'nonce' );
@@ -1972,92 +1976,13 @@ class Shift64_Woo_Search_Admin {
 			wp_send_json_error( array( 'message' => 'Permission denied.' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- values are sanitized in the loop below.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- values are sanitized by the persistence seam below.
 		$settings = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array();
 		if ( empty( $settings ) || ! is_array( $settings ) ) {
 			wp_send_json_error( array( 'message' => 'No settings provided.' ) );
 		}
 
-		$allowed = array(
-			'shift64_woo_search_redis_host',
-			'shift64_woo_search_redis_port',
-			'shift64_woo_search_redis_auth_enabled',
-			'shift64_woo_search_redis_username',
-			'shift64_woo_search_redis_password',
-			'shift64_woo_search_redis_db',
-			'shift64_woo_search_redis_prefix',
-			'shift64_woo_search_min_query',
-			'shift64_woo_search_autocomplete_limit',
-			'shift64_woo_search_full_limit',
-			'shift64_woo_search_fuzzy_level',
-			'shift64_woo_search_logic',
-			'shift64_woo_search_outofstock_mode',
-			'shift64_woo_search_outofstock_demote_factor',
-			'shift64_woo_search_debounce',
-			'shift64_woo_search_input_selector',
-			'shift64_woo_search_additional_selectors',
-			'shift64_woo_search_button_selector',
-			'shift64_woo_search_strategy',
-			'shift64_woo_search_fallback_trigger',
-			'shift64_woo_search_fallback_score_threshold',
-			'shift64_woo_search_fallback_fuzzy_level',
-			'shift64_woo_search_token_reduction_enabled',
-			'shift64_woo_search_weak_tokens',
-			'shift64_woo_search_drop_trailing_weak_token_only',
-			'shift64_woo_search_diacritics_normalization',
-			'shift64_woo_search_fuzzy_synonyms',
-			'shift64_woo_search_category_suggest_fuzzy',
-			'shift64_woo_search_brand_suggest_enabled',
-			'shift64_woo_search_archive_enabled',
-			'shift64_woo_search_price_sort_mode',
-			'shift64_woo_search_rate_limit',
-		);
-
-		// Array-valued options (multi-select / multi-checkbox) need per-value sanitization
-		// rather than sanitize_text_field on the whole value.
-		$allowed_arrays = array(
-			'shift64_woo_search_taxonomy_archive_scopes',
-		);
-
-		$allowed_textareas = array(
-			'shift64_woo_search_category_boost_rules',
-			'shift64_woo_search_category_pin_rules',
-		);
-
-		$saved = 0;
-		foreach ( $settings as $key => $value ) {
-			$key = sanitize_text_field( $key );
-			if ( in_array( $key, $allowed_textareas, true ) ) {
-				$textarea_value = is_scalar( $value ) ? (string) $value : '';
-				update_option( $key, sanitize_textarea_field( $textarea_value ) );
-				++$saved;
-			} elseif ( in_array( $key, $allowed, true ) ) {
-				update_option( $key, sanitize_text_field( $value ) );
-				++$saved;
-			} elseif ( in_array( $key, $allowed_arrays, true ) ) {
-				$array_value = is_array( $value ) ? $value : array();
-				$sanitized   = array_values( array_filter( array_map( 'sanitize_text_field', $array_value ) ) );
-
-				// Array options with a known closed set of valid values get filtered
-				// to those keys — prevents stale/hand-crafted POSTs from writing
-				// junk into wp_options.
-				if ( 'shift64_woo_search_taxonomy_archive_scopes' === $key ) {
-					$valid_scopes = array_keys( Shift64_Woo_Search_Taxonomy_Archive::get_scope_map() );
-					$sanitized    = array_values( array_intersect( $sanitized, $valid_scopes ) );
-				}
-
-				update_option( $key, $sanitized );
-				++$saved;
-			}
-		}
-
-		// When auth is disabled, wipe any previously stored credentials so the SHORTINIT
-		// config is regenerated without them — prevents stale creds from being used after
-		// the user turns auth off.
-		if ( 'no' === get_option( 'shift64_woo_search_redis_auth_enabled', 'no' ) ) {
-			update_option( 'shift64_woo_search_redis_username', '' );
-			update_option( 'shift64_woo_search_redis_password', '' );
-		}
+		$saved = Shift64_Woo_Search_Admin_Settings::persist( $settings );
 
 		Shift64_Woo_Search_Redis::reset_instance();
 		Shift64_Woo_Search_Plugin::get_instance()->generate_mu_plugin_config();
