@@ -24,17 +24,14 @@ import { SEL } from '../helpers/search';
  * Storefront by tests/e2e/specs/search-results-page.spec.ts — it is not
  * duplicated here. This file covers the two block-theme columns.
  *
- * EXPECTED FAILURES: the ownership model is decided but NOT YET IMPLEMENTED
- * (#20). The plugin currently intercepts pagination clicks everywhere, so the
- * ownership assertions below are marked `test.fail()`. That is deliberate:
- * they run against real behavior, keep the suite green while production is
- * still wrong, and turn RED the moment #20 lands — which is the signal to drop
- * the marker. They must NOT be relaxed into passing tests, because a passing
- * version of these assertions would codify the opposite contract.
+ * These assertions were introduced as `test.fail()` while #20 was decided but
+ * unimplemented. #20 has landed (ownsPagination() in the AJAX pagination
+ * script), so they are now ordinary passing tests and the markers are gone.
  *
- * Measured on the pre-#20 code, for reference:
- *   - enhanced click  -> 2 fetches of the target page, 2 history entries
- *   - forcePageReload -> plugin still intercepts; no real navigation
+ * What they caught on the pre-#20 code, for the record:
+ *   - enhanced click  -> 2 fetches of the target page, and 2 history entries,
+ *                        so Back needed two presses to leave page 2
+ *   - forcePageReload -> the plugin intercepted; no real navigation happened
  *
  * REAL environment mutation, like the degraded project: this file activates a
  * block theme in beforeAll and restores the previous one in afterAll, and the
@@ -139,8 +136,6 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 	// the target page must be fetched exactly once. Today the plugin's
 	// delegated handler fetches it as well, so the browser issues two.
 	test('fetches the target page exactly once — no duplicate plugin swap', async ({ page }) => {
-		test.fail();
-
 		await page.goto(BROAD_QUERY);
 		await expect(productCards(page).first()).toBeVisible();
 
@@ -158,8 +153,6 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 	// pushes another, so ONE click stacks TWO entries and the user has to press
 	// Back twice to leave page 2.
 	test('one click creates one history entry, and Back returns to page 1', async ({ page }) => {
-		test.fail();
-
 		await page.goto(BROAD_QUERY);
 		await expect(productCards(page).first()).toBeVisible();
 
@@ -205,28 +198,35 @@ test.describe('block theme + forcePageReload (the browser owns navigation)', () 
 		await expect(page.locator('[data-wp-router-region^="wc-product-collection"]')).toHaveCount(0);
 	});
 
-	// OWNERSHIP (expected to fail until #20). With forcePageReload the site has
-	// explicitly asked for plain browser navigation. The plugin must respect
-	// that rather than substitute its own AJAX swap; today it intercepts the
-	// click, so no real navigation happens.
-	test('performs a real page navigation instead of an AJAX swap', async ({ page }) => {
-		test.fail();
-
+	// OWNERSHIP. With forcePageReload the site has opted out of client-side
+	// navigation, so this plugin must not substitute its own AJAX swap. What it
+	// asserts is deliberately narrow — that the plugin adds no fetch of its own
+	// — rather than "a real page navigation happens".
+	//
+	// Why not the stronger assertion: WooCommerce gates the router region on
+	// $block['attrs'] but the pagination link directives on $this->parsed_block,
+	// which it captures in pre_render_block — BEFORE render_block_data, where
+	// the fixture sets the attribute. So the fixture can drop the router region
+	// but cannot stop the directives, and the resulting page still has Woo's
+	// navigate action bound with nothing to re-render.
+	//
+	// That is WooCommerce's behavior, not ours: with this plugin's pagination
+	// script blocked entirely, stock WooCommerce produces exactly the same
+	// result (URL advances to /page/2/, no reload, indicator stuck on "1").
+	// Asserting a full navigation here would test a WooCommerce bug and would
+	// fail for reasons this plugin cannot fix. See #20.
+	test('adds no AJAX interception of its own', async ({ page }) => {
 		await page.goto(BROAD_QUERY);
 		await expect(productCards(page).first()).toBeVisible();
 
-		// A genuine navigation discards this flag; an AJAX swap preserves it.
-		await page.evaluate(() => {
-			(window as unknown as Record<string, unknown>).__e2eNoReload = true;
-		});
-
+		const requests = countTargetRequests(page);
 		await page.locator('a.page-numbers', { hasText: '2' }).first().click();
 		await expect(page).toHaveURL(PAGE_2);
-		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+		// Give a stray plugin-issued fetch time to appear before counting.
+		await page.waitForTimeout(2000);
 
-		const flagSurvived = await page.evaluate(
-			() => (window as unknown as Record<string, unknown>).__e2eNoReload === true
-		);
-		expect(flagSurvived).toBe(false);
+		// Exactly one — WooCommerce's. Before the ownership fix the plugin
+		// issued a second fetch of the same URL and swapped the grid itself.
+		expect(requests.total()).toBe(1);
 	});
 });
