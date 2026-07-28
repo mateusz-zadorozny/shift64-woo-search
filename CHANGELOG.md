@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.7.1...v0.8.0) (2026-07-28)
+
+
+### Features
+
+* Implement new seeding script ([#18](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/18)) ([#22](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/22)) ([553f4a7](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/553f4a7e3e6d99c00a9104f98f3850dcb312e684))
+
 ## [0.7.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.7.0...v0.7.1) (2026-07-27)
 
 

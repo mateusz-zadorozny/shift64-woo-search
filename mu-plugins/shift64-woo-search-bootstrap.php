@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Shift64 Woo Search — SHORTINIT Endpoint
  * Description: Ultra-fast search endpoint for Shift64 Woo Search (mu-plugin loader).
- * Version: 0.7.1
+ * Version: 0.8.0
  * Author: Mateusz Zadorożny
  *
  * This file exists in mu-plugins root so it's visible in the WordPress admin Plugins list.

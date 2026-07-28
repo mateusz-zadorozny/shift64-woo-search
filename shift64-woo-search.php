@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Shift64 Woo Search
  * Description: Custom WooCommerce search engine powered by RediSearch. Ultra-fast autocomplete and full-text search.
- * Version: 0.7.1
+ * Version: 0.8.0
  * Author: Mateusz Zadorożny
  * Text Domain: shift64-woo-search
  * Domain Path: /languages
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constants.
-define( 'SHIFT64_WOO_SEARCH_VERSION', '0.7.1' );
+define( 'SHIFT64_WOO_SEARCH_VERSION', '0.8.0' );
 define( 'SHIFT64_WOO_SEARCH_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SHIFT64_WOO_SEARCH_URL', plugin_dir_url( __FILE__ ) );
 
