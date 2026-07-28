@@ -53,10 +53,15 @@ Supported arguments:
 - `seed=N` — repeatable name/SKU generation, default `6464`;
 - `variation-skus` — assigns deterministic SKUs to variations; disabled by default;
 - `reset` — permanently deletes products marked as generator-owned, in batches, and then seeds the requested catalog;
-- `reset-only` — performs the same deletion and stops; nothing is created, and `count` is ignored.
+- `reset-only` — performs the same deletion and stops; nothing is created, so `count` has no
+  effect on the run.
 
 `reset` is a modifier on a seeding run, not a teardown. Use `reset-only` when the
 goal is to clear a demo catalog off a machine.
+
+Every argument is range-checked before the run mode is considered, so a value that is out of
+range is rejected even when the run would not have used it. `count=0` is never valid — pass
+`reset-only` on its own rather than trying to suppress seeding with a zero count.
 
 High-volume runs defer term counting and comment counting for the whole run and
 flush the object cache once per batch, which keeps memory flat under a 256M–512M

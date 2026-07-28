@@ -51,13 +51,33 @@ class Test_Shift64_Woo_Search_Demo_Product_Catalog extends WP_UnitTestCase {
 	}
 
 	/**
-	 * `reset-only` ignores `count`, so the other options still parse alongside it.
+	 * A `reset-only` run creates nothing, so `count` has no effect — but the other
+	 * options still parse alongside it.
 	 */
 	public function test_reset_only_combines_with_other_options() {
 		$options = Shift64_Woo_Search_Demo_Catalog::parse_args( array( 'reset-only', 'batch=50' ) );
 
 		$this->assertTrue( $options['reset_only'] );
 		$this->assertSame( 50, $options['batch'] );
+	}
+
+	/**
+	 * Range validation runs before the run mode is considered: `count` is still
+	 * rejected out of range under `reset-only`, even though the run ignores it.
+	 */
+	public function test_reset_only_does_not_exempt_count_from_range_validation() {
+		$this->expectException( InvalidArgumentException::class );
+		Shift64_Woo_Search_Demo_Catalog::parse_args( array( 'reset-only', 'count=0' ) );
+	}
+
+	/**
+	 * An in-range `count` alongside `reset-only` parses and is simply unused.
+	 */
+	public function test_reset_only_accepts_an_in_range_count() {
+		$options = Shift64_Woo_Search_Demo_Catalog::parse_args( array( 'reset-only', 'count=10' ) );
+
+		$this->assertTrue( $options['reset_only'] );
+		$this->assertSame( 10, $options['count'] );
 	}
 
 	/**
@@ -111,6 +131,8 @@ class Test_Shift64_Woo_Search_Demo_Product_Catalog extends WP_UnitTestCase {
 			'unknown option'     => array( array( 'colour=red' ) ),
 			'bare unknown token' => array( array( 'purge' ) ),
 			'reset-only=value'   => array( array( 'reset-only=1' ) ),
+			'reset=value'        => array( array( 'reset=1' ) ),
+			'variation-skus=val' => array( array( 'variation-skus=1' ) ),
 		);
 	}
 

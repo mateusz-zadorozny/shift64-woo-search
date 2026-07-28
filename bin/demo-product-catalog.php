@@ -331,12 +331,15 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Catalog' ) ) {
 				'variation_skus' => false,
 			);
 
-			// Valueless switches; they never accept a `key=value` form.
+			// Valueless switches; they never accept a `key=value` form. Keys are the CLI
+			// spelling, values the normalized option key — both lookups are needed below.
 			$flags = array(
 				'reset'          => 'reset',
 				'reset-only'     => 'reset_only',
 				'variation-skus' => 'variation_skus',
 			);
+
+			$flag_options = array_values( $flags );
 
 			foreach ( $raw_args as $raw_arg ) {
 				$arg = ltrim( (string) $raw_arg, '-' );
@@ -358,7 +361,7 @@ if ( ! class_exists( 'Shift64_Woo_Search_Demo_Catalog' ) ) {
 
 				list( $key, $value ) = array_map( 'trim', explode( '=', $arg, 2 ) );
 				$key                 = str_replace( '-', '_', $key );
-				if ( ! array_key_exists( $key, $options ) || in_array( $key, $flags, true ) ) {
+				if ( ! array_key_exists( $key, $options ) || in_array( $key, $flag_options, true ) ) {
 					throw new InvalidArgumentException( sprintf( 'Unknown option "%s".', $key ) );
 				}
 				$options[ $key ] = $value;
