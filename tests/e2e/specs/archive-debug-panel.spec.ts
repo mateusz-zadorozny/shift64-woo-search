@@ -106,8 +106,16 @@ test.describe('archive debug panel', () => {
 		const filters = page.locator(SEL.filters).first();
 		await expect(filters).toBeVisible();
 
-		const checkbox = filters.locator('input[type="checkbox"]').first();
-		await checkbox.check();
+		// Desktop pills keep their checkbox lists inside a dropdown — open it
+		// first, same as the search-results-page journey.
+		await filters
+			.locator('[data-filter-key] .shift64-woo-search-filter__pill', { hasText: /color/i })
+			.click();
+		await filters
+			.locator(`${SEL.filterCheckbox}[data-taxonomy="pa_color"][data-slug="copper"]`)
+			.check();
+
+		await expect(page).toHaveURL(/filter_pa_color=copper/);
 
 		// The panel must end up describing the filtered query, not the first one.
 		await expect
