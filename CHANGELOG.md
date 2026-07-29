@@ -1,3 +1,10 @@
+## [0.11.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.11.0...v0.11.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* **archive:** restore the search term after the Redis query so breadcrumbs and headings show it ([#37](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/37)) ([#39](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/39)) ([a2d6256](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/a2d6256afa7e9fa6b6d33db6a5e94ec2a998e13b))
+
 # [0.11.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.10.2...v0.11.0) (2026-07-29)
 
 
