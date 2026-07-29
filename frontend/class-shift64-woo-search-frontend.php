@@ -235,10 +235,15 @@ class Shift64_Woo_Search_Frontend {
 			self::asset_version( 'frontend/css/shift64-woo-search.css' )
 		);
 
-		wp_add_inline_style(
-			'shift64-woo-search',
-			':root{--s64ws-dropdown-width:' . self::get_dropdown_width() . 'px;}'
-		);
+		// Only emitted for a custom width. Left unset, the stylesheet's own fallbacks
+		// keep the tray matching the search field, which is the default.
+		$dropdown_width = self::get_dropdown_width();
+		if ( $dropdown_width > 0 ) {
+			wp_add_inline_style(
+				'shift64-woo-search',
+				':root{--s64ws-dropdown-width:' . $dropdown_width . 'px;}'
+			);
+		}
 
 		wp_enqueue_script(
 			'shift64-woo-search',
@@ -261,6 +266,9 @@ class Shift64_Woo_Search_Frontend {
 			'showImage'             => true,
 			'showCategory'          => self::display_switch( 'shift64_woo_search_show_category' ),
 			'showBrand'             => self::display_switch( 'shift64_woo_search_show_brand' ),
+			// 0 means "match the search field"; the script only corrects for viewport
+			// overflow when the tray has a width of its own.
+			'dropdownWidth'         => $dropdown_width,
 			'noResultsText'         => esc_html__( 'No products found', 'shift64-woo-search' ),
 			'seeAllText'            => esc_html__( 'See all results', 'shift64-woo-search' ),
 			'suggestionsHeaderText' => esc_html__( 'SEARCH SUGGESTIONS', 'shift64-woo-search' ),
@@ -363,15 +371,24 @@ class Shift64_Woo_Search_Frontend {
 	/**
 	 * Resolve the configured dropdown width, clamped to a usable range.
 	 *
-	 * The value is interpolated into a stylesheet, so it is cast to an integer and
-	 * bounded here rather than trusted from storage — a non-numeric option must never
-	 * reach the CSS. Out-of-range values clamp instead of falling back to the default,
-	 * so a merchant who types 5000 gets the widest supported tray rather than the
-	 * stock one.
+	 * Returns 0 unless the width mode is explicitly set to 'custom'. Zero means "match
+	 * the search field", which is the default and the behaviour the plugin has always
+	 * had: the stylesheet leaves the tray anchored to both edges of the field, and no
+	 * custom property is emitted at all.
 	 *
-	 * @return int Width in pixels, between 320 and 1200.
+	 * When a custom width is in force the value is interpolated into a stylesheet, so it
+	 * is cast to an integer and bounded here rather than trusted from storage — a
+	 * non-numeric option must never reach the CSS. Out-of-range values clamp instead of
+	 * falling back to the default, so a merchant who types 5000 gets the widest
+	 * supported tray rather than the stock one.
+	 *
+	 * @return int Width in pixels between 320 and 1200, or 0 to match the search field.
 	 */
 	public static function get_dropdown_width() {
+		if ( 'custom' !== get_option( 'shift64_woo_search_dropdown_width_mode', 'field' ) ) {
+			return 0;
+		}
+
 		$width = (int) get_option( 'shift64_woo_search_dropdown_width', self::DROPDOWN_WIDTH_DEFAULT );
 
 		if ( $width < self::DROPDOWN_WIDTH_MIN ) {

@@ -321,6 +321,7 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 		$fields = array(
 			'min_query',
 			'autocomplete_limit',
+			'dropdown_width_mode',
 			'dropdown_width',
 			'show_sku',
 			'show_category',

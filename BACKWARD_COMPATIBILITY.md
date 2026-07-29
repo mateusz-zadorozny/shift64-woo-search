@@ -224,10 +224,13 @@ not as `false`. The script therefore reads them through its `isEnabled()` helper
 `config.showX !== false` guard silently treated every disabled switch as enabled and must not
 be reintroduced.
 
-`--s64ws-dropdown-width` (default `645px`) sizes the expanded search field and the results tray.
-It is a CSS custom property like the other `--s64ws-*` tokens, so themes may override it; the
-plugin emits it as an inline style after its own stylesheet, driven by
-`shift64_woo_search_dropdown_width` and clamped to 320–1200px.
+`--s64ws-dropdown-width` sizes the expanded search field and the results tray. Unlike the other
+`--s64ws-*` tokens it has **no `:root` default**, and that is load-bearing: unset, the
+stylesheet's own `auto` / `100%` fallbacks keep the tray matching the search field, which is the
+behaviour every site had before #41. The plugin emits it as an inline style only when
+`shift64_woo_search_dropdown_width_mode` is `custom`, taking the value from
+`shift64_woo_search_dropdown_width` clamped to 320–1200px. Giving the property a `:root` default
+would opt every site into a fixed-width tray at once.
 
 ## 10. Runtime requirements
 

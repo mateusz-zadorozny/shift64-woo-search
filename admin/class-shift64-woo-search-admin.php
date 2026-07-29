@@ -1636,7 +1636,16 @@ class Shift64_Woo_Search_Admin {
 				<?php
 				$this->render_text_field( 'shift64_woo_search_min_query', __( 'Min Query Length', 'shift64-woo-search' ), '2', '', 'number' );
 				$this->render_text_field( 'shift64_woo_search_autocomplete_limit', __( 'Quick Search Results Limit', 'shift64-woo-search' ), '7', __( 'Max products shown in the dropdown.', 'shift64-woo-search' ), 'number' );
-				$this->render_text_field( 'shift64_woo_search_dropdown_width', __( 'Dropdown Width (px)', 'shift64-woo-search' ), '645', __( 'Width of the expanded search field and its results tray on desktop. Between 320 and 1200; mobile stays full-width regardless.', 'shift64-woo-search' ), 'number', '320', '1200' );
+				$this->render_select_field(
+					'shift64_woo_search_dropdown_width_mode',
+					__( 'Dropdown Width', 'shift64-woo-search' ),
+					array(
+						'field'  => __( 'Match the search field', 'shift64-woo-search' ),
+						'custom' => __( 'Custom width', 'shift64-woo-search' ),
+					),
+					__( 'The results tray is as wide as the search field unless you set a custom width.', 'shift64-woo-search' )
+				);
+				$this->render_text_field( 'shift64_woo_search_dropdown_width', __( 'Custom Width (px)', 'shift64-woo-search' ), '645', __( 'Applies only when Dropdown Width is set to Custom. Between 320 and 1200; mobile stays full-width regardless.', 'shift64-woo-search' ), 'number', '320', '1200' );
 				$this->render_checkbox_field( 'shift64_woo_search_show_sku', __( 'Show SKU', 'shift64-woo-search' ), 'yes', __( 'Include the product SKU in the result meta line.', 'shift64-woo-search' ) );
 				$this->render_checkbox_field( 'shift64_woo_search_show_category', __( 'Show Category', 'shift64-woo-search' ), 'yes', __( 'Include the most specific product category in the result meta line.', 'shift64-woo-search' ) );
 				$this->render_checkbox_field( 'shift64_woo_search_show_brand', __( 'Show Brand', 'shift64-woo-search' ), 'yes', __( 'Include the product brand in the result meta line. Turn options off to reduce clutter, or stack any combination.', 'shift64-woo-search' ) );

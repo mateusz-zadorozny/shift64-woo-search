@@ -604,6 +604,8 @@
     Shift64WooSearch.prototype.positionDropdown = function () {
         this.dropdown.style.left = '';
 
+        // Only a custom width can overrun; matching the field never does.
+        if (!parseInt(config.dropdownWidth, 10)) return;
         if (window.innerWidth <= 1024) return;
 
         var rect = this.dropdown.getBoundingClientRect();

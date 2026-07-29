@@ -177,22 +177,61 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 	// ── Dropdown width ─────────────────────────────────────────
 
 	/**
-	 * The stock width matches the value the stylesheet ships with, so an untouched
-	 * site renders exactly as it did before the setting existed.
+	 * By default the tray matches the search field, exactly as it always has.
+	 *
+	 * Expressed as a zero width and, crucially, as the *absence* of the custom property:
+	 * the stylesheet's own `auto` / `100%` fallbacks are what reproduce the original
+	 * behaviour, so emitting the variable at all would silently opt every site in.
 	 */
-	public function test_width_defaults_to_the_stylesheet_value() {
-		$this->assertSame( 645, Shift64_Woo_Search_Frontend::get_dropdown_width() );
-		$this->assertStringContainsString( '--s64ws-dropdown-width:645px', $this->inline_style() );
+	public function test_width_defaults_to_matching_the_search_field() {
+		$this->assertSame( 0, Shift64_Woo_Search_Frontend::get_dropdown_width() );
+		$this->assertStringNotContainsString( '--s64ws-dropdown-width', $this->inline_style() );
 	}
 
 	/**
-	 * A configured width reaches the stylesheet as a custom property.
+	 * A stored width is ignored until the mode opts into it.
+	 *
+	 * The number field keeps its value when a merchant switches back to matching the
+	 * field, so the mode — not the presence of a number — has to be what decides.
+	 */
+	public function test_stored_width_is_inert_while_the_mode_matches_the_field() {
+		update_option( 'shift64_woo_search_dropdown_width', '880' );
+
+		$this->assertSame( 0, Shift64_Woo_Search_Frontend::get_dropdown_width() );
+		$this->assertStringNotContainsString( '--s64ws-dropdown-width', $this->inline_style() );
+	}
+
+	/**
+	 * A custom width reaches the stylesheet as a custom property.
 	 */
 	public function test_configured_width_is_emitted_as_a_custom_property() {
+		update_option( 'shift64_woo_search_dropdown_width_mode', 'custom' );
 		update_option( 'shift64_woo_search_dropdown_width', '880' );
 
 		$this->assertSame( 880, Shift64_Woo_Search_Frontend::get_dropdown_width() );
 		$this->assertStringContainsString( ':root{--s64ws-dropdown-width:880px;}', $this->inline_style() );
+	}
+
+	/**
+	 * Matching the field is reported to the script as a zero width, so it knows not to
+	 * correct for overflow a field-width tray cannot produce.
+	 *
+	 * Split from the custom-width case because `enqueue_assets()` is guarded against
+	 * running twice, so one test cannot observe two different configs.
+	 */
+	public function test_config_reports_zero_width_when_matching_the_field() {
+		// Stringified in transit like every other scalar in the localized config.
+		$this->assertSame( '0', $this->localized_config()['dropdownWidth'] );
+	}
+
+	/**
+	 * A custom width is handed to the script so it can keep the tray on screen.
+	 */
+	public function test_config_carries_a_custom_width() {
+		update_option( 'shift64_woo_search_dropdown_width_mode', 'custom' );
+		update_option( 'shift64_woo_search_dropdown_width', '880' );
+
+		$this->assertSame( '880', $this->localized_config()['dropdownWidth'] );
 	}
 
 	/**
@@ -208,6 +247,7 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 	 * @param int   $expected Width the frontend must use.
 	 */
 	public function test_width_is_clamped_and_sanitized( $stored, $expected ) {
+		update_option( 'shift64_woo_search_dropdown_width_mode', 'custom' );
 		update_option( 'shift64_woo_search_dropdown_width', $stored );
 
 		$this->assertSame( $expected, Shift64_Woo_Search_Frontend::get_dropdown_width() );
@@ -276,9 +316,9 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 		$rule = $matches[1];
 
 		$this->assertMatchesRegularExpression(
-			'/^\s*width:\s*var\(--s64ws-dropdown-width/m',
+			'/^\s*width:\s*var\(--s64ws-dropdown-width,\s*auto\)/m',
 			$rule,
-			'The results tray must take its width from --s64ws-dropdown-width.'
+			'The tray must size from --s64ws-dropdown-width, falling back to matching the field.'
 		);
 		$this->assertDoesNotMatchRegularExpression(
 			'/^\s*min-width:\s*var\(--s64ws-dropdown-width/m',

@@ -46,6 +46,7 @@ class Shift64_Woo_Search_Admin_Settings {
 			'shift64_woo_search_redis_prefix',
 			'shift64_woo_search_min_query',
 			'shift64_woo_search_autocomplete_limit',
+			'shift64_woo_search_dropdown_width_mode',
 			'shift64_woo_search_dropdown_width',
 			'shift64_woo_search_show_sku',
 			'shift64_woo_search_show_category',

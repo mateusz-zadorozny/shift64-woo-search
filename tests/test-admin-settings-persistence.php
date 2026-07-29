@@ -137,14 +137,16 @@ class Shift64_Woo_Search_Admin_Settings_Test extends WP_UnitTestCase {
 				'shift64_woo_search_show_sku'       => 'no',
 				'shift64_woo_search_show_category'  => 'yes',
 				'shift64_woo_search_show_brand'     => 'no',
+				'shift64_woo_search_dropdown_width_mode' => 'custom',
 				'shift64_woo_search_dropdown_width' => '900',
 			)
 		);
 
-		$this->assertSame( 4, $saved );
+		$this->assertSame( 5, $saved );
 		$this->assertSame( 'no', get_option( 'shift64_woo_search_show_sku' ) );
 		$this->assertSame( 'yes', get_option( 'shift64_woo_search_show_category' ) );
 		$this->assertSame( 'no', get_option( 'shift64_woo_search_show_brand' ) );
+		$this->assertSame( 'custom', get_option( 'shift64_woo_search_dropdown_width_mode' ) );
 		$this->assertSame( '900', get_option( 'shift64_woo_search_dropdown_width' ) );
 		$this->assert_sentinels_intact();
 	}
