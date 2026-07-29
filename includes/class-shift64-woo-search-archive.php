@@ -59,6 +59,17 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	private $debug_start = 0;
 
 	/**
+	 * Offset of the last debug entry, in milliseconds since `debug_start`.
+	 *
+	 * This is where the search work ended. Everything after it is WordPress and
+	 * the theme rendering the page, which is what the request-phase breakdown
+	 * needs in order to separate "our time" from "everyone else's time".
+	 *
+	 * @var float
+	 */
+	private $debug_last_offset = 0;
+
+	/**
 	 * Original term saved before clearing the MySQL search value.
 	 *
 	 * @var string
@@ -106,11 +117,79 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	 * @param mixed  $data    Optional structured context.
 	 */
 	private function log( $message, $data = null ) {
-		$entry = sprintf( '[%.1fms] %s', ( microtime( true ) - $this->debug_start ) * 1000, $message );
+		$offset                  = ( microtime( true ) - $this->debug_start ) * 1000;
+		$this->debug_last_offset = $offset;
+
+		$entry = sprintf( '[%.1fms] %s', $offset, $message );
 		if ( null !== $data ) {
 			$entry .= ' → ' . ( is_scalar( $data ) ? $data : wp_json_encode( $data ) );
 		}
 		$this->debug_log[] = $entry;
+	}
+
+	/**
+	 * Break the PHP side of the request into the three phases that matter.
+	 *
+	 * The per-entry timings above are all relative to the moment the query was
+	 * intercepted, so they answer "how long did the search take" and nothing
+	 * else. That is misleading on its own: a page can report a 3ms search and
+	 * still take 400ms to arrive, because the search is a small slice of a
+	 * request that also has to boot WordPress and render the products.
+	 *
+	 * Splitting the wall clock into bootstrap / search / render is what makes the
+	 * difference legible — and, together with the browser-side numbers the AJAX
+	 * script adds, it accounts for the whole gap between this panel and what the
+	 * network tab shows.
+	 *
+	 * `REQUEST_TIME_FLOAT` is when PHP began handling the request, so "bootstrap"
+	 * covers WordPress core, every other plugin, and the theme — not just us.
+	 *
+	 * @return array{total: float, bootstrap: float, search: float, render: float}|null
+	 *         Phase durations in milliseconds, or null when the request was never intercepted.
+	 */
+	private function request_phases() {
+		if ( $this->debug_start <= 0 ) {
+			return null;
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- Server-generated float, not user input.
+		$request_start = isset( $_SERVER['REQUEST_TIME_FLOAT'] ) ? (float) $_SERVER['REQUEST_TIME_FLOAT'] : 0.0;
+		if ( $request_start <= 0 ) {
+			return null;
+		}
+
+		$now       = microtime( true );
+		$total     = ( $now - $request_start ) * 1000;
+		$bootstrap = ( $this->debug_start - $request_start ) * 1000;
+		$search    = $this->debug_last_offset;
+		$render    = $total - $bootstrap - $search;
+
+		return array(
+			'total'     => max( 0, $total ),
+			'bootstrap' => max( 0, $bootstrap ),
+			'search'    => max( 0, $search ),
+			'render'    => max( 0, $render ),
+		);
+	}
+
+	/**
+	 * Render the phase breakdown as one debug line.
+	 *
+	 * @return string Formatted line, or '' when timings are unavailable.
+	 */
+	private function server_timing_entry() {
+		$phases = $this->request_phases();
+		if ( null === $phases ) {
+			return '';
+		}
+
+		return sprintf(
+			'[server] PHP %.1fms → bootstrap %.1fms · search %.1fms · render %.1fms',
+			$phases['total'],
+			$phases['bootstrap'],
+			$phases['search'],
+			$phases['render']
+		);
 	}
 
 	/**
@@ -796,6 +875,12 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			foreach ( $this->debug_log as $entry ) {
 				echo esc_html( $entry ) . "\n";
 			}
+
+			$server_timing = $this->server_timing_entry();
+			if ( '' !== $server_timing ) {
+				echo esc_html( $server_timing ) . "\n";
+			}
+
 			echo '</div>';
 		}
 
@@ -990,7 +1075,18 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		foreach ( $this->debug_log as $line ) {
 			echo esc_html( $line ) . '<br>';
 		}
+
+		$server_timing = $this->server_timing_entry();
+		if ( '' !== $server_timing ) {
+			echo esc_html( $server_timing ) . '<br>';
+		}
+
 		echo '</span>';
+
+		// Owned by the AJAX script, which fills it with Navigation/Resource Timing
+		// numbers once the browser has them. Kept out of the lines container so a
+		// filter-change refresh replacing the server lines cannot wipe it.
+		echo '<span class="shift64-woo-search-debug-bar__client"></span>';
 		echo '</div>';
 	}
 

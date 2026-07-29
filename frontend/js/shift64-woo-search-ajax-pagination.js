@@ -71,6 +71,19 @@
         if (!document.querySelector(SELECTORS.filters) && !document.querySelector(SELECTORS.productWrap)) return;
 
         delegate();
+
+        // Only meaningful once the load event has landed, since the navigation
+        // entry is not final before then. No panel, nothing to report.
+        if (document.querySelector('.shift64-woo-search-debug-bar')) {
+            if (document.readyState === 'complete') {
+                reportNavigationTiming();
+            } else {
+                window.addEventListener('load', function () {
+                    // The entry's own timings settle a tick after the event fires.
+                    setTimeout(reportNavigationTiming, 0);
+                });
+            }
+        }
     }
 
     /**
@@ -370,6 +383,102 @@
     }
 
     /**
+     * Write the browser-side half of the debug panel.
+     *
+     * The server lines stop at "PHP finished". Everything after that — waiting on
+     * the wire, downloading the HTML, parsing it, painting — is invisible from
+     * PHP, which is what makes a 3ms search look like a 500ms page in the network
+     * tab. These lines close that gap.
+     *
+     * Lives in its own container so the server-line refresh cannot wipe it.
+     *
+     * @param {string[]} lines Formatted client-timing lines.
+     */
+    function writeClientTimings(lines) {
+        var bar = document.querySelector('.shift64-woo-search-debug-bar');
+        if (!bar || !lines.length) return;
+
+        var host = bar.querySelector('.shift64-woo-search-debug-bar__client');
+        if (!host) {
+            host = document.createElement('span');
+            host.className = 'shift64-woo-search-debug-bar__client';
+            bar.appendChild(host);
+        }
+
+        host.textContent = '';
+        lines.forEach(function (line) {
+            host.appendChild(document.createTextNode(line));
+            host.appendChild(document.createElement('br'));
+        });
+    }
+
+    /**
+     * Round to one decimal, matching the server lines' format.
+     *
+     * @param {number} ms Duration in milliseconds.
+     * @return {string} Formatted duration.
+     */
+    function ms(value) {
+        return (Math.round(value * 10) / 10) + 'ms';
+    }
+
+    /**
+     * Report how the initial page load actually spent its time.
+     *
+     * Navigation Timing splits the request the way a network tab does, so the
+     * panel can say which part of the wall clock was the server thinking, which
+     * was transfer, and which was the browser building the page.
+     */
+    function reportNavigationTiming() {
+        if (!window.performance || typeof performance.getEntriesByType !== 'function') return;
+
+        var nav = performance.getEntriesByType('navigation')[0];
+        if (!nav) return;
+
+        // requestStart → responseStart is the server's think time as the browser
+        // sees it, so it includes latency the server itself cannot measure.
+        var wait = nav.responseStart - nav.requestStart;
+        var transfer = nav.responseEnd - nav.responseStart;
+
+        var line = '[browser] load ' + ms(nav.duration) +
+            ' → wait ' + ms(wait) +
+            ' · transfer ' + ms(transfer) +
+            ' · dom ' + ms(nav.domContentLoadedEventEnd - nav.responseEnd);
+
+        if (nav.transferSize) {
+            line += ' · ' + Math.round(nav.transferSize / 1024) + 'kB';
+        }
+
+        writeClientTimings([line]);
+    }
+
+    /**
+     * Report a filter/pagination swap the same way.
+     *
+     * `fetchMs` is measured around the fetch itself; the Resource Timing entry
+     * for the same URL breaks that down further when the browser exposes it.
+     *
+     * @param {string} url     The URL that was fetched.
+     * @param {number} fetchMs Wall-clock milliseconds spent in fetch().
+     * @param {number} swapMs  Wall-clock milliseconds spent swapping the DOM.
+     */
+    function reportSwapTiming(url, fetchMs, swapMs) {
+        var line = '[browser] swap ' + ms(fetchMs + swapMs) +
+            ' → fetch ' + ms(fetchMs) + ' · dom ' + ms(swapMs);
+
+        if (window.performance && typeof performance.getEntriesByName === 'function') {
+            var entries = performance.getEntriesByName(url);
+            var entry = entries && entries[entries.length - 1];
+            if (entry) {
+                line += ' · wait ' + ms(entry.responseStart - entry.requestStart) +
+                    ' · transfer ' + ms(entry.responseEnd - entry.responseStart);
+            }
+        }
+
+        writeClientTimings([line]);
+    }
+
+    /**
      * Read the debug lines out of a fetched response, whichever shape it has.
      *
      * Two response shapes carry them, and they separate lines differently. The
@@ -486,6 +595,9 @@
             filtersEl.classList.add('shift64-woo-search-filters--loading');
         }
 
+        var fetchStart = (window.performance && performance.now) ? performance.now() : 0;
+        var fetchMs = 0;
+
         fetch(url, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
@@ -498,6 +610,9 @@
                 return res.text();
             })
             .then(function (html) {
+                fetchMs = ((window.performance && performance.now) ? performance.now() : 0) - fetchStart;
+
+                var swapStart = (window.performance && performance.now) ? performance.now() : 0;
                 var parser = new DOMParser();
                 var doc = parser.parseFromString(html, 'text/html');
 
@@ -555,6 +670,13 @@
                 // that first loaded the page while the grid below it shows
                 // filtered results.
                 refreshDebugBar(doc);
+
+                // Measured after the swap so "dom" covers the work the user
+                // actually waited on, not just the parse.
+                if (document.querySelector('.shift64-woo-search-debug-bar')) {
+                    var swapMs = ((window.performance && performance.now) ? performance.now() : 0) - swapStart;
+                    reportSwapTiming(url, fetchMs, swapMs);
+                }
 
                 // Update URL.
                 if (!skipPush) {

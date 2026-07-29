@@ -273,6 +273,142 @@ class Archive_Debug_Panel_Test extends WP_UnitTestCase {
 		);
 	}
 
+	// ── Request-phase timings ──────────────────────────────────
+
+	/**
+	 * Invoke the private phase calculator.
+	 *
+	 * @param Shift64_Woo_Search_Archive $archive Instance under test.
+	 * @return array|null Phase durations, or null when unavailable.
+	 */
+	private function request_phases( $archive ) {
+		return ( new ReflectionMethod( Shift64_Woo_Search_Archive::class, 'request_phases' ) )->invoke( $archive );
+	}
+
+	/**
+	 * Seed the timing state an intercepted request would have left behind.
+	 *
+	 * `$elapsed_s` is how long ago the request started, so it has to exceed the
+	 * bootstrap: the remainder is what the render phase is computed from, exactly
+	 * as in a live request where rendering continues after the search finishes.
+	 *
+	 * @param Shift64_Woo_Search_Archive $archive     Instance to seed.
+	 * @param float                      $elapsed_s   Seconds since the request began.
+	 * @param float                      $bootstrap_s Seconds spent before the interception.
+	 * @param float                      $search_ms   Milliseconds the search work took.
+	 * @return void
+	 */
+	private function seed_timings( $archive, $elapsed_s, $bootstrap_s, $search_ms ) {
+		$request_start                 = microtime( true ) - $elapsed_s;
+		$_SERVER['REQUEST_TIME_FLOAT'] = $request_start;
+
+		( new ReflectionProperty( Shift64_Woo_Search_Archive::class, 'debug_start' ) )
+			->setValue( $archive, $request_start + $bootstrap_s );
+		( new ReflectionProperty( Shift64_Woo_Search_Archive::class, 'debug_last_offset' ) )
+			->setValue( $archive, $search_ms );
+	}
+
+	/**
+	 * A request that was never intercepted has no timeline to report, so the
+	 * breakdown is absent rather than a row of zeroes pretending otherwise.
+	 */
+	public function test_phases_are_absent_when_the_request_was_not_intercepted() {
+		$archive = ( new ReflectionClass( Shift64_Woo_Search_Archive::class ) )->newInstanceWithoutConstructor();
+
+		$this->assertNull( $this->request_phases( $archive ) );
+	}
+
+	/**
+	 * The three phases account for the whole PHP wall clock. That is the property
+	 * the panel is for: a 3ms search inside a 400ms request is only legible if the
+	 * other 397ms is attributed rather than left implicit.
+	 */
+	public function test_phases_partition_the_php_wall_clock() {
+		$archive = $this->archive_with_log();
+		$this->seed_timings( $archive, 0.4, 0.25, 3.0 );
+
+		$phases = $this->request_phases( $archive );
+
+		$this->assertIsArray( $phases );
+		$this->assertEqualsWithDelta( 250.0, $phases['bootstrap'], 25.0 );
+		$this->assertSame( 3.0, $phases['search'] );
+		$this->assertEqualsWithDelta(
+			$phases['total'],
+			$phases['bootstrap'] + $phases['search'] + $phases['render'],
+			0.001,
+			'bootstrap + search + render must reconstruct the total'
+		);
+	}
+
+	/**
+	 * Every phase is reported as a non-negative duration. Clock skew between
+	 * `REQUEST_TIME_FLOAT` and `microtime()` must never surface as a negative
+	 * number in the panel.
+	 */
+	public function test_phases_are_never_negative_under_clock_skew() {
+		$archive = $this->archive_with_log();
+
+		// A search that "took" longer than the whole request — only reachable via
+		// skew, but the formatter must not print a negative render phase.
+		$this->seed_timings( $archive, 0.01, 0.005, 5000.0 );
+
+		$phases = $this->request_phases( $archive );
+
+		foreach ( array( 'total', 'bootstrap', 'search', 'render' ) as $phase ) {
+			$this->assertGreaterThanOrEqual( 0, $phases[ $phase ], "{$phase} must not be negative" );
+		}
+	}
+
+	/**
+	 * The rendered panel carries the breakdown line and an empty container for the
+	 * browser-side numbers the AJAX script fills in.
+	 */
+	public function test_enabled_panel_renders_the_server_breakdown_and_a_client_slot() {
+		update_option( self::OPTION, 'yes' );
+		$this->login_shop_manager();
+
+		$archive = $this->archive_with_log();
+		$this->seed_timings( $archive, 0.4, 0.25, 3.0 );
+
+		ob_start();
+		$archive->render_debug();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '[server] PHP', $output );
+		$this->assertStringContainsString( 'bootstrap', $output );
+		$this->assertStringContainsString( 'search', $output );
+		$this->assertStringContainsString( 'render', $output );
+		$this->assertStringContainsString( 'shift64-woo-search-debug-bar__client', $output );
+	}
+
+	/**
+	 * The client slot is a sibling of the lines container, not a child — a
+	 * filter-change refresh replaces the lines wholesale, and must not take the
+	 * browser timings with it.
+	 */
+	public function test_client_slot_is_not_nested_inside_the_lines_container() {
+		update_option( self::OPTION, 'yes' );
+		$this->login_shop_manager();
+
+		$archive = $this->archive_with_log();
+		$this->seed_timings( $archive, 0.4, 0.25, 3.0 );
+
+		ob_start();
+		$archive->render_debug();
+		$output = ob_get_clean();
+
+		$lines_end  = strpos( $output, '</span>' );
+		$client_pos = strpos( $output, 'shift64-woo-search-debug-bar__client' );
+
+		$this->assertNotFalse( $lines_end );
+		$this->assertNotFalse( $client_pos );
+		$this->assertGreaterThan(
+			$lines_end,
+			$client_pos,
+			'the client slot must open after the lines container closes'
+		);
+	}
+
 	/**
 	 * A query the archive declines to intercept leaves the log untouched, so a
 	 * non-search request on the same instance cannot blank a panel that belongs to
