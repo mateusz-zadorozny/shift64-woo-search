@@ -81,7 +81,9 @@
 /* ── Tuning Tab ─────────────────────────────────────────── */
 .shift64-woo-search-tuning__grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 16px; }
 @media (min-width: 1200px) {
-    .shift64-woo-search-tuning__grid { grid-template-columns: repeat(4, 1fr); }
+    /* auto-fit, not a fixed 4: a compare run may return 2–4 passes, and the
+       cards that did come back should share the whole row. */
+    .shift64-woo-search-tuning__grid { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
     .shift64-woo-search-admin__content { max-width: 1600px; }
 }
 .shift64-woo-search-tuning__card { background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 16px; }
