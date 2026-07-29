@@ -67,6 +67,7 @@ class Shift64_Woo_Search_Admin_Settings {
 			'shift64_woo_search_category_suggest_fuzzy',
 			'shift64_woo_search_brand_suggest_enabled',
 			'shift64_woo_search_archive_enabled',
+			'shift64_woo_search_archive_debug_enabled',
 			'shift64_woo_search_price_sort_mode',
 			'shift64_woo_search_rate_limit',
 		);

@@ -139,8 +139,8 @@ Every setting is its own top-level `wp_option` (there is no settings array, and 
 `_diacritics_normalization`, `_rate_limit`, …), filters/facets/index (`_filter_attributes`,
 `_filter_categories_*`, `_filter_brands_enabled`, `_brand_suggest_enabled`, `_weights`,
 `_category_boosts`, `_category_suggest_exclude`), and
-archive/frontend (`_archive_enabled`, `_taxonomy_archive_scopes`, `_price_sort_mode`, `_debounce`,
-`_input_selector`, `_additional_selectors`, `_button_selector`).
+archive/frontend (`_archive_enabled`, `_archive_debug_enabled`, `_taxonomy_archive_scopes`,
+`_price_sort_mode`, `_debounce`, `_input_selector`, `_additional_selectors`, `_button_selector`).
 
 **Breaking:** renaming an option; changing its stored type or shape; changing a default in a way
 that alters behavior for installs that never set it explicitly.
@@ -149,6 +149,13 @@ that alters behavior for installs that never set it explicitly.
 a fallback for one minor release, and state in the changelog what happens to a site that never
 touched the setting. Remember that a changed default only affects installs with no stored value —
 say so explicitly rather than leaving people to find out.
+
+`_archive_debug_enabled` (default `no`) gates the storefront debug panel. It is a *new* key rather
+than a re-defaulted one, but it does change behavior for installs that never set it: the panel
+used to render for every user holding `manage_woocommerce` and now stays hidden until it is
+switched on at **System → Diagnostics**. Nothing else about a search result changes, and the
+capability check still applies on top of the option — the option can only narrow who sees the
+panel, never widen it. Sites that want the old behavior set the option to `yes`.
 
 Which admin screen writes a key is *not* part of this surface — the key, its type, and its
 default are. The admin information-architecture migration moved controls between screens without

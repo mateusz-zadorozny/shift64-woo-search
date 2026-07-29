@@ -658,10 +658,11 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Diagnostics is a readout plus one action. It keeps the ids the admin script
-	 * binds to — the button lives inside `#s64ws-settings-form` because that is where
-	 * the existing initializer looks for it — and carries no named input at all, so
-	 * there is nothing here a save could overwrite.
+	 * Diagnostics is a readout, one action, and one switch. It keeps the ids the
+	 * admin script binds to — the Regenerate button lives inside
+	 * `#s64ws-settings-form` because that is where the existing initializer looks
+	 * for it — and its save carries exactly one key, so it can never overwrite a
+	 * setting another section owns.
 	 */
 	public function test_diagnostics_section_owns_the_generated_config_readout() {
 		$html = $this->render( 'system', 'diagnostics' );
@@ -673,7 +674,43 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'shift64_woo_search_rate_limit', $html );
 		$this->assertStringNotContainsString( 'shift64_woo_search_redis_', $html );
 		$this->assertStringNotContainsString( 's64ws-test-connection', $html );
-		$this->assertStringNotContainsString( 'type="submit"', $html );
+	}
+
+	/**
+	 * The storefront debug panel switch lives here, and it is the only setting the
+	 * section posts — a Save from Diagnostics touches nothing else.
+	 */
+	public function test_diagnostics_section_owns_the_storefront_debug_switch() {
+		$html = $this->render( 'system', 'diagnostics' );
+
+		$this->assertStringContainsString( 'name="shift64_woo_search_archive_debug_enabled"', $html );
+		$this->assertStringContainsString( 'type="submit"', $html );
+
+		preg_match_all( '/name="(shift64_woo_search_[^"\[]+)"/', $html, $matches );
+
+		$this->assertSame(
+			array( 'shift64_woo_search_archive_debug_enabled' ),
+			array_values( array_unique( $matches[1] ) )
+		);
+	}
+
+	/**
+	 * The switch renders unchecked on a fresh install — the panel is opt-in, and
+	 * the form must not suggest otherwise.
+	 */
+	public function test_storefront_debug_switch_renders_unchecked_by_default() {
+		delete_option( 'shift64_woo_search_archive_debug_enabled' );
+
+		$html = $this->render( 'system', 'diagnostics' );
+
+		$this->assertMatchesRegularExpression(
+			'/id="shift64_woo_search_archive_debug_enabled"[^>]*value="yes"\s*\/?>/',
+			$html
+		);
+		$this->assertDoesNotMatchRegularExpression(
+			'/id="shift64_woo_search_archive_debug_enabled"[^>]*checked/',
+			$html
+		);
 	}
 
 	/**

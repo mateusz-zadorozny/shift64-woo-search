@@ -123,6 +123,59 @@ class Shift64_Woo_Search_Admin_Settings_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The storefront debug panel switch round-trips through the generic seam like
+	 * any other yes/no scalar, so the Diagnostics section can save it.
+	 */
+	public function test_archive_debug_toggle_round_trips() {
+		Shift64_Woo_Search_Admin_Settings::persist(
+			array( 'shift64_woo_search_archive_debug_enabled' => 'yes' )
+		);
+
+		$this->assertSame( 'yes', get_option( 'shift64_woo_search_archive_debug_enabled' ) );
+
+		Shift64_Woo_Search_Admin_Settings::persist(
+			array( 'shift64_woo_search_archive_debug_enabled' => 'no' )
+		);
+
+		$this->assertSame( 'no', get_option( 'shift64_woo_search_archive_debug_enabled' ) );
+	}
+
+	/**
+	 * A payload that does not carry the debug key leaves it alone — the panel
+	 * cannot be switched on as a side effect of saving an unrelated section.
+	 */
+	public function test_unrelated_save_never_touches_the_archive_debug_toggle() {
+		update_option( 'shift64_woo_search_archive_debug_enabled', 'no' );
+
+		Shift64_Woo_Search_Admin_Settings::persist( array( 'shift64_woo_search_debounce' => '150' ) );
+
+		$this->assertSame( 'no', get_option( 'shift64_woo_search_archive_debug_enabled' ) );
+	}
+
+	/**
+	 * Markup submitted for the debug toggle is stripped rather than stored, so
+	 * the value can never reach the storefront as markup.
+	 *
+	 * Note what this does *not* claim: sanitization is not the thing that keeps
+	 * the panel off. `sanitize_text_field` removes the tags and leaves the text
+	 * around them, so a crafted `<b>yes</b>` still stores `yes`. That is
+	 * acceptable because reaching this seam at all already requires the nonce and
+	 * the settings capability. The real guard is at read time — only the literal
+	 * string `yes` is read as consent, which `Archive_Debug_Panel_Test` covers.
+	 */
+	public function test_archive_debug_toggle_strips_markup() {
+		Shift64_Woo_Search_Admin_Settings::persist(
+			array( 'shift64_woo_search_archive_debug_enabled' => '<script>alert(1)</script>maybe' )
+		);
+
+		$stored = get_option( 'shift64_woo_search_archive_debug_enabled' );
+
+		$this->assertStringNotContainsString( '<', $stored );
+		$this->assertStringNotContainsString( 'alert', $stored );
+		$this->assertNotSame( 'yes', $stored );
+	}
+
+	/**
 	 * Scalars are stored as strings — consumers cast on read.
 	 */
 	public function test_scalar_values_are_stored_as_strings() {

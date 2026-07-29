@@ -182,7 +182,7 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 			),
 			'system/index'                    => array(),
 			'system/security'                 => array( 'shift64_woo_search_rate_limit' ),
-			'system/diagnostics'              => array(),
+			'system/diagnostics'              => array( 'shift64_woo_search_archive_debug_enabled' ),
 		);
 	}
 
@@ -249,6 +249,9 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 			),
 			'system/security'                 => array(
 				'shift64_woo_search_rate_limit' => '120',
+			),
+			'system/diagnostics'              => array(
+				'shift64_woo_search_archive_debug_enabled' => 'yes',
 			),
 		);
 	}
