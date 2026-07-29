@@ -375,13 +375,24 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			$this->log( 'Pass 3 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 		}
 
-		// Pass 4: Fuzzy fallback.
+		// Pass 4: Fuzzy fallback. Score-filtered to match Query::search(), which
+		// drops sub-threshold fuzzy matches — without this the archive kept
+		// noise autocomplete had already discarded. Prefix passes above are
+		// deliberately not filtered. See Query::filter_low_scores().
+		//
+		// Known limit: price-sorted requests take the ft_search_with_offset()
+		// branch, which asks Redis to sort and so never fetches scores. A
+		// fuzzy pass under ?orderby=price therefore stays unfiltered and can
+		// still show what autocomplete would drop. Filtering it would mean
+		// re-fetching with WITHSCORES and paginating in PHP, losing the point
+		// of the SORTBY branch.
 		if ( 'strict_first' === $strategy && $this->is_empty_result( $result ) ) {
 			$ft_query = $search_query->build_fuzzy_query( $terms, $filters );
 			$this->log( 'Pass 4 (fuzzy)', $ft_query );
-			$t0     = microtime( true );
-			$result = $relevance_mode
-				? $this->ft_search_relevance( $redis, $index_name, $ft_query, $terms, $fetch_limit, false, $stock_mode, $demote_factor )
+			$t0        = microtime( true );
+			$min_score = (float) ( $config['fallback_score_threshold'] ?? 0.5 );
+			$result    = $relevance_mode
+				? $this->ft_search_relevance( $redis, $index_name, $ft_query, $terms, $fetch_limit, false, $stock_mode, $demote_factor, $min_score )
 				: $this->ft_search_with_offset( $redis, $index_name, $ft_query, $offset, $fetch_limit, $sort );
 			$this->log( 'Pass 4 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 		}
@@ -421,9 +432,10 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	 * @param bool                     $or_mode Apply term-match-count boost and filter.
 	 * @param string                   $stock_mode Out-of-stock handling mode.
 	 * @param float                    $demote_factor Out-of-stock score multiplier.
+	 * @param float                    $min_score  Drop results scoring below this; 0 disables.
 	 * @return array|false
 	 */
-	private function ft_search_relevance( $redis, $index_name, $ft_query, $terms, $limit, $or_mode = false, $stock_mode = 'exclude', $demote_factor = 0.3 ) {
+	private function ft_search_relevance( $redis, $index_name, $ft_query, $terms, $limit, $or_mode = false, $stock_mode = 'exclude', $demote_factor = 0.3, $min_score = 0.0 ) {
 		$args = array(
 			'FT.SEARCH',
 			$index_name,
@@ -483,6 +495,14 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			}
 
 			$i += 3; // key + score + fields.
+		}
+
+		// Drop sub-threshold matches before any boost, mirroring Query::search()
+		// which filters ahead of demote/title-start. Total must follow the
+		// filtered set or pagination would advertise pages that cannot render.
+		if ( $min_score > 0 ) {
+			$results = Shift64_Woo_Search_Query::filter_low_scores( $results, $min_score, 'score' );
+			$total   = count( $results );
 		}
 
 		if ( 'demote' === $stock_mode ) {

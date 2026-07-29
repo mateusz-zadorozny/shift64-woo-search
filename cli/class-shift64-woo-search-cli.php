@@ -373,10 +373,9 @@ class Shift64_Woo_Search_CLI {
 	 * ---
 	 *
 	 * [--limit=<limit>]
-	 * : Number of results.
-	 * ---
-	 * default: 7
-	 * ---
+	 * : Number of results. Defaults to the configured limit for the chosen
+	 * mode (autocomplete_limit or full_limit), so output matches what the
+	 * storefront returns.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -395,7 +394,10 @@ class Shift64_Woo_Search_CLI {
 
 		$query_text = $args[0];
 		$mode       = isset( $assoc_args['mode'] ) ? $assoc_args['mode'] : 'autocomplete';
-		$limit      = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 7;
+		// Null lets search() pick autocomplete_limit / full_limit by mode. A
+		// hardcoded default silently capped --mode=full at 7, so the CLI
+		// under-reported what the storefront would show.
+		$limit = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : null;
 
 		// Load config from options.
 		$config = array(
