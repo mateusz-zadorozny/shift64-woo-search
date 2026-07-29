@@ -130,9 +130,9 @@ None — no `--skill-url` arguments were passed.
 
 ### Phase 2: Expose the toggle in System › Diagnostics
 
-- [ ] 2.1 Allowlist the option in `Shift64_Woo_Search_Admin_Settings`
-- [ ] 2.2 Render the checkbox in the Diagnostics section and regenerate the pot
-- [ ] 2.3 Unit tests for persistence, absence, and sanitization
+- [x] 2.1 Allowlist the option in `Shift64_Woo_Search_Admin_Settings` — f58e5d6
+- [x] 2.2 Render the checkbox in the Diagnostics section and regenerate the pot — f58e5d6
+- [x] 2.3 Unit tests for persistence, absence, and sanitization — f58e5d6
 
 ### Phase 3: Refresh the debug bar on filter/pagination changes
 
