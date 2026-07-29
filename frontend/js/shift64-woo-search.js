@@ -543,7 +543,7 @@
         var html = '<div class="shift64-woo-search-result" role="option" data-url="' + escapeAttr(item.url) + '">';
 
         // Image.
-        if (config.showImage !== false && item.image) {
+        if (isEnabled(config.showImage) && item.image) {
             html += '<img class="shift64-woo-search-result__image" src="' + escapeAttr(item.image) + '" alt="" loading="lazy" />';
         }
 
@@ -553,19 +553,19 @@
 
         // Meta line (SKU | most specific product category).
         var metaParts = [];
-        if (config.showSku !== false && item.sku) {
+        if (isEnabled(config.showSku) && item.sku) {
             metaParts.push('<span class="shift64-woo-search-result__sku">' + escapeHtml(item.sku) + '</span>');
         }
 
         var category = typeof item.category === 'string' ? item.category.split('|')[0].trim() : '';
-        if (config.showCategory !== false && category) {
+        if (isEnabled(config.showCategory) && category) {
             metaParts.push('<span class="shift64-woo-search-result__category">' + escapeHtml(category) + '</span>');
         }
 
         // First segment only — the indexer guarantees it is a directly-assigned
         // brand rather than an inherited parent.
         var brandLabel = typeof item.brand === 'string' ? item.brand.split('|')[0].trim() : '';
-        if (config.showBrand !== false && brandLabel) {
+        if (isEnabled(config.showBrand) && brandLabel) {
             metaParts.push('<span class="shift64-woo-search-result__brand">' + escapeHtml(brandLabel) + '</span>');
         }
 
@@ -637,6 +637,21 @@
     };
 
     // ── Utilities ──────────────────────────────────────────────
+
+    /**
+     * Read a display switch out of the localized config.
+     *
+     * wp_localize_script stringifies every scalar, so a PHP `false` arrives here as an
+     * empty string and a `true` as '1' — a plain `!== false` test would leave every
+     * switch permanently on. An absent key still means on, which is what keeps a config
+     * built before these settings existed rendering the way it always did.
+     */
+    function isEnabled(value) {
+        if (value === undefined || value === null) return true;
+        return value !== false && value !== 0 && value !== ''
+            && value !== '0' && value !== 'no' && value !== 'false';
+    }
+
     function escapeHtml(str) {
         if (!str) return '';
         var div = document.createElement('div');

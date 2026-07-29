@@ -14,6 +14,7 @@
     --s64ws-dropdown-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     --s64ws-dropdown-radius: 12px;
     --s64ws-dropdown-max-height: 696px;
+    --s64ws-dropdown-width: 645px;
     --s64ws-dropdown-z: 99999;
 
     --s64ws-item-hover-bg: var(--global-palette8, #f5f7fa);
@@ -485,8 +486,8 @@ body.shift64-woo-search-modal-open {
 }
 
 .shift64-woo-search-main-header__search.shift64-woo-search--expanded {
-    min-width: 645px;
-    max-width: 645px;
+    min-width: var(--s64ws-dropdown-width, 645px);
+    max-width: var(--s64ws-dropdown-width, 645px);
 }
 
 /* ================================================================
@@ -503,7 +504,7 @@ body.shift64-woo-search-modal-open {
     border-radius: var(--s64ws-dropdown-radius);
     box-shadow: var(--s64ws-dropdown-shadow);
     max-height: var(--s64ws-dropdown-max-height);
-    min-width: 645px;
+    min-width: var(--s64ws-dropdown-width, 645px);
     overflow: hidden;
     display: none;
     /* Flex column: scroll area + sticky footer */

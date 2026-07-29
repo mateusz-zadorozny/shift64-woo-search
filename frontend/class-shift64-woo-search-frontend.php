@@ -15,6 +15,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shift64_Woo_Search_Frontend {
 
 	/**
+	 * Stock dropdown width in pixels — the value the stylesheet ships with.
+	 */
+	const DROPDOWN_WIDTH_DEFAULT = 645;
+
+	/**
+	 * Narrowest configurable dropdown width in pixels.
+	 */
+	const DROPDOWN_WIDTH_MIN = 320;
+
+	/**
+	 * Widest configurable dropdown width in pixels.
+	 */
+	const DROPDOWN_WIDTH_MAX = 1200;
+
+	/**
 	 * Whether the primary search assets were enqueued by this instance.
 	 *
 	 * @var bool
@@ -220,6 +235,11 @@ class Shift64_Woo_Search_Frontend {
 			SHIFT64_WOO_SEARCH_VERSION
 		);
 
+		wp_add_inline_style(
+			'shift64-woo-search',
+			':root{--s64ws-dropdown-width:' . self::get_dropdown_width() . 'px;}'
+		);
+
 		wp_enqueue_script(
 			'shift64-woo-search',
 			SHIFT64_WOO_SEARCH_URL . 'frontend/js/shift64-woo-search.js',
@@ -234,10 +254,13 @@ class Shift64_Woo_Search_Frontend {
 			'minQueryLength'        => (int) get_option( 'shift64_woo_search_min_query', 2 ),
 			'debounce'              => (int) get_option( 'shift64_woo_search_debounce', 150 ),
 			'limit'                 => (int) get_option( 'shift64_woo_search_autocomplete_limit', 7 ),
-			'showSku'               => true,
+			// Bools, as documented — wp_localize_script stringifies them on the wire
+			// ('1' / ''), which is why the script reads them through isEnabled() rather
+			// than comparing against a literal false.
+			'showSku'               => self::display_switch( 'shift64_woo_search_show_sku' ),
 			'showImage'             => true,
-			'showCategory'          => true,
-			'showBrand'             => true,
+			'showCategory'          => self::display_switch( 'shift64_woo_search_show_category' ),
+			'showBrand'             => self::display_switch( 'shift64_woo_search_show_brand' ),
 			'noResultsText'         => esc_html__( 'No products found', 'shift64-woo-search' ),
 			'seeAllText'            => esc_html__( 'See all results', 'shift64-woo-search' ),
 			'suggestionsHeaderText' => esc_html__( 'SEARCH SUGGESTIONS', 'shift64-woo-search' ),
@@ -299,5 +322,41 @@ class Shift64_Woo_Search_Frontend {
 		}
 
 		return $selectors;
+	}
+
+	/**
+	 * Resolve a yes/no display switch into the bool the frontend config declares.
+	 *
+	 * Anything other than a stored 'yes' reads as off, so a hand-edited or partially
+	 * migrated option row cannot leave a switch stuck on. Options that were never saved
+	 * default to 'yes', which is the rendering every site had before these settings
+	 * existed.
+	 *
+	 * @param string $option Option name.
+	 * @return bool Whether the part is shown.
+	 */
+	private static function display_switch( $option ) {
+		return 'yes' === get_option( $option, 'yes' );
+	}
+
+	/**
+	 * Resolve the configured dropdown width, clamped to a usable range.
+	 *
+	 * The value is interpolated into a stylesheet, so it is cast to an integer and
+	 * bounded here rather than trusted from storage — a non-numeric option must never
+	 * reach the CSS. Out-of-range values clamp instead of falling back to the default,
+	 * so a merchant who types 5000 gets the widest supported tray rather than the
+	 * stock one.
+	 *
+	 * @return int Width in pixels, between 320 and 1200.
+	 */
+	public static function get_dropdown_width() {
+		$width = (int) get_option( 'shift64_woo_search_dropdown_width', self::DROPDOWN_WIDTH_DEFAULT );
+
+		if ( $width < self::DROPDOWN_WIDTH_MIN ) {
+			return $width < 1 ? self::DROPDOWN_WIDTH_DEFAULT : self::DROPDOWN_WIDTH_MIN;
+		}
+
+		return min( $width, self::DROPDOWN_WIDTH_MAX );
 	}
 }

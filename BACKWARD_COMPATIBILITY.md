@@ -212,10 +212,22 @@ in `shift64_woo_search_config`.
 **Required path:** treat `shift64_woo_search_config` as the endpoint's response shape — additive
 keys are free, removals and renames are not.
 
-`showBrand` (bool, hardcoded `true`) and `brandsHeaderText` were added alongside the brand
-surfaces, mirroring `showCategory` / `categoriesHeaderText`. Like `showCategory`, `showBrand` is
-deliberately not option-backed: the JS guards on `config.showBrand !== false`, so a brandless
-product simply renders no label.
+`showBrand` and `brandsHeaderText` were added alongside the brand surfaces, mirroring
+`showCategory` / `categoriesHeaderText`. A brandless product renders no label regardless of the
+switch.
+
+`showSku`, `showCategory`, and `showBrand` became option-backed in #41
+(`shift64_woo_search_show_*`), each defaulting to `yes` so an unconfigured site renders exactly
+as before. They stay **bools** — retyping them would break the contract above — but note that
+`wp_localize_script` stringifies scalars in transit, so a `false` reaches the browser as `''`,
+not as `false`. The script therefore reads them through its `isEnabled()` helper; the older
+`config.showX !== false` guard silently treated every disabled switch as enabled and must not
+be reintroduced.
+
+`--s64ws-dropdown-width` (default `645px`) sizes the expanded search field and the results tray.
+It is a CSS custom property like the other `--s64ws-*` tokens, so themes may override it; the
+plugin emits it as an inline style after its own stylesheet, driven by
+`shift64_woo_search_dropdown_width` and clamped to 320–1200px.
 
 ## 10. Runtime requirements
 
