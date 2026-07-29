@@ -353,6 +353,12 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		$query->set( 's', '' ); // Clear search — prevents MySQL LIKE query.
 		$query->set( 'post_type', 'product' );
 
+		// The blank `s` only has to survive until the SQL is built. Everything
+		// that renders afterwards — the WooCommerce breadcrumb, theme search
+		// headings, the search field — reads the term back through
+		// get_search_query(), so put it back as soon as the posts are in.
+		add_filter( 'the_posts', array( $this, 'restore_search_query_var' ), 5, 2 );
+
 		if ( $use_wc_price ) {
 			// WC handles pagination — keep paged as-is.
 			// Let WC sort by actual customer prices. WP handles pagination.
@@ -391,6 +397,28 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			remove_filter( 'found_posts', array( $this, 'override_found_posts' ), 10 );
 		}
 		return $found_posts;
+	}
+
+	/**
+	 * Restore the search term on the main query after the SQL has executed.
+	 *
+	 * `intercept()` blanks `s` so WordPress skips its MySQL LIKE search, but the
+	 * query var is also the source every renderer reads: WooCommerce's breadcrumb
+	 * search trail and theme search headings both call get_search_query(), which
+	 * returned an empty string and produced `Search results for “”`. This filter
+	 * fires once the posts are back from the database — after the only consumer
+	 * that must not see the term — and puts it back for the render pass.
+	 *
+	 * @param array    $posts Returned posts.
+	 * @param WP_Query $query Query that produced the posts.
+	 * @return array
+	 */
+	public function restore_search_query_var( $posts, $query ) {
+		if ( $query->is_main_query() && '' !== $this->search_term ) {
+			$query->set( 's', $this->search_term );
+			remove_filter( 'the_posts', array( $this, 'restore_search_query_var' ), 5 );
+		}
+		return $posts;
 	}
 
 	/**
