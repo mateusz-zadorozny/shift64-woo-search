@@ -1,3 +1,10 @@
+# [0.10.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.9.1...v0.10.0) (2026-07-29)
+
+
+### Features
+
+* **admin:** six-workspace settings information architecture with canonical routes ([#33](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/33)) ([b85b303](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/b85b3038e458e8e56adf7ea5386a9d3d86d17ca3))
+
 ## [0.9.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.9.0...v0.9.1) (2026-07-28)
 
 
