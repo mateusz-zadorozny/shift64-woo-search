@@ -119,9 +119,14 @@
     outline-offset: 2px;
 }
 
+/* The shortcode and block wrappers are as wide as whatever column they sit in, so
+   this rule used to pin the tray to the field. It now defers to the configured
+   width like every other placement — being the more specific selector, anything
+   it sets here silently overrides the container rule below. */
 .shift64-woo-search-shortcode .shift64-woo-search-results {
-    width: 100%;
+    width: var(--s64ws-dropdown-width, 645px);
     min-width: 0;
+    max-width: calc(100vw - 32px);
 }
 
 /* ================================================================
@@ -759,10 +764,14 @@ body.shift64-woo-search-modal-open {
     /* Below this breakpoint the tray tracks the search field's own width and the
        configured width does not apply, so the sizing above is handed back to the
        left/right anchoring it replaced. */
-    .shift64-woo-search-results {
+    .shift64-woo-search-results,
+    .shift64-woo-search-shortcode .shift64-woo-search-results {
         right: 0;
         width: auto;
         max-width: none;
+    }
+
+    .shift64-woo-search-results {
         max-height: 70vh;
         border-radius: var(--s64ws-dropdown-radius) var(--s64ws-dropdown-radius);
     }
