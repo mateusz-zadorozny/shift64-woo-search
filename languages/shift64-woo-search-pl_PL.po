@@ -32,3 +32,25 @@ msgid_plural "%d selected"
 msgstr[0] "%d wybrano"
 msgstr[1] "%d wybrano"
 msgstr[2] "%d wybrano"
+
+#: admin/class-shift64-woo-search-admin.php:415
+msgid "Synonym groups let RediSearch treat related terms as equivalent. Use comma for two-way, => for one-way (e.g. jumper => sweater)."
+msgstr "Grupy synonimów sprawiają, że RediSearch traktuje powiązane terminy jako równoważne. Użyj przecinka dla synonimów dwukierunkowych, => dla jednokierunkowych (np. odzież => ubrania)."
+
+#: admin/class-shift64-woo-search-admin.php:420
+msgid "e.g. hoodie, sweatshirt — or one-way: jumper => sweater"
+msgstr "np. koszulka, t-shirt — lub jednokierunkowo: odzież => ubrania"
+
+#: admin/class-shift64-woo-search-admin.php:470
+msgid ""
+"One group per line:\n"
+"hoodie, sweatshirt\n"
+"jumper => sweater"
+msgstr ""
+"Jedna grupa na linię:\n"
+"koszulka, t-shirt\n"
+"odzież => ubrania"
+
+#: admin/class-shift64-woo-search-admin.php:1560
+msgid "One rule per line. Format: category-or-tag|factor (global) or query|category-or-tag|factor (query-specific). Lines starting with # are comments. Factor is clamped to 1-200, but factors compound with promoted (×1.5) and title-start (×2/×3) — values above ~5 can crowd out organic ranking, so use sparingly. Example: Sale|1.2 or shirt|Sale|1.5. No index rebuild required."
+msgstr "Jedna reguła na linię. Format: kategoria-lub-tag|współczynnik (globalnie) lub zapytanie|kategoria-lub-tag|współczynnik (dla zapytania). Linie zaczynające się od # to komentarze. Współczynnik jest ograniczany do 1-200, ale współczynniki kumulują się z wyróżnieniem (×1.5) i dopasowaniem początku tytułu (×2/×3) — wartości powyżej ~5 mogą wypierać naturalny ranking, więc używaj ich oszczędnie. Przykład: Promocja|1.2 lub koszulka|Promocja|1.5. Przebudowa indeksu nie jest wymagana."

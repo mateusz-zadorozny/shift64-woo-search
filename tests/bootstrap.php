@@ -71,5 +71,21 @@ if ( ! function_exists( 'wc_get_products' ) ) {
 	}
 }
 
+/**
+ * The Facets admin section lists WooCommerce's global product attributes. A store
+ * without WooCommerce has none, which is exactly the branch this stub produces —
+ * so the section still renders its category and brand controls under test.
+ */
+if ( ! function_exists( 'wc_get_attribute_taxonomies' ) ) {
+	/**
+	 * Test stub for `wc_get_attribute_taxonomies()` — no global attributes registered.
+	 *
+	 * @return array Empty list of attribute taxonomy objects.
+	 */
+	function wc_get_attribute_taxonomies() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
+		return array();
+	}
+}
+
 // Start up the WP testing environment.
 require "{$_tests_dir}/includes/bootstrap.php";

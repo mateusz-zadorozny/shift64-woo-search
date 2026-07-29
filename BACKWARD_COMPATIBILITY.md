@@ -150,6 +150,11 @@ a fallback for one minor release, and state in the changelog what happens to a s
 touched the setting. Remember that a changed default only affects installs with no stored value —
 say so explicitly rather than leaving people to find out.
 
+Which admin screen writes a key is *not* part of this surface — the key, its type, and its
+default are. The admin information-architecture migration moved controls between screens without
+renaming, retyping, or re-defaulting a single option; see §11 for the route contract and for the
+one write-behavior change that shipped with it.
+
 ## 7. Database schema
 
 One table: `{$wpdb->prefix}shift64_woo_search_stats` (`includes/class-shift64-woo-search-stats.php`),
@@ -221,3 +226,103 @@ The PHP floor is machine-checked: `.phpcs.xml.dist` runs the `PHPCompatibilityWP
 `testVersion 8.3-`, so `vendor/bin/phpcs` (locally and in CI) flags code that does not run on
 every supported PHP version. Keep `testVersion`, the three declarations, and the CI matrix in
 agreement whenever any of them changes. See `CODE_REVIEW.md`.
+
+## 11. Admin settings routes
+
+The settings page moved from twelve equal tabs to six task-oriented workspaces addressed by
+`tab` + `section`
+(`.ai/specs/2026-07-22-admin-settings-information-architecture.md`). Admin URLs are weaker than
+the storefront surfaces above — nobody's cron job calls them — but merchants bookmark them,
+support articles link them, and `Shift64_Woo_Search_Admin_Routes` is now the single source of
+truth for what exists, so the map belongs here.
+
+### Canonical routes
+
+`admin.php?page=shift64-woo-search&tab={workspace}&section={section}`
+
+Six workspaces, nineteen sections. Omitting `section` lands on the workspace default (marked
+`*`), so the short form `…&tab=system` stays valid even if a default is renamed.
+
+| `tab` | `section` values |
+|---|---|
+| `overview` | `overview`* (the page's landing route; `section` is ignored) |
+| `experience` | `search-field`*, `autocomplete`, `query-suggestions`, `category-suggestions` |
+| `results` | `coverage`*, `facets` |
+| `relevance` | `basic`*, `matching`, `synonyms`, `merchandising`, `field-weights`, `test-search`, `compare-passes` |
+| `insights` | `statistics`* |
+| `system` | `connection`*, `index`, `security`, `diagnostics` |
+
+Resolution is total and case-sensitive: an unknown, non-string, or hostile `tab` resolves to
+`overview`; an unknown or non-string `section` resolves to the workspace default. Render
+callbacks come only from the registry — request input is never concatenated into a method name.
+
+**Breaking:** removing a workspace or section slug; repointing a slug at different settings;
+making a section reachable only with JavaScript.
+
+**Required path:** keep the retired slug accepted as an alias for at least one minor release and
+say in the changelog where its settings went.
+
+### Legacy tab aliases
+
+The twelve pre-migration `tab` values still resolve, and are **expected to keep resolving for at
+least one minor release — they may remain indefinitely**, since an alias table costs nothing.
+They are resolved internally by `Shift64_Woo_Search_Admin_Routes::resolve()`, with **no HTTP
+redirect**: a legacy bookmark renders the new screen at the URL the user typed. Legacy URLs never
+carried a `section`, so an alias fixes both halves of the destination and ignores any `section`
+that was appended by hand.
+
+| Legacy `tab` | Resolves to |
+|---|---|
+| `frontend` | `experience` / `search-field` |
+| `suggestions` | `experience` / `query-suggestions` |
+| `catboost` | `experience` / `category-suggestions` |
+| `filters` | `results` / `facets` |
+| `search` | `relevance` / `basic` |
+| `synonyms` | `relevance` / `synonyms` |
+| `weights` | `relevance` / `field-weights` |
+| `test` | `relevance` / `test-search` |
+| `tuning` | `relevance` / `compare-passes` |
+| `stats` | `insights` / `statistics` |
+| `redis` | `system` / `connection` |
+| `index` | `system` / `index` |
+
+`tab=search` is the one alias whose old screen was split across workspaces, so it renders a
+non-persistent notice pointing at the other destinations. The notice is presentation only —
+removing it is not a contract break.
+
+**Breaking:** dropping an alias inside the compatibility window; turning an alias into a redirect
+that changes the URL third-party links point at.
+
+### Reaffirmed unchanged by the migration
+
+The migration was a re-layout, not a rewrite. Everything below is byte-identical to the
+pre-migration plugin and must stay that way:
+
+- **Every `shift64_woo_search_*` option** — same keys, same stored types and shapes, same
+  defaults. No renames, no normalization, no migration (§6).
+- **Every `wp_ajax_shift64_woo_search_*` action name**, including the misspelled
+  `shift64_woo_search_synonys64ws_add` / `_update` / `_remove` / `_export` / `_import`. The
+  misspelling is deliberate compatibility debt: renaming it breaks any saved automation, so it
+  stays until a major.
+- **Nonce action `shift64_woo_search_admin`** and the AJAX request/response envelopes.
+- **Asset handles `shift64-woo-search-admin`** (style and script) and the localized object
+  `shift64_woo_search_admin` with keys `ajax_url`, `nonce`, `default_weights`, `current_weights`
+  (§9).
+- **Menu slug `shift64-woo-search`** under the `woocommerce` parent, capability
+  `manage_woocommerce`, hook suffix `woocommerce_page_shift64-woo-search`.
+- **Storefront behavior** — no endpoint, index, or frontend-asset change.
+
+### The one behavior change
+
+Generic partial settings saves used to clear `shift64_woo_search_redis_username` and
+`shift64_woo_search_redis_password` whenever the *stored*
+`shift64_woo_search_redis_auth_enabled` option read `no`. With settings split across sections,
+that meant saving an unrelated section could silently wipe working Redis credentials.
+
+`Shift64_Woo_Search_Admin_Settings::persist()` now clears the two credential options **only when
+the submitted payload itself contains `shift64_woo_search_redis_auth_enabled` = `no`**. A payload
+that does not mention the key leaves credentials untouched.
+
+Explicitly turning authentication off on System → Connection still clears them, so the intended
+path is unchanged; only the accidental one is gone. Any future partial-save form must keep this
+property: **a save may only write keys the payload actually submitted.**

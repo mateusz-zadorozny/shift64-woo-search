@@ -118,50 +118,189 @@ class Shift64_Woo_Search_Admin {
 	}
 
 	/**
-	 * Render the main admin page with tab navigation.
+	 * Build a canonical admin URL for a workspace, optionally scoped to a section.
+	 *
+	 * Workspace links may omit the section: the resolver applies the workspace default,
+	 * so the shortest canonical URL stays stable even if a default section is renamed.
+	 *
+	 * @param string $workspace Workspace slug.
+	 * @param string $section   Optional section slug.
+	 * @return string Relative admin URL.
 	 */
-	public function render_page() {
-		$tabs = array(
-			'test'        => __( 'Test Search', 'shift64-woo-search' ),
-			'tuning'      => __( 'Tuning', 'shift64-woo-search' ),
-			'synonyms'    => __( 'Synonyms', 'shift64-woo-search' ),
-			'suggestions' => __( 'Suggestions', 'shift64-woo-search' ),
-			'catboost'    => __( 'Category Boost', 'shift64-woo-search' ),
-			'stats'       => __( 'Statistics', 'shift64-woo-search' ),
-			'weights'     => __( 'Weights', 'shift64-woo-search' ),
-			'filters'     => __( 'Filters', 'shift64-woo-search' ),
-			'index'       => __( 'Index', 'shift64-woo-search' ),
-			'redis'       => __( 'Redis', 'shift64-woo-search' ),
-			'search'      => __( 'Search', 'shift64-woo-search' ),
-			'frontend'    => __( 'Frontend', 'shift64-woo-search' ),
-		);
+	private function get_route_url( $workspace, $section = '' ) {
+		$url = '?page=shift64-woo-search&tab=' . rawurlencode( $workspace );
 
-		$current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'test'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab navigation only.
-		if ( ! isset( $tabs[ $current_tab ] ) ) {
-			$current_tab = 'test';
+		if ( '' !== $section ) {
+			$url .= '&section=' . rawurlencode( $section );
 		}
 
+		return $url;
+	}
+
+	/**
+	 * Render the main admin page: navigation shell plus the resolved section.
+	 *
+	 * `tab` and `section` are plain navigation parameters on a read-only GET, so they
+	 * are nonce-exempt exactly as the legacy tab parameter was. They are never used to
+	 * build a method name — `Shift64_Woo_Search_Admin_Routes::resolve()` maps them onto
+	 * the fixed registry and returns one of its own declared callbacks.
+	 */
+	public function render_page() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only navigation parameters, no state change.
+		$requested_tab     = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
+		$requested_section = isset( $_GET['section'] ) ? sanitize_text_field( wp_unslash( $_GET['section'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		$route      = Shift64_Woo_Search_Admin_Routes::resolve( $requested_tab, $requested_section );
+		$workspaces = Shift64_Woo_Search_Admin_Routes::get_workspaces();
+		$sections   = $workspaces[ $route['workspace'] ]['sections'];
 		?>
 		<div class="wrap shift64-woo-search-admin">
 			<h1><?php esc_html_e( 'Shift64 Woo Search', 'shift64-woo-search' ); ?></h1>
 
-			<h2 class="nav-tab-wrapper">
-				<?php foreach ( $tabs as $slug => $label ) : ?>
-					<a href="?page=shift64-woo-search&tab=<?php echo esc_attr( $slug ); ?>"
-						class="nav-tab <?php echo $current_tab === $slug ? 'nav-tab-active' : ''; ?>">
-						<?php echo esc_html( $label ); ?>
-					</a>
+			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Primary', 'shift64-woo-search' ); ?>">
+				<?php foreach ( $workspaces as $workspace_slug => $workspace ) : ?>
+					<?php $is_current = ( $route['workspace'] === $workspace_slug ); ?>
+					<a href="<?php echo esc_url( $this->get_route_url( $workspace_slug ) ); ?>" class="nav-tab<?php echo $is_current ? ' nav-tab-active' : ''; ?>"<?php echo $is_current ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $workspace['label'] ); ?></a>
 				<?php endforeach; ?>
-			</h2>
+			</nav>
+
+			<?php if ( count( $sections ) > 1 ) : ?>
+				<nav class="shift64-woo-search-admin__sections" aria-label="<?php esc_attr_e( 'Sections', 'shift64-woo-search' ); ?>">
+					<ul class="subsubsub">
+						<?php
+						$section_index = 0;
+						foreach ( $sections as $section_slug => $section ) :
+							++$section_index;
+							$is_current = ( $route['section'] === $section_slug );
+							?>
+							<li>
+								<a href="<?php echo esc_url( $this->get_route_url( $route['workspace'], $section_slug ) ); ?>" class="shift64-woo-search-admin__section-link<?php echo $is_current ? ' current' : ''; ?>"<?php echo $is_current ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $section['label'] ); ?></a><?php echo $section_index < count( $sections ) ? ' |' : ''; ?>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</nav>
+			<?php endif; ?>
 
 			<div class="shift64-woo-search-admin__content">
+				<h2 class="shift64-woo-search-admin__section-title"><?php echo esc_html( $sections[ $route['section'] ]['label'] ); ?></h2>
 				<?php
-				$method = 'render_' . $current_tab . '_tab';
-				if ( method_exists( $this, $method ) ) {
-					$this->$method();
+				/*
+				 * The relocation notice keys off the *raw* requested tab, not the resolved
+				 * route: `tab=search` and `tab=relevance&section=basic` land on the same
+				 * renderer, and only the first one is a returning bookmark that needs
+				 * telling where the rest of the old page went.
+				 */
+				if ( 'search' === $requested_tab ) {
+					$this->render_legacy_search_relocation_notice();
+				}
+
+				/*
+				 * Safe variable method call: `$route['callback']` is always a string the
+				 * route registry itself declared. Request input selects which registry
+				 * entry is used, but never contributes to the method name.
+				 */
+				$callback = $route['callback'];
+				if ( method_exists( $this, $callback ) ) {
+					$this->$callback();
 				}
 				?>
 			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render the relocation notice for bookmarks that still point at `tab=search`.
+	 *
+	 * The old Search tab was the mixed page: ranking, fuzzy matching, autocomplete
+	 * sizing, and archive coverage all shared one form. The alias lands returning
+	 * bookmarks on Relevance › Basic Ranking, which holds the ranking half — so the
+	 * only thing left to explain is where the other halves went.
+	 *
+	 * Deliberately stateless: the notice is markup-dismissible through WordPress's own
+	 * client-side handler and nothing more. Remembering a dismissal would mean writing
+	 * user meta or an option on a page view, and "rendering a route never writes" is a
+	 * contract this notice is not allowed to be the exception to. It disappears for
+	 * good the moment the merchant updates the bookmark, which is the point.
+	 */
+	private function render_legacy_search_relocation_notice() {
+		$matching_link   = sprintf(
+			'<a href="%1$s">%2$s</a>',
+			esc_url( $this->get_route_url( 'relevance', 'matching' ) ),
+			esc_html__( 'Matching & Fallback', 'shift64-woo-search' )
+		);
+		$experience_link = sprintf(
+			'<a href="%1$s">%2$s</a>',
+			esc_url( $this->get_route_url( 'experience', 'autocomplete' ) ),
+			esc_html__( 'Search Experience', 'shift64-woo-search' )
+		);
+		$results_link    = sprintf(
+			'<a href="%1$s">%2$s</a>',
+			esc_url( $this->get_route_url( 'results', 'coverage' ) ),
+			esc_html__( 'Results & Filters', 'shift64-woo-search' )
+		);
+		?>
+		<div class="notice notice-info is-dismissible shift64-woo-search-admin__relocation-notice">
+			<p>
+				<strong><?php esc_html_e( 'The old Search tab has been split up.', 'shift64-woo-search' ); ?></strong>
+				<?php
+				printf(
+					/* translators: %s: link to the Relevance › Matching & Fallback section. */
+					esc_html__( 'Its ranking controls are on this page. Typo tolerance, fallback passes, and the full-search limit are one section over, under %s.', 'shift64-woo-search' ),
+					wp_kses_post( $matching_link )
+				);
+				?>
+			</p>
+			<p>
+				<?php
+				printf(
+					/* translators: 1: link to the Search Experience workspace. 2: link to the Results & Filters workspace. */
+					esc_html__( 'The rest of the old page changed workspace: autocomplete and suggestion settings now live in %1$s, and archive coverage and price sorting in %2$s.', 'shift64-woo-search' ),
+					wp_kses_post( $experience_link ),
+					wp_kses_post( $results_link )
+				);
+				?>
+			</p>
+		</div>
+		<?php
+	}
+
+	// ── Overview Tab ───────────────────────────────────────────
+
+	/**
+	 * Render the Overview landing page.
+	 *
+	 * Read-only by contract: this is a signpost to the five task workspaces. It must
+	 * never write an option, query Redis, regenerate config, or expose credentials —
+	 * merely visiting the plugin's default page has to be free of side effects.
+	 */
+	private function render_overview_tab() {
+		$descriptions = array(
+			'experience' => __( 'Search field behaviour, autocomplete, and the query and category suggestions shoppers see.', 'shift64-woo-search' ),
+			'results'    => __( 'Which listings the search backend serves, and the facets shoppers filter results with.', 'shift64-woo-search' ),
+			'relevance'  => __( 'Matching, ranking, synonyms, merchandising, and the tools for evaluating them.', 'shift64-woo-search' ),
+			'insights'   => __( 'Search usage over time and the queries that come back empty.', 'shift64-woo-search' ),
+			'system'     => __( 'Backend connection, index operations, traffic protection, and generated configuration.', 'shift64-woo-search' ),
+		);
+		?>
+		<div class="shift64-woo-search-overview">
+			<p class="description">
+				<?php esc_html_e( 'Every setting, content list, tool, and report lives in one of the workspaces below. This page only points at them — nothing here changes your store.', 'shift64-woo-search' ); ?>
+			</p>
+
+			<ul class="shift64-woo-search-overview__cards">
+				<?php foreach ( Shift64_Woo_Search_Admin_Routes::get_workspaces() as $workspace_slug => $workspace ) : ?>
+					<?php if ( isset( $descriptions[ $workspace_slug ] ) ) : ?>
+						<li class="shift64-woo-search-overview__card">
+							<h3 class="shift64-woo-search-overview__card-title">
+								<a href="<?php echo esc_url( $this->get_route_url( $workspace_slug ) ); ?>"><?php echo esc_html( $workspace['label'] ); ?></a>
+							</h3>
+							<p class="shift64-woo-search-overview__card-text"><?php echo esc_html( $descriptions[ $workspace_slug ] ); ?></p>
+						</li>
+					<?php endif; ?>
+				<?php endforeach; ?>
+			</ul>
 		</div>
 		<?php
 	}
@@ -273,12 +412,12 @@ class Shift64_Woo_Search_Admin {
 		?>
 		<div class="shift64-woo-search-synonyms">
 			<p class="description">
-				<?php esc_html_e( 'Synonym groups let RediSearch treat related terms as equivalent. Use comma for two-way, => for one-way (e.g. kosz nożny => kosz pedałowy).', 'shift64-woo-search' ); ?>
+				<?php esc_html_e( 'Synonym groups let RediSearch treat related terms as equivalent. Use comma for two-way, => for one-way (e.g. jumper => sweater).', 'shift64-woo-search' ); ?>
 			</p>
 
 			<div class="shift64-woo-search-synonys64ws__add">
 				<input type="text" id="s64ws-syn-input" class="regular-text"
-						placeholder="<?php esc_attr_e( 'e.g. ręcznik, papier ręcznikowy — or one-way: kosz nożny => kosz pedałowy', 'shift64-woo-search' ); ?>" />
+						placeholder="<?php esc_attr_e( 'e.g. hoodie, sweatshirt — or one-way: jumper => sweater', 'shift64-woo-search' ); ?>" />
 				<button type="button" id="s64ws-syn-add" class="button button-primary">
 					<?php esc_html_e( 'Add Group', 'shift64-woo-search' ); ?>
 				</button>
@@ -328,7 +467,7 @@ class Shift64_Woo_Search_Admin {
 						<span id="s64ws-syn-import-filename" style="margin-left:8px; color:#666;"></span>
 					</p>
 					<textarea id="s64ws-syn-import-text" rows="8" class="large-text code"
-							placeholder="<?php esc_attr_e( "One group per line:\nręcznik, papier ręcznikowy\nkosz nożny => kosz pedałowy", 'shift64-woo-search' ); ?>"></textarea>
+							placeholder="<?php esc_attr_e( "One group per line:\nhoodie, sweatshirt\njumper => sweater", 'shift64-woo-search' ); ?>"></textarea>
 					<p>
 						<label>
 							<input type="checkbox" id="s64ws-syn-import-replace" checked />
@@ -345,12 +484,15 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
-	// ── Suggestions Tab ───────────────────────────────────────
+	// ── Search Experience › Query Suggestions ──────────────────
 
 	/**
-	 * Render the Suggestions tab for managing autocomplete suggestions.
+	 * Render the Query Suggestions section for managing autocomplete suggestions.
+	 *
+	 * Relocated verbatim from the legacy Suggestions tab: same markup, element ids,
+	 * and AJAX actions, so the admin script binds to it exactly as before.
 	 */
-	private function render_suggestions_tab() {
+	private function render_experience_query_suggestions_section() {
 		$suggestions = Shift64_Woo_Search_Suggestions::get_all();
 		?>
 		<div class="shift64-woo-search-suggestions">
@@ -427,7 +569,7 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
-	// ── Category Boost Tab ─────────────────────────────────────
+	// ── Search Experience › Category Suggestions ───────────────
 
 	/**
 	 * Resolve the configured per-category boosts into display rows.
@@ -496,12 +638,39 @@ class Shift64_Woo_Search_Admin {
 	}
 
 	/**
-	 * Render the Category Boost tab — per-category autocomplete multipliers.
+	 * Render the Category Suggestions section.
+	 *
+	 * Everything that shapes the autocomplete category list lives here, in the order
+	 * the resolver applies it: pins win over boosts, boosts order what remains, and
+	 * exclusions remove categories from the list entirely.
+	 *
+	 * The pins editor is a generic settings form and therefore submits only its own
+	 * key; the boost and exclusion editors keep their dedicated AJAX actions and the
+	 * category-blob refresh that goes with them.
 	 */
-	private function render_catboost_tab() {
+	private function render_experience_category_suggestions_section() {
 		$rows = $this->get_category_boost_rows();
 		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+			<table class="form-table">
+				<?php
+				$this->render_textarea_field(
+					'shift64_woo_search_category_pin_rules',
+					__( 'Category Suggestion Pins', 'shift64-woo-search' ),
+					'',
+					__( 'Pins a category to the top of the autocomplete category list for a query. One rule per line. Format: query|category or query|category|priority. Category is a name or slug; priority defaults to 1 (higher wins). A pin fires while the shopper types (prefix match either way) and can surface a category even when its name does not contain the query. Lines starting with # are comments. No index rebuild required.', 'shift64-woo-search' )
+				);
+				?>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+
 		<div class="shift64-woo-search-catboost">
+			<h3 style="margin-top:2em"><?php esc_html_e( 'Category boosts', 'shift64-woo-search' ); ?></h3>
 			<p class="description">
 				<?php esc_html_e( 'Relevance multiplier for category suggestions. Values above 1 promote a category and values below 1 demote it. Boosts apply within the same name-match level (exact, prefix, or substring) and take precedence over product count. Category pins have a higher priority than boosts.', 'shift64-woo-search' ); ?>
 			</p>
@@ -761,17 +930,89 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
-	// ── Index Tab ──────────────────────────────────────────────
+	// ── Results & Filters › Result Coverage ────────────────────
 
 	/**
-	 * Render the Index tab showing connection status and rebuild actions.
+	 * Render the Result Coverage section — where Redis serves the listing.
+	 *
+	 * Relocated from the legacy Search tab. These three settings decide which
+	 * storefront listings Redis answers at all; how those results are then ranked
+	 * belongs to Relevance, and which facets shoppers see belongs to Facets.
+	 *
+	 * The taxonomy scopes need an index rebuild to take effect, while the other two
+	 * are runtime switches — hence the separate headings. They deliberately share
+	 * one Save action: splitting them would mean two forms writing one section.
 	 */
-	// ── Filters Tab ───────────────────────────────────────────
+	private function render_results_coverage_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
+			<h3><?php esc_html_e( 'Archive / Search Results', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_checkbox_field( 'shift64_woo_search_archive_enabled', __( 'Redis Search Results', 'shift64-woo-search' ), 'no', __( 'Replace WooCommerce MySQL search on product search results pages with Redis.', 'shift64-woo-search' ) );
+				$this->render_select_field(
+					'shift64_woo_search_price_sort_mode',
+					__( 'Price Sorting', 'shift64-woo-search' ),
+					array(
+						'redis' => __( 'Redis index prices (fast, base prices)', 'shift64-woo-search' ),
+						'db'    => __( 'DB prices for logged-in users (accurate B2B tiers)', 'shift64-woo-search' ),
+					),
+					__( 'DB mode: logged-in users get prices from database (slower but accurate per-customer). Guests always use Redis.', 'shift64-woo-search' )
+				);
+				?>
+			</table>
+
+			<h3><?php esc_html_e( 'Taxonomy Archives', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$enabled_scopes = (array) get_option( 'shift64_woo_search_taxonomy_archive_scopes', array() );
+				$scope_map      = Shift64_Woo_Search_Taxonomy_Archive::get_scope_map();
+				?>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Taxonomy Archive Filters', 'shift64-woo-search' ); ?></th>
+					<td>
+						<fieldset>
+							<?php foreach ( $scope_map as $taxonomy => $config ) : ?>
+								<label style="display:block; margin-bottom:6px;">
+									<input type="checkbox"
+										name="shift64_woo_search_taxonomy_archive_scopes[]"
+										value="<?php echo esc_attr( $taxonomy ); ?>"
+										<?php checked( in_array( $taxonomy, $enabled_scopes, true ), true ); ?>
+									/>
+									<code><?php echo esc_html( $taxonomy ); ?></code>
+									<span style="color:#666;">
+										→ <?php echo esc_html( $config['redis_field'] ); ?>
+									</span>
+								</label>
+							<?php endforeach; ?>
+							<p class="description">
+								<?php esc_html_e( 'Enable Redis-backed filtering (faceted pills) on these taxonomy archives. Does not affect sorting — Redis acts as a filter, theme/WC handle order.', 'shift64-woo-search' ); ?>
+							</p>
+						</fieldset>
+					</td>
+				</tr>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── Results & Filters › Facets ─────────────────────────────
 
 	/**
-	 * Render the Filters tab — attribute selection for faceted search.
+	 * Render the Facets section — the filters shoppers see beside their results.
+	 *
+	 * Relocated wholesale from the legacy Filters tab. All four filter groups stay
+	 * in this one specialized form on purpose: its `shift64_woo_search_save_filters`
+	 * handler writes every field it owns on each save, so splitting the form would
+	 * make one half clear the other half's options.
 	 */
-	private function render_filters_tab() {
+	private function render_results_facets_section() {
 		$attribute_taxonomies = wc_get_attribute_taxonomies();
 		$selected             = get_option( 'shift64_woo_search_filter_attributes', array() );
 		if ( ! is_array( $selected ) ) {
@@ -875,7 +1116,21 @@ class Shift64_Woo_Search_Admin {
 
 				<p class="submit">
 					<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Filter Settings', 'shift64-woo-search' ); ?></button>
-					<span style="color:#d63638;margin-left:12px;font-size:13px"><?php esc_html_e( 'After changing attributes, rebuild the index on the Index tab.', 'shift64-woo-search' ); ?></span>
+					<span style="color:#d63638;margin-left:12px;font-size:13px">
+						<?php
+						$index_link = sprintf(
+							'<a href="%1$s">%2$s</a>',
+							esc_url( $this->get_route_url( 'system', 'index' ) ),
+							esc_html__( 'System › Index & Health', 'shift64-woo-search' )
+						);
+
+						printf(
+							/* translators: %s: link to the System › Index & Health section. */
+							esc_html__( 'After changing attributes, rebuild the index on %s.', 'shift64-woo-search' ),
+							wp_kses_post( $index_link )
+						);
+						?>
+					</span>
 					<span id="s64ws-filters-status" class="shift64-woo-search-status"></span>
 				</p>
 			</form>
@@ -961,12 +1216,30 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
-	// ── Settings Tab ───────────────────────────────────────────
+	// ── System › Connection ────────────────────────────────────
 
 	/**
-	 * Render the Redis connection and rate-limiting tab.
+	 * Render the Connection section — how this site reaches Redis.
+	 *
+	 * Relocated from the legacy Redis tab. Everything needed to open a connection
+	 * lives here and nowhere else: host, port, optional ACL credentials, database,
+	 * and the key prefix that isolates one site's keys from another's on a shared
+	 * server. Rate limiting and the generated SHORTINIT config used to share this
+	 * page; they are traffic policy and diagnostics, not connectivity, so they now
+	 * have sections of their own.
+	 *
+	 * Test Connection keeps its current behavior and ordering: the button posts the
+	 * connection fields as they stand in this form, so a merchant can prove a change
+	 * works before saving it. This migration does not touch that flow.
+	 *
+	 * The credential rows are hidden *and* disabled when authentication is off, so
+	 * they never reach the payload; the auth checkbox itself always serializes
+	 * (the admin JS emits `yes`/`no` for checkboxes and skips the hidden fallback
+	 * when a same-named checkbox exists), and that explicit `no` in the payload is
+	 * what tells the persistence seam that clearing stored credentials was
+	 * deliberate.
 	 */
-	private function render_redis_tab() {
+	private function render_system_connection_section() {
 		?>
 		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
 
@@ -1018,6 +1291,75 @@ class Shift64_Woo_Search_Admin {
 					<th></th>
 					<td>
 						<button type="button" id="s64ws-test-connection" class="button"><?php esc_html_e( 'Test Connection', 'shift64-woo-search' ); ?></button>
+						<span id="s64ws-connection-status" class="shift64-woo-search-status"></span>
+					</td>
+				</tr>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── System › Security & Traffic ────────────────────────────
+
+	/**
+	 * Render the Security & Traffic section — the request budget per visitor.
+	 *
+	 * Relocated from the legacy Redis tab, where it sat below the connection
+	 * credentials for no better reason than both being "infrastructure". Capping
+	 * requests per IP is a traffic-policy decision, so it earns its own section — and
+	 * its own form, which submits exactly one key and therefore can never overwrite a
+	 * Redis credential owned by the Connection section.
+	 */
+	private function render_system_security_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
+			<h3><?php esc_html_e( 'Rate Limiting', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_text_field( 'shift64_woo_search_rate_limit', __( 'Max requests/sec per IP', 'shift64-woo-search' ), '30', __( '0 = disabled.', 'shift64-woo-search' ), 'number', '0', '1000', '1' );
+				?>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── System › Diagnostics ───────────────────────────────────
+
+	/**
+	 * Render the Diagnostics section — state of the generated SHORTINIT config.
+	 *
+	 * Moved verbatim from the legacy Redis tab. The plugin writes a small config file
+	 * into `mu-plugins/` so the fast SHORTINIT search endpoint can boot without
+	 * loading all of WordPress. That file is generated, not edited, so what a merchant
+	 * needs here is a status readout and a way to rebuild it — never a form field.
+	 *
+	 * The wrapper is still `#s64ws-settings-form` and carries no fields on purpose:
+	 * the admin script binds the Regenerate button inside its settings-form
+	 * initializer, so the button has to live inside that form for the existing
+	 * JavaScript to find it. Keeping the ids identical is what lets this section move
+	 * without a single line of script change. With no submit control and no named
+	 * inputs, the form can never post a save.
+	 */
+	private function render_system_diagnostics_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
+			<h3><?php esc_html_e( 'SHORTINIT Config', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<tr>
+					<th><?php esc_html_e( 'Generated config', 'shift64-woo-search' ); ?></th>
+					<td>
 						<button type="button" id="s64ws-regen-config" class="button"><?php esc_html_e( 'Regenerate SHORTINIT Config', 'shift64-woo-search' ); ?></button>
 						<span id="s64ws-connection-status" class="shift64-woo-search-status"></span>
 						<?php
@@ -1044,36 +1386,31 @@ class Shift64_Woo_Search_Admin {
 					</td>
 				</tr>
 			</table>
-
-			<h3><?php esc_html_e( 'Rate Limiting', 'shift64-woo-search' ); ?></h3>
-			<table class="form-table">
-				<?php
-				$this->render_text_field( 'shift64_woo_search_rate_limit', __( 'Max requests/sec per IP', 'shift64-woo-search' ), '30', __( '0 = disabled.', 'shift64-woo-search' ), 'number', '0', '1000', '1' );
-				?>
-			</table>
-
-			<p class="submit">
-				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
-				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
-			</p>
 		</form>
 		<?php
 	}
 
+	// ── Relevance › Basic Ranking ──────────────────────────────
+
 	/**
-	 * Render the Search settings tab.
+	 * Render the Basic Ranking section — how a match is decided and ordered.
+	 *
+	 * Relocated from the legacy Search tab. These four controls answer the two
+	 * questions merchants ask first: must a product match every typed word or just
+	 * one of them, and what happens to products that are out of stock. Typo
+	 * tolerance and the fallback passes live one section over, in Matching &
+	 * Fallback, because tuning those is a different job done at a different time.
+	 *
+	 * The form carries only these four keys, so saving it can never overwrite a
+	 * setting owned by another section.
 	 */
-	private function render_search_tab() {
+	private function render_relevance_basic_section() {
 		?>
 		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
 
 			<h3><?php esc_html_e( 'Search Behavior', 'shift64-woo-search' ); ?></h3>
 			<table class="form-table">
 				<?php
-				$this->render_text_field( 'shift64_woo_search_min_query', __( 'Min Query Length', 'shift64-woo-search' ), '2', '', 'number' );
-				$this->render_text_field( 'shift64_woo_search_autocomplete_limit', __( 'Quick Search Results Limit', 'shift64-woo-search' ), '7', __( 'Max products shown in the dropdown.', 'shift64-woo-search' ), 'number' );
-				$this->render_text_field( 'shift64_woo_search_full_limit', __( 'Full Search Results Limit', 'shift64-woo-search' ), '20', __( 'Max products for full search page.', 'shift64-woo-search' ), 'number' );
-				$this->render_text_field( 'shift64_woo_search_fuzzy_level', __( 'Fuzzy Level', 'shift64-woo-search' ), '1', __( 'Levenshtein distance 1-3.', 'shift64-woo-search' ), 'number' );
 				$this->render_select_field(
 					'shift64_woo_search_logic',
 					__( 'Search Logic', 'shift64-woo-search' ),
@@ -1082,12 +1419,6 @@ class Shift64_Woo_Search_Admin {
 						'AND' => 'AND — all terms must match',
 					)
 				);
-				?>
-			</table>
-
-			<h3><?php esc_html_e( 'Search Strategy', 'shift64-woo-search' ); ?></h3>
-			<table class="form-table">
-				<?php
 				$this->render_select_field(
 					'shift64_woo_search_strategy',
 					__( 'Search Mode', 'shift64-woo-search' ),
@@ -1096,50 +1427,6 @@ class Shift64_Woo_Search_Admin {
 						'mixed'        => __( 'Mixed — prefix + fuzzy in one query (legacy)', 'shift64-woo-search' ),
 					),
 					__( 'Strict-first runs a clean prefix query first. Fuzzy is only used as fallback.', 'shift64-woo-search' )
-				);
-				$this->render_select_field(
-					'shift64_woo_search_fallback_trigger',
-					__( 'Fallback Trigger', 'shift64-woo-search' ),
-					array(
-						'low_score'  => __( 'No results OR best score below threshold (recommended)', 'shift64-woo-search' ),
-						'no_results' => __( 'Only when no results', 'shift64-woo-search' ),
-					),
-					__( 'When to fall back to fuzzy.', 'shift64-woo-search' )
-				);
-				$this->render_text_field( 'shift64_woo_search_fallback_score_threshold', __( 'Score Threshold', 'shift64-woo-search' ), '0.5', __( 'Typical good match ~3+, garbage ~0.01.', 'shift64-woo-search' ), 'number', '0', '10', '0.1' );
-				$this->render_select_field(
-					'shift64_woo_search_fallback_fuzzy_level',
-					__( 'Fallback Fuzzy Level', 'shift64-woo-search' ),
-					array(
-						'1' => '1 — conservative',
-						'2' => '2 — moderate',
-						'3' => '3 — aggressive',
-					)
-				);
-				$this->render_checkbox_field( 'shift64_woo_search_token_reduction_enabled', __( 'Token Reduction', 'shift64-woo-search' ), 'yes', __( 'Drop weak trailing tokens before fuzzy fallback.', 'shift64-woo-search' ) );
-				$this->render_text_field( 'shift64_woo_search_weak_tokens', __( 'Weak Tokens', 'shift64-woo-search' ), 'do,na,z,i,w,od,po,za,ze,we,o,u,a,e', __( 'Comma-separated.', 'shift64-woo-search' ) );
-				$this->render_checkbox_field( 'shift64_woo_search_drop_trailing_weak_token_only', __( 'Drop Trailing Only', 'shift64-woo-search' ), 'yes' );
-				$this->render_checkbox_field( 'shift64_woo_search_diacritics_normalization', __( 'Diacritics Normalization', 'shift64-woo-search' ), 'yes', __( 'Match Polish chars without diacritics (ł→l, ó→o, etc). Requires rebuild.', 'shift64-woo-search' ) );
-				$this->render_checkbox_field( 'shift64_woo_search_fuzzy_synonyms', __( 'Fuzzy Synonyms', 'shift64-woo-search' ), 'no', __( 'Match synonyms even with typos or partial input (prefix + Levenshtein).', 'shift64-woo-search' ) );
-				$this->render_checkbox_field( 'shift64_woo_search_category_suggest_fuzzy', __( 'Category Suggestion Fuzzy', 'shift64-woo-search' ), 'no', __( 'Allow typo-tolerant matching in the autocomplete category section. Uses conservative Levenshtein distance 1 on category-name tokens; no index rebuild required.', 'shift64-woo-search' ) );
-				$this->render_checkbox_field( 'shift64_woo_search_brand_suggest_enabled', __( 'Brand Suggestions', 'shift64-woo-search' ), 'yes', __( 'Show a Brands section in the autocomplete dropdown. The section hides itself on stores that have no brands.', 'shift64-woo-search' ) );
-				?>
-			</table>
-
-			<h3><?php esc_html_e( 'Relevance Boosts', 'shift64-woo-search' ); ?></h3>
-			<table class="form-table">
-				<?php
-				$this->render_textarea_field(
-					'shift64_woo_search_category_boost_rules',
-					__( 'Category / Tag Boost Rules', 'shift64-woo-search' ),
-					'',
-					__( 'One rule per line. Format: category-or-tag|factor (global) or query|category-or-tag|factor (query-specific). Lines starting with # are comments. Factor is clamped to 1-200, but factors compound with promoted (×1.5) and title-start (×2/×3) — values above ~5 can crowd out organic ranking, so use sparingly. Example: Promocja|1.2 or papier|Promocja|1.5. No index rebuild required.', 'shift64-woo-search' )
-				);
-				$this->render_textarea_field(
-					'shift64_woo_search_category_pin_rules',
-					__( 'Category Suggestion Pins', 'shift64-woo-search' ),
-					'',
-					__( 'Pins a category to the top of the autocomplete category list for a query. One rule per line. Format: query|category or query|category|priority. Category is a name or slug; priority defaults to 1 (higher wins). A pin fires while the shopper types (prefix match either way) and can surface a category even when its name does not contain the query. Lines starting with # are comments. No index rebuild required.', 'shift64-woo-search' )
 				);
 				?>
 			</table>
@@ -1160,46 +1447,82 @@ class Shift64_Woo_Search_Admin {
 				?>
 			</table>
 
-			<h3><?php esc_html_e( 'Archive / Search Results', 'shift64-woo-search' ); ?></h3>
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── Relevance › Matching & Fallback ────────────────────────
+
+	/**
+	 * Render the Matching & Fallback section — what happens when the query is messy.
+	 *
+	 * Relocated from the legacy Search tab. Everything here exists for one reason:
+	 * shoppers mistype, abbreviate, and pad queries with filler words. The controls
+	 * are grouped by the pass they govern — fuzzy distance and when a fallback pass
+	 * fires, which filler tokens may be dropped, and how diacritics and synonyms are
+	 * normalized before matching.
+	 *
+	 * `shift64_woo_search_full_limit` sits here rather than in Search Experience: it
+	 * sizes the full search endpoint, not the autocomplete dropdown, so it belongs
+	 * with the advanced matching behavior it bounds. Its label and semantics are
+	 * unchanged by the move.
+	 */
+	private function render_relevance_matching_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
+			<h3><?php esc_html_e( 'Fuzzy Matching', 'shift64-woo-search' ); ?></h3>
 			<table class="form-table">
 				<?php
-				$this->render_checkbox_field( 'shift64_woo_search_archive_enabled', __( 'Redis Search Results', 'shift64-woo-search' ), 'no', __( 'Replace WooCommerce MySQL search on product search results pages with Redis.', 'shift64-woo-search' ) );
+				$this->render_text_field( 'shift64_woo_search_fuzzy_level', __( 'Fuzzy Level', 'shift64-woo-search' ), '1', __( 'Levenshtein distance 1-3.', 'shift64-woo-search' ), 'number' );
 				$this->render_select_field(
-					'shift64_woo_search_price_sort_mode',
-					__( 'Price Sorting', 'shift64-woo-search' ),
+					'shift64_woo_search_fallback_trigger',
+					__( 'Fallback Trigger', 'shift64-woo-search' ),
 					array(
-						'redis' => __( 'Redis index prices (fast, base prices)', 'shift64-woo-search' ),
-						'db'    => __( 'DB prices for logged-in users (accurate B2B tiers)', 'shift64-woo-search' ),
+						'low_score'  => __( 'No results OR best score below threshold (recommended)', 'shift64-woo-search' ),
+						'no_results' => __( 'Only when no results', 'shift64-woo-search' ),
 					),
-					__( 'DB mode: logged-in users get prices from database (slower but accurate per-customer). Guests always use Redis.', 'shift64-woo-search' )
+					__( 'When to fall back to fuzzy.', 'shift64-woo-search' )
 				);
-
-				$enabled_scopes = (array) get_option( 'shift64_woo_search_taxonomy_archive_scopes', array() );
-				$scope_map      = Shift64_Woo_Search_Taxonomy_Archive::get_scope_map();
+				$this->render_text_field( 'shift64_woo_search_fallback_score_threshold', __( 'Score Threshold', 'shift64-woo-search' ), '0.5', __( 'Typical good match ~3+, garbage ~0.01.', 'shift64-woo-search' ), 'number', '0', '10', '0.1' );
+				$this->render_select_field(
+					'shift64_woo_search_fallback_fuzzy_level',
+					__( 'Fallback Fuzzy Level', 'shift64-woo-search' ),
+					array(
+						'1' => '1 — conservative',
+						'2' => '2 — moderate',
+						'3' => '3 — aggressive',
+					)
+				);
 				?>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Taxonomy Archive Filters', 'shift64-woo-search' ); ?></th>
-					<td>
-						<fieldset>
-							<?php foreach ( $scope_map as $taxonomy => $config ) : ?>
-								<label style="display:block; margin-bottom:6px;">
-									<input type="checkbox"
-										name="shift64_woo_search_taxonomy_archive_scopes[]"
-										value="<?php echo esc_attr( $taxonomy ); ?>"
-										<?php checked( in_array( $taxonomy, $enabled_scopes, true ), true ); ?>
-									/>
-									<code><?php echo esc_html( $taxonomy ); ?></code>
-									<span style="color:#666;">
-										→ <?php echo esc_html( $config['redis_field'] ); ?>
-									</span>
-								</label>
-							<?php endforeach; ?>
-							<p class="description">
-								<?php esc_html_e( 'Enable Redis-backed filtering (faceted pills) on these taxonomy archives. Does not affect sorting — Redis acts as a filter, theme/WC handle order.', 'shift64-woo-search' ); ?>
-							</p>
-						</fieldset>
-					</td>
-				</tr>
+			</table>
+
+			<h3><?php esc_html_e( 'Token Reduction', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_checkbox_field( 'shift64_woo_search_token_reduction_enabled', __( 'Token Reduction', 'shift64-woo-search' ), 'yes', __( 'Drop weak trailing tokens before fuzzy fallback.', 'shift64-woo-search' ) );
+				$this->render_text_field( 'shift64_woo_search_weak_tokens', __( 'Weak Tokens', 'shift64-woo-search' ), 'do,na,z,i,w,od,po,za,ze,we,o,u,a,e', __( 'Comma-separated.', 'shift64-woo-search' ) );
+				$this->render_checkbox_field( 'shift64_woo_search_drop_trailing_weak_token_only', __( 'Drop Trailing Only', 'shift64-woo-search' ), 'yes' );
+				?>
+			</table>
+
+			<h3><?php esc_html_e( 'Normalization', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_checkbox_field( 'shift64_woo_search_diacritics_normalization', __( 'Diacritics Normalization', 'shift64-woo-search' ), 'yes', __( 'Match Polish chars without diacritics (ł→l, ó→o, etc). Requires rebuild.', 'shift64-woo-search' ) );
+				$this->render_checkbox_field( 'shift64_woo_search_fuzzy_synonyms', __( 'Fuzzy Synonyms', 'shift64-woo-search' ), 'no', __( 'Match synonyms even with typos or partial input (prefix + Levenshtein).', 'shift64-woo-search' ) );
+				?>
+			</table>
+
+			<h3><?php esc_html_e( 'Result Limits', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_text_field( 'shift64_woo_search_full_limit', __( 'Full Search Results Limit', 'shift64-woo-search' ), '20', __( 'Max products for full search page.', 'shift64-woo-search' ), 'number' );
+				?>
 			</table>
 
 			<p class="submit">
@@ -1210,20 +1533,91 @@ class Shift64_Woo_Search_Admin {
 		<?php
 	}
 
+	// ── Relevance › Merchandising ──────────────────────────────
+
 	/**
-	 * Render the Frontend settings tab.
+	 * Render the Merchandising section — deliberate thumbs on the ranking scale.
+	 *
+	 * Relocated from the legacy Search tab. This is the one place where a merchant
+	 * overrides organic ranking on purpose, which is why it is its own section
+	 * rather than a block at the bottom of Basic Ranking.
+	 *
+	 * These rules boost *products* by their category or tag. The similarly named
+	 * editors under Search Experience › Category Suggestions shape the category list
+	 * inside the autocomplete dropdown instead — different option, different surface.
 	 */
-	private function render_frontend_tab() {
+	private function render_relevance_merchandising_section() {
 		?>
 		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
 
-			<h3><?php esc_html_e( 'Frontend', 'shift64-woo-search' ); ?></h3>
+			<h3><?php esc_html_e( 'Relevance Boosts', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_textarea_field(
+					'shift64_woo_search_category_boost_rules',
+					__( 'Category / Tag Boost Rules', 'shift64-woo-search' ),
+					'',
+					__( 'One rule per line. Format: category-or-tag|factor (global) or query|category-or-tag|factor (query-specific). Lines starting with # are comments. Factor is clamped to 1-200, but factors compound with promoted (×1.5) and title-start (×2/×3) — values above ~5 can crowd out organic ranking, so use sparingly. Example: Sale|1.2 or shirt|Sale|1.5. No index rebuild required.', 'shift64-woo-search' )
+				);
+				?>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── Search Experience › Search Field ───────────────────────
+
+	/**
+	 * Render the Search Field section — where the search box lives and how it reacts.
+	 *
+	 * Relocated from the legacy Frontend tab. The form carries only these four keys,
+	 * so submitting it can never touch a setting owned by another section.
+	 */
+	private function render_experience_search_field_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
 			<table class="form-table">
 				<?php
 				$this->render_text_field( 'shift64_woo_search_debounce', __( 'Debounce (ms)', 'shift64-woo-search' ), '150', '', 'number' );
 				$this->render_text_field( 'shift64_woo_search_input_selector', __( 'Input Selector', 'shift64-woo-search' ), '.shift64-woo-search-field__input' );
 				$this->render_text_field( 'shift64_woo_search_additional_selectors', __( 'Additional Selectors', 'shift64-woo-search' ), '', __( 'Comma-separated.', 'shift64-woo-search' ) );
 				$this->render_text_field( 'shift64_woo_search_button_selector', __( 'Search Button Selector', 'shift64-woo-search' ), '', __( 'CSS selector for the search submit button, e.g. .search-submit', 'shift64-woo-search' ) );
+				?>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
+		</form>
+		<?php
+	}
+
+	// ── Search Experience › Autocomplete ───────────────────────
+
+	/**
+	 * Render the Autocomplete section — what the dropdown shows while shoppers type.
+	 *
+	 * Relocated from the legacy Search tab. `shift64_woo_search_full_limit` stays
+	 * behind with matching behaviour: it sizes the full results page, not the
+	 * dropdown, so it belongs with Relevance rather than here.
+	 */
+	private function render_experience_autocomplete_section() {
+		?>
+		<form id="s64ws-settings-form" class="shift64-woo-search-settings">
+
+			<table class="form-table">
+				<?php
+				$this->render_text_field( 'shift64_woo_search_min_query', __( 'Min Query Length', 'shift64-woo-search' ), '2', '', 'number' );
+				$this->render_text_field( 'shift64_woo_search_autocomplete_limit', __( 'Quick Search Results Limit', 'shift64-woo-search' ), '7', __( 'Max products shown in the dropdown.', 'shift64-woo-search' ), 'number' );
+				$this->render_checkbox_field( 'shift64_woo_search_category_suggest_fuzzy', __( 'Category Suggestion Fuzzy', 'shift64-woo-search' ), 'no', __( 'Allow typo-tolerant matching in the autocomplete category section. Uses conservative Levenshtein distance 1 on category-name tokens; no index rebuild required.', 'shift64-woo-search' ) );
+				$this->render_checkbox_field( 'shift64_woo_search_brand_suggest_enabled', __( 'Brand Suggestions', 'shift64-woo-search' ), 'yes', __( 'Show a Brands section in the autocomplete dropdown. The section hides itself on stores that have no brands.', 'shift64-woo-search' ) );
 				?>
 			</table>
 
@@ -1336,7 +1730,8 @@ class Shift64_Woo_Search_Admin {
 				<?php endforeach; ?>
 			</ul>
 		<?php endif; ?>
-		<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=shift64-woo-search&tab=stats' ) ); ?>"><?php esc_html_e( 'View full statistics', 'shift64-woo-search' ); ?> &rarr;</a></p>
+		<?php // Canonical route. The legacy `tab=stats` alias still resolves here, but internal links point at the destination, not the alias. ?>
+		<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=shift64-woo-search&tab=insights&section=statistics' ) ); ?>"><?php esc_html_e( 'View full statistics', 'shift64-woo-search' ); ?> &rarr;</a></p>
 		<?php
 	}
 
@@ -1892,6 +2287,10 @@ class Shift64_Woo_Search_Admin {
 
 	/**
 	 * AJAX handler for saving plugin settings.
+	 *
+	 * Request plumbing only — allowlisting, sanitization, and the credential
+	 * cleanup live in Shift64_Woo_Search_Admin_Settings::persist(), which any
+	 * section form can therefore call with just its own fields.
 	 */
 	public function ajax_save_setting() {
 		check_ajax_referer( 'shift64_woo_search_admin', 'nonce' );
@@ -1899,92 +2298,13 @@ class Shift64_Woo_Search_Admin {
 			wp_send_json_error( array( 'message' => 'Permission denied.' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- values are sanitized in the loop below.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- values are sanitized by the persistence seam below.
 		$settings = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array();
 		if ( empty( $settings ) || ! is_array( $settings ) ) {
 			wp_send_json_error( array( 'message' => 'No settings provided.' ) );
 		}
 
-		$allowed = array(
-			'shift64_woo_search_redis_host',
-			'shift64_woo_search_redis_port',
-			'shift64_woo_search_redis_auth_enabled',
-			'shift64_woo_search_redis_username',
-			'shift64_woo_search_redis_password',
-			'shift64_woo_search_redis_db',
-			'shift64_woo_search_redis_prefix',
-			'shift64_woo_search_min_query',
-			'shift64_woo_search_autocomplete_limit',
-			'shift64_woo_search_full_limit',
-			'shift64_woo_search_fuzzy_level',
-			'shift64_woo_search_logic',
-			'shift64_woo_search_outofstock_mode',
-			'shift64_woo_search_outofstock_demote_factor',
-			'shift64_woo_search_debounce',
-			'shift64_woo_search_input_selector',
-			'shift64_woo_search_additional_selectors',
-			'shift64_woo_search_button_selector',
-			'shift64_woo_search_strategy',
-			'shift64_woo_search_fallback_trigger',
-			'shift64_woo_search_fallback_score_threshold',
-			'shift64_woo_search_fallback_fuzzy_level',
-			'shift64_woo_search_token_reduction_enabled',
-			'shift64_woo_search_weak_tokens',
-			'shift64_woo_search_drop_trailing_weak_token_only',
-			'shift64_woo_search_diacritics_normalization',
-			'shift64_woo_search_fuzzy_synonyms',
-			'shift64_woo_search_category_suggest_fuzzy',
-			'shift64_woo_search_brand_suggest_enabled',
-			'shift64_woo_search_archive_enabled',
-			'shift64_woo_search_price_sort_mode',
-			'shift64_woo_search_rate_limit',
-		);
-
-		// Array-valued options (multi-select / multi-checkbox) need per-value sanitization
-		// rather than sanitize_text_field on the whole value.
-		$allowed_arrays = array(
-			'shift64_woo_search_taxonomy_archive_scopes',
-		);
-
-		$allowed_textareas = array(
-			'shift64_woo_search_category_boost_rules',
-			'shift64_woo_search_category_pin_rules',
-		);
-
-		$saved = 0;
-		foreach ( $settings as $key => $value ) {
-			$key = sanitize_text_field( $key );
-			if ( in_array( $key, $allowed_textareas, true ) ) {
-				$textarea_value = is_scalar( $value ) ? (string) $value : '';
-				update_option( $key, sanitize_textarea_field( $textarea_value ) );
-				++$saved;
-			} elseif ( in_array( $key, $allowed, true ) ) {
-				update_option( $key, sanitize_text_field( $value ) );
-				++$saved;
-			} elseif ( in_array( $key, $allowed_arrays, true ) ) {
-				$array_value = is_array( $value ) ? $value : array();
-				$sanitized   = array_values( array_filter( array_map( 'sanitize_text_field', $array_value ) ) );
-
-				// Array options with a known closed set of valid values get filtered
-				// to those keys — prevents stale/hand-crafted POSTs from writing
-				// junk into wp_options.
-				if ( 'shift64_woo_search_taxonomy_archive_scopes' === $key ) {
-					$valid_scopes = array_keys( Shift64_Woo_Search_Taxonomy_Archive::get_scope_map() );
-					$sanitized    = array_values( array_intersect( $sanitized, $valid_scopes ) );
-				}
-
-				update_option( $key, $sanitized );
-				++$saved;
-			}
-		}
-
-		// When auth is disabled, wipe any previously stored credentials so the SHORTINIT
-		// config is regenerated without them — prevents stale creds from being used after
-		// the user turns auth off.
-		if ( 'no' === get_option( 'shift64_woo_search_redis_auth_enabled', 'no' ) ) {
-			update_option( 'shift64_woo_search_redis_username', '' );
-			update_option( 'shift64_woo_search_redis_password', '' );
-		}
+		$saved = Shift64_Woo_Search_Admin_Settings::persist( $settings );
 
 		Shift64_Woo_Search_Redis::reset_instance();
 		Shift64_Woo_Search_Plugin::get_instance()->generate_mu_plugin_config();
@@ -2403,8 +2723,10 @@ class Shift64_Woo_Search_Admin {
 			update_option( $key, $value );
 		}
 
-		// Mirror the auth toggle behaviour from ajax_save_setting: when auth is off, wipe creds
-		// so a subsequent connection test (or config regen) doesn't use stale values.
+		// Stored-state credential wipe is intentional here (unlike the payload-scoped
+		// guard in Shift64_Woo_Search_Admin_Settings::persist()): the only caller is
+		// ajax_test_connection(), whose Connection form always posts auth_enabled and
+		// writes it above, so the stored value it reads back is this request's value.
 		if ( 'no' === get_option( 'shift64_woo_search_redis_auth_enabled', 'no' ) ) {
 			update_option( 'shift64_woo_search_redis_username', '' );
 			update_option( 'shift64_woo_search_redis_password', '' );
