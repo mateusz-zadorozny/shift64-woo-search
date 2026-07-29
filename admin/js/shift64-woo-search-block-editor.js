@@ -5,12 +5,66 @@
 	var Fragment = wp.element.Fragment;
 	var InspectorControls = wp.blockEditor.InspectorControls;
 	var ColorPaletteControl = wp.blockEditor.ColorPaletteControl;
+	var useBlockProps = wp.blockEditor.useBlockProps;
+	var Disabled = wp.components.Disabled;
+	var useDisabled = wp.compose && wp.compose.useDisabled;
 	var PanelBody = wp.components.PanelBody;
 	var RangeControl = wp.components.RangeControl;
 	var SelectControl = wp.components.SelectControl;
 	var ToggleControl = wp.components.ToggleControl;
 	var addFilter = wp.hooks.addFilter;
 	var __ = wp.i18n.__;
+	var ServerSideRender = wp.serverSideRender;
+
+	var previewBlocks = [
+		'shift64-woo-search/search',
+		'shift64-woo-search/modal-search',
+	];
+
+	/**
+	 * Render the editor preview through a POST request instead of a GET request.
+	 *
+	 * WordPress auto-registers these server-rendered blocks with a preview that
+	 * puts every attribute into the REST request's query string. Attribute
+	 * defaults such as the "Search products..." placeholder then put a `..`
+	 * sequence in the URL, which common hosting firewalls reject as a traversal
+	 * attempt — the preview fails with a 403 before the request reaches PHP.
+	 * Sending the attributes in the request body keeps them out of the URL.
+	 *
+	 * @param {Object} settings Block settings.
+	 * @param {string} name     Registered block name.
+	 * @return {Object} Block settings.
+	 */
+	var usePostPreviewRequests = function ( settings, name ) {
+		if ( previewBlocks.indexOf( name ) === -1 || ! ServerSideRender ) {
+			return settings;
+		}
+
+		return Object.assign( {}, settings, {
+			edit: function ( props ) {
+				// Matches the wrapper WordPress builds for auto-registered
+				// blocks, so no extra element lands inside the block.
+				var blockProps = useBlockProps( useDisabled ? { ref: useDisabled() } : {} );
+				var preview = createElement( ServerSideRender, {
+					block: name,
+					attributes: props.attributes,
+					httpMethod: 'POST',
+				} );
+
+				if ( ! useDisabled ) {
+					preview = createElement( Disabled, null, preview );
+				}
+
+				return createElement( 'div', blockProps, preview );
+			},
+		} );
+	};
+
+	addFilter(
+		'blocks.registerBlockType',
+		'shift64-woo-search/post-preview-requests',
+		usePostPreviewRequests
+	);
 
 	var addModalSearchControls = function ( settings, name ) {
 		if ( name !== 'shift64-woo-search/modal-search' ) {

@@ -252,6 +252,38 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Editor previews post their attributes so hosting firewalls cannot reject the URL.
+	 *
+	 * The "Search products..." placeholder default put a `..` sequence in the
+	 * preview request's query string, which 7G-style firewalls answer with a 403
+	 * before PHP runs, so the editor showed "Error loading block".
+	 */
+	public function test_editor_preview_sends_attributes_in_the_request_body() {
+		$script = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'admin/js/shift64-woo-search-block-editor.js' );
+
+		$this->assertStringContainsString( "httpMethod: 'POST'", $script );
+		$this->assertStringContainsString( "'shift64-woo-search/search',", $script );
+		$this->assertStringContainsString( "'shift64-woo-search/modal-search',", $script );
+		$this->assertStringContainsString( 'wp.serverSideRender', $script );
+
+		$this->assertTrue(
+			strpos( $script, "'shift64-woo-search/post-preview-requests'" )
+				< strpos( $script, "'shift64-woo-search/modal-search-controls'" ),
+			'The POST preview filter must register first so the modal controls wrap it.'
+		);
+	}
+
+	/**
+	 * The editor script can only reach ServerSideRender when it declares the dependency.
+	 */
+	public function test_editor_script_depends_on_server_side_render() {
+		$script = wp_scripts()->query( 'shift64-woo-search-block-editor' );
+
+		$this->assertNotFalse( $script );
+		$this->assertContains( 'wp-server-side-render', $script->deps );
+	}
+
+	/**
 	 * The editor script provides every dedicated modal and trigger design control.
 	 */
 	public function test_modal_editor_script_exposes_dedicated_design_controls() {
