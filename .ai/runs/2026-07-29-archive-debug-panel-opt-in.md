@@ -124,9 +124,9 @@ None — no `--skill-url` arguments were passed.
 
 ### Phase 1: Gate both debug render paths behind a default-off option
 
-- [ ] 1.1 Add `debug_enabled()` helper reading the new default-off option
-- [ ] 1.2 Gate `render_debug()` and the partial debug block on it
-- [ ] 1.3 Unit tests for default-off, explicit toggle, and capability interaction
+- [x] 1.1 Add `debug_enabled()` helper reading the new default-off option — 539353f
+- [x] 1.2 Gate `render_debug()` and the partial debug block on it — 539353f
+- [x] 1.3 Unit tests for default-off, explicit toggle, and capability interaction — 539353f
 
 ### Phase 2: Expose the toggle in System › Diagnostics
 
