@@ -226,4 +226,38 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 			'negative'          => array( '-40', 645 ),
 		);
 	}
+
+	/**
+	 * The stylesheet must *size* the tray, not merely floor it.
+	 *
+	 * The first cut of this setting set `min-width` on the results container. That is a
+	 * no-op wherever the search field is already wider than the configured value — a
+	 * full-width search block, for one — so the setting appeared to do nothing at all
+	 * on the layout most likely to need it. A floor also cannot make the tray narrower,
+	 * which is half of what the setting is for.
+	 *
+	 * Asserted against the stylesheet because there is no DOM here to measure; browser
+	 * QA covers what it actually looks like.
+	 */
+	public function test_stylesheet_sizes_the_results_tray_rather_than_flooring_it() {
+		$css = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'frontend/css/shift64-woo-search.css' );
+
+		// Anchored at line start so a selector list merely *ending* in this class does
+		// not match ahead of the container's own rule.
+		preg_match( '/^\.shift64-woo-search-results \{(.*?)^\}/ms', $css, $matches );
+		$this->assertNotEmpty( $matches, 'The results container rule was not found.' );
+
+		$rule = $matches[1];
+
+		$this->assertMatchesRegularExpression(
+			'/^\s*width:\s*var\(--s64ws-dropdown-width/m',
+			$rule,
+			'The results tray must take its width from --s64ws-dropdown-width.'
+		);
+		$this->assertDoesNotMatchRegularExpression(
+			'/^\s*min-width:\s*var\(--s64ws-dropdown-width/m',
+			$rule,
+			'A min-width floor leaves the setting inert on layouts wider than it.'
+		);
+	}
 }

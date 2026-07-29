@@ -497,14 +497,20 @@ body.shift64-woo-search-modal-open {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    right: 0;
+    /* The configured width is authoritative, so the tray is sized rather than
+       floored — a `min-width` would be a no-op wherever the search field is
+       already wider than the setting (a full-width block, for instance). The
+       viewport cap keeps an over-wide setting from causing a horizontal
+       scrollbar on narrower desktops. */
+    right: auto;
+    width: var(--s64ws-dropdown-width, 645px);
+    max-width: calc(100vw - 32px);
     z-index: var(--s64ws-dropdown-z);
     background: var(--s64ws-dropdown-bg);
     border: 1px solid var(--s64ws-dropdown-border);
     border-radius: var(--s64ws-dropdown-radius);
     box-shadow: var(--s64ws-dropdown-shadow);
     max-height: var(--s64ws-dropdown-max-height);
-    min-width: var(--s64ws-dropdown-width, 645px);
     overflow: hidden;
     display: none;
     /* Flex column: scroll area + sticky footer */
@@ -750,8 +756,13 @@ body.shift64-woo-search-modal-open {
    Mobile — Full-width dropdown, capped height
    ================================================================ */
 @media (max-width: 1024px) {
+    /* Below this breakpoint the tray tracks the search field's own width and the
+       configured width does not apply, so the sizing above is handed back to the
+       left/right anchoring it replaced. */
     .shift64-woo-search-results {
-        min-width: 0;
+        right: 0;
+        width: auto;
+        max-width: none;
         max-height: 70vh;
         border-radius: var(--s64ws-dropdown-radius) var(--s64ws-dropdown-radius);
     }
