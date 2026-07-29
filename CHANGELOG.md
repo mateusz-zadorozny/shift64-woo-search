@@ -1,3 +1,11 @@
+## [0.10.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.10.0...v0.10.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* **search:** align autocomplete and full mode on which products match ([#26](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/26)) ([#28](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/28)) ([1610df6](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/1610df64646950080c392d57435b611b3c87c8d2))
+* **tests:** split the multi-key array literal flagged by phpcs ([#36](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/36)) ([646cd9e](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/646cd9e98e623d7c51bf763cffa1a518b7d5ee22)), closes [#28](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/28)
+
 # [0.10.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.9.1...v0.10.0) (2026-07-29)
 
 
