@@ -114,6 +114,27 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	}
 
 	/**
+	 * Whether the storefront debug panel may be rendered for this request.
+	 *
+	 * Off unless a merchant opts in: the panel is a fixed-position overlay on the
+	 * storefront, so leaving it on by default put it in front of every shop
+	 * manager who happened to be browsing. The capability check stays on top of
+	 * the option — the option narrows who sees the panel, never widens it.
+	 *
+	 * Both render paths (`wp_footer` and the AJAX partial) go through here so they
+	 * cannot drift apart.
+	 *
+	 * @return bool
+	 */
+	private function debug_enabled() {
+		if ( 'yes' !== get_option( 'shift64_woo_search_archive_debug_enabled', 'no' ) ) {
+			return false;
+		}
+
+		return current_user_can( 'manage_woocommerce' );
+	}
+
+	/**
 	 * Check if this query should be intercepted.
 	 *
 	 * @param WP_Query $query Query to evaluate.
@@ -763,8 +784,8 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 
 		echo '</div>';
 
-		// Debug info for admins.
-		if ( ! empty( $this->debug_log ) && current_user_can( 'manage_woocommerce' ) ) {
+		// Debug info for admins, when the storefront debug panel is switched on.
+		if ( ! empty( $this->debug_log ) && $this->debug_enabled() ) {
 			echo '<!-- Shift64 Archive Debug (partial) -->';
 			echo '<div class="shift64-woo-search-archive-debug" style="display:none">';
 			foreach ( $this->debug_log as $entry ) {
@@ -933,14 +954,14 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	}
 
 	/**
-	 * Render debug info in wp_footer — only for admins.
+	 * Render debug info in wp_footer — only for admins who opted in.
 	 */
 	public function render_debug() {
 		if ( empty( $this->debug_log ) ) {
 			return;
 		}
 
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		if ( ! $this->debug_enabled() ) {
 			return;
 		}
 
