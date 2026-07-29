@@ -28,6 +28,11 @@
         productCollection: '.wp-block-woocommerce-product-collection'
     };
 
+    // Heading of the opt-in debug panel. Mirrors the literal the PHP renderer
+    // emits, and is only ever used when a filter change has to rebuild a bar the
+    // initial page render did not produce.
+    var DEBUG_BAR_TITLE = 'Shift64 Archive Debug';
+
     var isLoading = false;
 
     /**
@@ -368,6 +373,79 @@
      * Fetch a page and swap in the product grid, pagination, result count,
      * and filter sidebar.
      *
+     * Read the debug lines out of a fetched response, whichever shape it has.
+     *
+     * Two response shapes carry them. The Kadence partial appends a hidden
+     * `.shift64-woo-search-archive-debug` block holding one line per row. Every
+     * other theme gets a full page back, so the response already contains a
+     * rendered `.shift64-woo-search-debug-bar` and its lines container.
+     *
+     * @param {Document} doc Parsed response document.
+     * @return {string[]|null} Debug lines, or null when the response carries none.
+     */
+    function extractDebugLines(doc) {
+        var partial = doc.querySelector('.shift64-woo-search-archive-debug');
+        var source = partial || doc.querySelector('.shift64-woo-search-debug-bar__lines');
+        if (!source) return null;
+
+        return (source.textContent || '')
+            .split('\n')
+            .map(function (line) { return line.trim(); })
+            .filter(function (line) { return line !== ''; });
+    }
+
+    /**
+     * Point the debug bar at the query that produced the results now on screen.
+     *
+     * The bar is only ever present when a shop manager has switched the panel on,
+     * so all three branches here are no-ops on a normal storefront: absent stays
+     * absent, and a response with no debug payload removes a stale bar rather
+     * than leaving it showing the wrong query.
+     *
+     * Lines are written as text nodes, never as markup — they embed the raw
+     * search term, which is shopper-controlled input.
+     *
+     * @param {Document} doc Parsed response document.
+     */
+    function refreshDebugBar(doc) {
+        var bar = document.querySelector('.shift64-woo-search-debug-bar');
+        var lines = extractDebugLines(doc);
+
+        if (!lines || !lines.length) {
+            if (bar) bar.remove();
+            return;
+        }
+
+        // The panel was switched on after this page rendered, so there is no bar
+        // to update. Rebuild it — styling comes from the stylesheet, so the class
+        // alone is enough.
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.className = 'shift64-woo-search-debug-bar';
+
+            var heading = document.createElement('strong');
+            heading.textContent = DEBUG_BAR_TITLE;
+            bar.appendChild(heading);
+            bar.appendChild(document.createElement('br'));
+
+            var lineHost = document.createElement('span');
+            lineHost.className = 'shift64-woo-search-debug-bar__lines';
+            bar.appendChild(lineHost);
+
+            document.body.appendChild(bar);
+        }
+
+        var container = bar.querySelector('.shift64-woo-search-debug-bar__lines');
+        if (!container) return;
+
+        container.textContent = '';
+        lines.forEach(function (line) {
+            container.appendChild(document.createTextNode(line));
+            container.appendChild(document.createElement('br'));
+        });
+    }
+
+    /**
      * @param {string}  url        Target URL.
      * @param {boolean} skipPush   If true, don't pushState (used for popstate).
      */
@@ -451,6 +529,12 @@
                         curCount.outerHTML = newCount.outerHTML;
                     }
                 }
+
+                // The debug bar sits outside every wrapper swapped above, so
+                // without this it would keep showing the timings of the query
+                // that first loaded the page while the grid below it shows
+                // filtered results.
+                refreshDebugBar(doc);
 
                 // Update URL.
                 if (!skipPush) {

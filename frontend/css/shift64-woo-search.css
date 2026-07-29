@@ -1564,3 +1564,26 @@ body.shift64-woo-search-modal-open {
 body.shift64-woo-search-modal-open {
     overflow: hidden;
 }
+
+/* ── Archive debug panel ──────────────────────────────────────
+   Opt-in diagnostic overlay, rendered only for users who can manage
+   WooCommerce and only when the Diagnostics setting is on.
+
+   These rules used to live as an inline style attribute on the element.
+   They moved here so the AJAX handler can rebuild the bar after a filter
+   change without restating the styling in JavaScript. The mobile
+   `display: none` override above still applies. */
+.shift64-woo-search-debug-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1d2327;
+    color: #f0f0f1;
+    font: 12px/1.6 monospace;
+    padding: 8px 16px;
+    z-index: 99999;
+    max-height: 200px;
+    overflow-y: auto;
+    opacity: 0.95;
+}

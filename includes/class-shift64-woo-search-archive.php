@@ -187,6 +187,11 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			return;
 		}
 
+		// Start a fresh log alongside the fresh timer. Every entry's timestamp is
+		// relative to `debug_start`, so carrying entries across an interception
+		// would mix two timelines into one panel — the reset keeps the log
+		// describing exactly the query that is about to run.
+		$this->debug_log   = array();
 		$this->debug_start = microtime( true );
 		$search_term       = trim( $query->get( 's' ) );
 		$this->search_term = $search_term;
@@ -972,12 +977,20 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		}
 		echo "-->\n";
 
-		// Visual debug bar.
-		echo '<div class="shift64-woo-search-debug-bar" style="position:fixed;bottom:0;left:0;right:0;background:#1d2327;color:#f0f0f1;font:12px/1.6 monospace;padding:8px 16px;z-index:99999;max-height:200px;overflow-y:auto;opacity:0.95">';
+		// Visual debug bar. Styling lives in the frontend stylesheet rather than an
+		// inline style attribute so the AJAX handler can rebuild the bar after a
+		// filter change without restating it in JavaScript.
+		//
+		// The lines sit in their own container: a filter change replaces only that
+		// container's contents, which keeps the heading stable and means the JS
+		// never has to know how the bar is titled.
+		echo '<div class="shift64-woo-search-debug-bar">';
 		echo '<strong>Shift64 Archive Debug</strong><br>';
+		echo '<span class="shift64-woo-search-debug-bar__lines">';
 		foreach ( $this->debug_log as $line ) {
 			echo esc_html( $line ) . '<br>';
 		}
+		echo '</span>';
 		echo '</div>';
 	}
 
