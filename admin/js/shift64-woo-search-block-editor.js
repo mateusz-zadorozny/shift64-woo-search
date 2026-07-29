@@ -35,7 +35,7 @@
 	 * @param {string} name     Registered block name.
 	 * @return {Object} Block settings.
 	 */
-	var usePostPreviewRequests = function ( settings, name ) {
+	var addPostPreviewRequests = function ( settings, name ) {
 		if ( previewBlocks.indexOf( name ) === -1 || ! ServerSideRender ) {
 			return settings;
 		}
@@ -63,7 +63,7 @@
 	addFilter(
 		'blocks.registerBlockType',
 		'shift64-woo-search/post-preview-requests',
-		usePostPreviewRequests
+		addPostPreviewRequests
 	);
 
 	var addModalSearchControls = function ( settings, name ) {

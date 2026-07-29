@@ -281,6 +281,7 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 
 		$this->assertNotFalse( $script );
 		$this->assertContains( 'wp-server-side-render', $script->deps );
+		$this->assertContains( 'wp-compose', $script->deps );
 	}
 
 	/**
