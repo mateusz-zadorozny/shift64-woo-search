@@ -23,6 +23,7 @@
 | 4 | 4.2 | Docs and i18n: spec status flip, specs index, BACKWARD_COMPATIBILITY, makepot | done | a1677ff |
 | 4 | 4.2-review-fix | Reword misleading auth-toggle and save_posted_settings comments (self-review nits) | done | 0babbbc |
 | 4 | 4.3-qa-fix | Compare Passes panes fill the full row when fewer than four passes return (manual QA finding) | done | b72bbaf |
+| 4 | 4.4-qa-fix | English example copy in Synonyms/Merchandising; Polish clothing examples in pl_PL (manual QA finding) | done | 26a4933 |
 
 ## Goal
 

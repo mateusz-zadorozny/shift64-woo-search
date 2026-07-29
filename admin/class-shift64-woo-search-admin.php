@@ -412,12 +412,12 @@ class Shift64_Woo_Search_Admin {
 		?>
 		<div class="shift64-woo-search-synonyms">
 			<p class="description">
-				<?php esc_html_e( 'Synonym groups let RediSearch treat related terms as equivalent. Use comma for two-way, => for one-way (e.g. kosz nożny => kosz pedałowy).', 'shift64-woo-search' ); ?>
+				<?php esc_html_e( 'Synonym groups let RediSearch treat related terms as equivalent. Use comma for two-way, => for one-way (e.g. jumper => sweater).', 'shift64-woo-search' ); ?>
 			</p>
 
 			<div class="shift64-woo-search-synonys64ws__add">
 				<input type="text" id="s64ws-syn-input" class="regular-text"
-						placeholder="<?php esc_attr_e( 'e.g. ręcznik, papier ręcznikowy — or one-way: kosz nożny => kosz pedałowy', 'shift64-woo-search' ); ?>" />
+						placeholder="<?php esc_attr_e( 'e.g. hoodie, sweatshirt — or one-way: jumper => sweater', 'shift64-woo-search' ); ?>" />
 				<button type="button" id="s64ws-syn-add" class="button button-primary">
 					<?php esc_html_e( 'Add Group', 'shift64-woo-search' ); ?>
 				</button>
@@ -467,7 +467,7 @@ class Shift64_Woo_Search_Admin {
 						<span id="s64ws-syn-import-filename" style="margin-left:8px; color:#666;"></span>
 					</p>
 					<textarea id="s64ws-syn-import-text" rows="8" class="large-text code"
-							placeholder="<?php esc_attr_e( "One group per line:\nręcznik, papier ręcznikowy\nkosz nożny => kosz pedałowy", 'shift64-woo-search' ); ?>"></textarea>
+							placeholder="<?php esc_attr_e( "One group per line:\nhoodie, sweatshirt\njumper => sweater", 'shift64-woo-search' ); ?>"></textarea>
 					<p>
 						<label>
 							<input type="checkbox" id="s64ws-syn-import-replace" checked />
@@ -1557,7 +1557,7 @@ class Shift64_Woo_Search_Admin {
 					'shift64_woo_search_category_boost_rules',
 					__( 'Category / Tag Boost Rules', 'shift64-woo-search' ),
 					'',
-					__( 'One rule per line. Format: category-or-tag|factor (global) or query|category-or-tag|factor (query-specific). Lines starting with # are comments. Factor is clamped to 1-200, but factors compound with promoted (×1.5) and title-start (×2/×3) — values above ~5 can crowd out organic ranking, so use sparingly. Example: Promocja|1.2 or papier|Promocja|1.5. No index rebuild required.', 'shift64-woo-search' )
+					__( 'One rule per line. Format: category-or-tag|factor (global) or query|category-or-tag|factor (query-specific). Lines starting with # are comments. Factor is clamped to 1-200, but factors compound with promoted (×1.5) and title-start (×2/×3) — values above ~5 can crowd out organic ranking, so use sparingly. Example: Sale|1.2 or shirt|Sale|1.5. No index rebuild required.', 'shift64-woo-search' )
 				);
 				?>
 			</table>
