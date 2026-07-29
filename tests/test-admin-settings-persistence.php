@@ -134,11 +134,11 @@ class Shift64_Woo_Search_Admin_Settings_Test extends WP_UnitTestCase {
 
 		$saved = Shift64_Woo_Search_Admin_Settings::persist(
 			array(
-				'shift64_woo_search_show_sku'       => 'no',
-				'shift64_woo_search_show_category'  => 'yes',
-				'shift64_woo_search_show_brand'     => 'no',
+				'shift64_woo_search_show_sku'            => 'no',
+				'shift64_woo_search_show_category'       => 'yes',
+				'shift64_woo_search_show_brand'          => 'no',
 				'shift64_woo_search_dropdown_width_mode' => 'custom',
-				'shift64_woo_search_dropdown_width' => '900',
+				'shift64_woo_search_dropdown_width'      => '900',
 			)
 		);
 
