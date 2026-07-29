@@ -47,7 +47,7 @@ class Shift64_Woo_Search_Blocks {
 		wp_register_script(
 			'shift64-woo-search-block-editor',
 			SHIFT64_WOO_SEARCH_URL . 'admin/js/shift64-woo-search-block-editor.js',
-			array( 'wp-block-editor', 'wp-blocks', 'wp-components', 'wp-element', 'wp-hooks', 'wp-i18n' ),
+			array( 'wp-block-editor', 'wp-blocks', 'wp-components', 'wp-element', 'wp-compose', 'wp-hooks', 'wp-i18n', 'wp-server-side-render' ),
 			SHIFT64_WOO_SEARCH_VERSION,
 			false
 		);
