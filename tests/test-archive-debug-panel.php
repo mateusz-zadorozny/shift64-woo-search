@@ -36,7 +36,6 @@ class Archive_Debug_Panel_Test extends WP_UnitTestCase {
 		$archive = ( new ReflectionClass( Shift64_Woo_Search_Archive::class ) )->newInstanceWithoutConstructor();
 
 		$log = new ReflectionProperty( Shift64_Woo_Search_Archive::class, 'debug_log' );
-		$log->setAccessible( true );
 		$log->setValue( $archive, array( '[0.0ms] Intercepted → q="aeon" page=1 per_page=12' ) );
 
 		return $archive;
@@ -50,7 +49,6 @@ class Archive_Debug_Panel_Test extends WP_UnitTestCase {
 	 */
 	private function debug_enabled( $archive ) {
 		$method = new ReflectionMethod( Shift64_Woo_Search_Archive::class, 'debug_enabled' );
-		$method->setAccessible( true );
 
 		return $method->invoke( $archive );
 	}
@@ -102,7 +100,6 @@ class Archive_Debug_Panel_Test extends WP_UnitTestCase {
 		);
 
 		$instance = new ReflectionProperty( Shift64_Woo_Search_Redis::class, 'instance' );
-		$instance->setAccessible( true );
 		$instance->setValue( null, $redis );
 
 		$this->stubbed_redis = true;
@@ -121,7 +118,6 @@ class Archive_Debug_Panel_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		if ( $this->stubbed_redis ) {
 			$instance = new ReflectionProperty( Shift64_Woo_Search_Redis::class, 'instance' );
-			$instance->setAccessible( true );
 			$instance->setValue( null, null );
 			$this->stubbed_redis = false;
 		}
@@ -262,7 +258,6 @@ class Archive_Debug_Panel_Test extends WP_UnitTestCase {
 		$archive = $this->archive_with_log();
 
 		$log = new ReflectionProperty( Shift64_Woo_Search_Archive::class, 'debug_log' );
-		$log->setAccessible( true );
 		$this->assertNotEmpty( $log->getValue( $archive ), 'precondition: a previous request log is present' );
 
 		$archive->intercept( $this->product_search_query( 'boots' ) );
@@ -289,8 +284,7 @@ class Archive_Debug_Panel_Test extends WP_UnitTestCase {
 
 		$archive = $this->archive_with_log();
 
-		$log = new ReflectionProperty( Shift64_Woo_Search_Archive::class, 'debug_log' );
-		$log->setAccessible( true );
+		$log    = new ReflectionProperty( Shift64_Woo_Search_Archive::class, 'debug_log' );
 		$before = $log->getValue( $archive );
 
 		$declined            = $this->product_search_query( 'boots' );
