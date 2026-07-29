@@ -16,4 +16,5 @@ and PRs.
 | [Filter Bar Gutenberg Block & Placement Modes](2026-07-21-filter-bar-gutenberg-block-and-placement-modes.md) | 🚧 draft — blocked | needs alignment with Admin Settings IA first |
 | [Admin Settings Information Architecture](2026-07-22-admin-settings-information-architecture.md) | ✅ implemented | PR #33 |
 | [50k Demo Product Generator Scaling](2026-07-27-50k-demo-product-generator-scaling.md) | ✅ implemented | issue #18 |
+| [Native WooCommerce Catalog Sorting on Search Archives](2026-07-29-native-woocommerce-catalog-sorting.md) | 🚧 draft | — |
 
