@@ -294,6 +294,47 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 	}
 
 	/**
+	 * The modal opts out of the custom width, and does so from a later rule.
+	 *
+	 * `.shift64-woo-search-modal__search .shift64-woo-search-results` and
+	 * `.shift64-woo-search-shortcode .shift64-woo-search-results` have identical
+	 * specificity — the modal's markup carries both classes — so the exemption only
+	 * holds while it stays *after* the rule it is overriding. Reordering the file would
+	 * silently reinstate the custom width inside the dialog, which is why the order is
+	 * asserted rather than just the declaration.
+	 */
+	public function test_modal_tray_opts_out_of_the_custom_width() {
+		$css = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'frontend/css/shift64-woo-search.css' );
+
+		$shortcode = strpos( $css, '.shift64-woo-search-shortcode .shift64-woo-search-results {' );
+		$modal     = strpos( $css, '.shift64-woo-search-modal__search .shift64-woo-search-results {' );
+
+		$this->assertIsInt( $shortcode, 'The shortcode tray rule was not found.' );
+		$this->assertIsInt( $modal, 'The modal tray exemption is missing.' );
+		$this->assertGreaterThan(
+			$shortcode,
+			$modal,
+			'The modal exemption must come after the shortcode rule or it loses on source order.'
+		);
+
+		preg_match(
+			'/\.shift64-woo-search-modal__search \.shift64-woo-search-results \{(.*?)\}/s',
+			$css,
+			$matches
+		);
+		$this->assertMatchesRegularExpression(
+			'/width:\s*100%/',
+			$matches[1],
+			'The modal tray must stay as wide as its dialog.'
+		);
+		$this->assertStringNotContainsString(
+			'--s64ws-dropdown-width',
+			$matches[1],
+			'The modal tray must not consult the custom width at all.'
+		);
+	}
+
+	/**
 	 * The stylesheet must *size* the tray, not merely floor it.
 	 *
 	 * The first cut of this setting set `min-width` on the results container. That is a

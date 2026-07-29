@@ -128,6 +128,15 @@
     max-width: calc(100vw - 32px);
 }
 
+/* The modal owns its own width — its dialog is already a deliberate, centred size,
+   and a tray narrower or wider than the dialog it sits in just looks broken. The
+   custom width is a classic/inline concern only, so opt the modal back out. Equal
+   specificity to the rule above, so this has to stay after it. */
+.shift64-woo-search-modal__search .shift64-woo-search-results {
+    width: 100%;
+    max-width: none;
+}
+
 /* ================================================================
    Search Blocks
    ================================================================ */

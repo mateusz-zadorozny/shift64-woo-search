@@ -232,6 +232,11 @@ behaviour every site had before #41. The plugin emits it as an inline style only
 `shift64_woo_search_dropdown_width` clamped to 320–1200px. Giving the property a `:root` default
 would opt every site into a fixed-width tray at once.
 
+The custom width is a **classic/inline concern only**. The modal search keeps its original
+sizing — its tray is always as wide as its own dialog — enforced by
+`.shift64-woo-search-modal__search .shift64-woo-search-results`, which has the same specificity
+as the shortcode rule and therefore has to stay after it in the file.
+
 ## 10. Runtime requirements
 
 Declared in three places that must agree: the plugin header, `readme.txt`, and `composer.json`

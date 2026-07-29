@@ -606,6 +606,8 @@
 
         // Only a custom width can overrun; matching the field never does.
         if (!parseInt(config.dropdownWidth, 10)) return;
+        // The modal keeps its original sizing, so it never needs correcting.
+        if (this.wrapper.classList.contains('shift64-woo-search-modal__search')) return;
         if (window.innerWidth <= 1024) return;
 
         var rect = this.dropdown.getBoundingClientRect();
