@@ -123,6 +123,35 @@ class Shift64_Woo_Search_Admin_Settings_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The quick-search density controls round-trip through the generic seam.
+	 *
+	 * These four are what let a merchant thin out an over-full dropdown, so they have
+	 * to be reachable by the Autocomplete form's partial save — and only by it. The
+	 * sentinels prove the write stayed scoped.
+	 */
+	public function test_quick_search_density_settings_round_trip() {
+		$this->seed_sentinels();
+
+		$saved = Shift64_Woo_Search_Admin_Settings::persist(
+			array(
+				'shift64_woo_search_show_sku'       => 'no',
+				'shift64_woo_search_show_category'  => 'yes',
+				'shift64_woo_search_show_brand'     => 'no',
+				'shift64_woo_search_dropdown_width_mode' => 'custom',
+				'shift64_woo_search_dropdown_width' => '900',
+			)
+		);
+
+		$this->assertSame( 5, $saved );
+		$this->assertSame( 'no', get_option( 'shift64_woo_search_show_sku' ) );
+		$this->assertSame( 'yes', get_option( 'shift64_woo_search_show_category' ) );
+		$this->assertSame( 'no', get_option( 'shift64_woo_search_show_brand' ) );
+		$this->assertSame( 'custom', get_option( 'shift64_woo_search_dropdown_width_mode' ) );
+		$this->assertSame( '900', get_option( 'shift64_woo_search_dropdown_width' ) );
+		$this->assert_sentinels_intact();
+	}
+
+	/**
 	 * The storefront debug panel switch round-trips through the generic seam like
 	 * any other yes/no scalar, so the Diagnostics section can save it.
 	 */

@@ -132,6 +132,11 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 			'experience/autocomplete'         => array(
 				'shift64_woo_search_min_query',
 				'shift64_woo_search_autocomplete_limit',
+				'shift64_woo_search_dropdown_width_mode',
+				'shift64_woo_search_dropdown_width',
+				'shift64_woo_search_show_sku',
+				'shift64_woo_search_show_category',
+				'shift64_woo_search_show_brand',
 				'shift64_woo_search_category_suggest_fuzzy',
 				'shift64_woo_search_brand_suggest_enabled',
 			),
@@ -206,6 +211,11 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 			'experience/autocomplete'         => array(
 				'shift64_woo_search_min_query'             => '3',
 				'shift64_woo_search_autocomplete_limit'    => '8',
+				'shift64_woo_search_dropdown_width_mode'   => 'custom',
+				'shift64_woo_search_dropdown_width'        => '820',
+				'shift64_woo_search_show_sku'              => 'no',
+				'shift64_woo_search_show_category'         => 'yes',
+				'shift64_woo_search_show_brand'            => 'no',
 				'shift64_woo_search_category_suggest_fuzzy' => 'yes',
 				'shift64_woo_search_brand_suggest_enabled' => 'no',
 			),

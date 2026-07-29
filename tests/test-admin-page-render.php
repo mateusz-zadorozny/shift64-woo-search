@@ -318,7 +318,19 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 	public function test_autocomplete_section_renders_only_the_fields_it_owns() {
 		$html = $this->render( 'experience', 'autocomplete' );
 
-		foreach ( array( 'min_query', 'autocomplete_limit', 'category_suggest_fuzzy', 'brand_suggest_enabled' ) as $field ) {
+		$fields = array(
+			'min_query',
+			'autocomplete_limit',
+			'dropdown_width_mode',
+			'dropdown_width',
+			'show_sku',
+			'show_category',
+			'show_brand',
+			'category_suggest_fuzzy',
+			'brand_suggest_enabled',
+		);
+
+		foreach ( $fields as $field ) {
 			$this->assertStringContainsString( 'name="shift64_woo_search_' . $field . '"', $html );
 		}
 
