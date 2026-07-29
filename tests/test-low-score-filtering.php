@@ -79,7 +79,12 @@ class Low_Score_Filtering_Test extends WP_UnitTestCase {
 	 */
 	public function test_drops_rows_missing_the_score_key() {
 		$results = Shift64_Woo_Search_Query::filter_low_scores(
-			array( array( 'id' => 7, 'title' => 'No score' ) ),
+			array(
+				array(
+					'id'    => 7,
+					'title' => 'No score',
+				),
+			),
 			0.5
 		);
 
