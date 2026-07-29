@@ -228,6 +228,32 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 	}
 
 	/**
+	 * Frontend assets are versioned by file mtime, not by the plugin version.
+	 *
+	 * The plugin version only moves on release, so while a stylesheet or script is being
+	 * edited the `?ver=` never changes and browsers keep serving a stale copy — the
+	 * change is invisible without a private window. The admin enqueue already versioned
+	 * by mtime; the frontend did not.
+	 */
+	public function test_frontend_assets_are_versioned_by_file_mtime() {
+		$this->frontend->enqueue_assets();
+
+		$expected = (string) filemtime( SHIFT64_WOO_SEARCH_PATH . 'frontend/css/shift64-woo-search.css' );
+
+		$this->assertSame( $expected, wp_styles()->registered['shift64-woo-search']->ver );
+		$this->assertNotSame(
+			SHIFT64_WOO_SEARCH_VERSION,
+			wp_styles()->registered['shift64-woo-search']->ver,
+			'The stylesheet is still pinned to the plugin version, which does not move between releases.'
+		);
+
+		$this->assertSame(
+			(string) filemtime( SHIFT64_WOO_SEARCH_PATH . 'frontend/js/shift64-woo-search.js' ),
+			wp_scripts()->registered['shift64-woo-search']->ver
+		);
+	}
+
+	/**
 	 * The stylesheet must *size* the tray, not merely floor it.
 	 *
 	 * The first cut of this setting set `min-width` on the results container. That is a

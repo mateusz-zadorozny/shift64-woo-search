@@ -232,7 +232,7 @@ class Shift64_Woo_Search_Frontend {
 			'shift64-woo-search',
 			SHIFT64_WOO_SEARCH_URL . 'frontend/css/shift64-woo-search.css',
 			array(),
-			SHIFT64_WOO_SEARCH_VERSION
+			self::asset_version( 'frontend/css/shift64-woo-search.css' )
 		);
 
 		wp_add_inline_style(
@@ -244,7 +244,7 @@ class Shift64_Woo_Search_Frontend {
 			'shift64-woo-search',
 			SHIFT64_WOO_SEARCH_URL . 'frontend/js/shift64-woo-search.js',
 			array(),
-			SHIFT64_WOO_SEARCH_VERSION,
+			self::asset_version( 'frontend/js/shift64-woo-search.js' ),
 			true
 		);
 
@@ -301,7 +301,7 @@ class Shift64_Woo_Search_Frontend {
 				'shift64-woo-search-ajax-pagination',
 				SHIFT64_WOO_SEARCH_URL . 'frontend/js/shift64-woo-search-ajax-pagination.js',
 				array(),
-				SHIFT64_WOO_SEARCH_VERSION,
+				self::asset_version( 'frontend/js/shift64-woo-search-ajax-pagination.js' ),
 				true
 			);
 		}
@@ -322,6 +322,27 @@ class Shift64_Woo_Search_Frontend {
 		}
 
 		return $selectors;
+	}
+
+	/**
+	 * Cache-busting version for a bundled asset.
+	 *
+	 * The plugin version only moves on release, so during development every edit to a
+	 * stylesheet or script kept the same `?ver=` and browsers served their cached copy
+	 * — the file changes, the URL does not. Fall back to the plugin version when the
+	 * file cannot be stat'd, and mirror the admin enqueue, which already does this.
+	 *
+	 * Public because the block registration claims the shared `shift64-woo-search`
+	 * style handle on `init`; whichever call registers a handle first owns its version,
+	 * so both call sites have to agree or the enqueue's argument is silently discarded.
+	 *
+	 * @param string $relative_path Path below the plugin root.
+	 * @return string Version string for wp_enqueue_*.
+	 */
+	public static function asset_version( $relative_path ) {
+		$path = SHIFT64_WOO_SEARCH_PATH . $relative_path;
+
+		return file_exists( $path ) ? (string) filemtime( $path ) : SHIFT64_WOO_SEARCH_VERSION;
 	}
 
 	/**

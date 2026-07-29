@@ -41,14 +41,14 @@ class Shift64_Woo_Search_Blocks {
 			'shift64-woo-search',
 			SHIFT64_WOO_SEARCH_URL . 'frontend/css/shift64-woo-search.css',
 			array(),
-			SHIFT64_WOO_SEARCH_VERSION
+			Shift64_Woo_Search_Frontend::asset_version( 'frontend/css/shift64-woo-search.css' )
 		);
 
 		wp_register_script(
 			'shift64-woo-search-block-editor',
 			SHIFT64_WOO_SEARCH_URL . 'admin/js/shift64-woo-search-block-editor.js',
 			array( 'wp-block-editor', 'wp-blocks', 'wp-components', 'wp-element', 'wp-compose', 'wp-hooks', 'wp-i18n', 'wp-server-side-render' ),
-			SHIFT64_WOO_SEARCH_VERSION,
+			Shift64_Woo_Search_Frontend::asset_version( 'admin/js/shift64-woo-search-block-editor.js' ),
 			false
 		);
 		wp_set_script_translations(
