@@ -95,6 +95,12 @@ test.describe('archive debug panel', () => {
 		const before = (await page.locator(BAR_LINES).innerText()).trim();
 		expect(before).not.toBe('');
 
+		// The interception logs one entry per stage, so a healthy panel is always
+		// several lines. Asserting the structure catches a refresh that collapses
+		// them into one run-on line — which is what happens if the handler reads
+		// the lines with textContent, since that discards the <br> separators.
+		expect(before.split('\n').filter(Boolean).length).toBeGreaterThan(1);
+
 		// Change a filter. The grid swaps via AJAX — no navigation — which is
 		// exactly the path that used to leave the panel frozen.
 		const filters = page.locator(SEL.filters).first();
@@ -114,5 +120,9 @@ test.describe('archive debug panel', () => {
 		// lines, not the whole element.
 		await expect(bar).toHaveCount(1);
 		await expect(bar).toContainText('Shift64 Archive Debug');
+
+		// And still structured as lines after the swap, not one collapsed blob.
+		const after = (await page.locator(BAR_LINES).innerText()).trim();
+		expect(after.split('\n').filter(Boolean).length).toBeGreaterThan(1);
 	});
 });

@@ -372,10 +372,16 @@
     /**
      * Read the debug lines out of a fetched response, whichever shape it has.
      *
-     * Two response shapes carry them. The Kadence partial appends a hidden
-     * `.shift64-woo-search-archive-debug` block holding one line per row. Every
-     * other theme gets a full page back, so the response already contains a
-     * rendered `.shift64-woo-search-debug-bar` and its lines container.
+     * Two response shapes carry them, and they separate lines differently. The
+     * Kadence partial appends a hidden `.shift64-woo-search-archive-debug` block
+     * that is plain text with a newline per entry. Every other theme gets a full
+     * page back, so the response already contains a rendered
+     * `.shift64-woo-search-debug-bar` whose lines container separates entries
+     * with `<br>` elements.
+     *
+     * Hence the walk instead of a plain `textContent` read: `textContent`
+     * discards `<br>`, so the full-page shape would collapse into one run-on
+     * line.
      *
      * @param {Document} doc Parsed response document.
      * @return {string[]|null} Debug lines, or null when the response carries none.
@@ -385,8 +391,22 @@
         var source = partial || doc.querySelector('.shift64-woo-search-debug-bar__lines');
         if (!source) return null;
 
-        return (source.textContent || '')
-            .split('\n')
+        var lines = [];
+        var current = '';
+
+        Array.prototype.forEach.call(source.childNodes, function (node) {
+            if (node.nodeType === 1 && node.tagName === 'BR') {
+                lines.push(current);
+                current = '';
+                return;
+            }
+            current += node.textContent || '';
+        });
+        lines.push(current);
+
+        // The partial shape puts every entry in one text node, so split those too.
+        return lines
+            .reduce(function (all, line) { return all.concat(line.split('\n')); }, [])
             .map(function (line) { return line.trim(); })
             .filter(function (line) { return line !== ''; });
     }
