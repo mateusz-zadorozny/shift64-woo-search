@@ -1,3 +1,10 @@
+## [0.11.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.11.1...v0.11.2) (2026-07-29)
+
+
+### Bug Fixes
+
+* **blocks:** send editor preview attributes in the request body so firewalls stop rejecting the URL ([#38](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/38)) ([#40](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/40)) ([8beec70](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/8beec70b9ecc825a2b6756cdd51478349d7232f3))
+
 ## [0.11.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.11.0...v0.11.1) (2026-07-29)
 
 
