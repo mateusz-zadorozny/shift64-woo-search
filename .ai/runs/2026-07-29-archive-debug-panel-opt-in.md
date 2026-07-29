@@ -120,6 +120,8 @@ None — no `--skill-url` arguments were passed.
 
 ## Progress
 
+PR: #34
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Gate both debug render paths behind a default-off option
@@ -142,6 +144,9 @@ None — no `--skill-url` arguments were passed.
 
 ### Phase 4: Validation, review, PR
 
-- [ ] 4.1 Full validation gate green
-- [ ] 4.2 Self-review and breaking-change check
-- [ ] 4.3 PR opened, labels normalized, `om-auto-review-pr` clean
+- [x] 4.1 Full validation gate green — 1ca1cb0
+- [x] 4.2 Self-review and breaking-change check — 1ca1cb0
+- [x] 4.3 PR opened, labels normalized, `om-auto-review-pr` clean — 974e953
+- [x] Post-review fix: read debug lines across `<br>`, not via `textContent` — 5613cc3
+- [x] Post-review fix: drop `setAccessible()` deprecated on PHP 8.5 — 25f01f2
+- [x] Post-review fix: open the facet dropdown in the e2e spec — 974e953
