@@ -1342,7 +1342,7 @@ class Shift64_Woo_Search_Admin {
 	 * Moved verbatim from the legacy Redis tab. The plugin writes a small config file
 	 * into `mu-plugins/` so the fast SHORTINIT search endpoint can boot without
 	 * loading all of WordPress. That file is generated, not edited, so what a merchant
-	 * needs here is a status readout and a way to rebuild it — never a form field.
+	 * needs for it is a status readout and a way to rebuild it — never a form field.
 	 *
 	 * The wrapper is still `#s64ws-settings-form`: the admin script binds the
 	 * Regenerate button inside its settings-form initializer, so the button has to

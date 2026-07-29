@@ -370,9 +370,6 @@
     }
 
     /**
-     * Fetch a page and swap in the product grid, pagination, result count,
-     * and filter sidebar.
-     *
      * Read the debug lines out of a fetched response, whichever shape it has.
      *
      * Two response shapes carry them. The Kadence partial appends a hidden
@@ -446,6 +443,9 @@
     }
 
     /**
+     * Fetch a page and swap in the product grid, pagination, result count,
+     * and filter sidebar.
+     *
      * @param {string}  url        Target URL.
      * @param {boolean} skipPush   If true, don't pushState (used for popstate).
      */
