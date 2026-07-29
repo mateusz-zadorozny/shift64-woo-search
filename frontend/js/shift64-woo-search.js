@@ -248,6 +248,14 @@
             }
         });
 
+        // Re-run the overflow correction when the viewport changes, so an offset
+        // measured at one width does not survive into another.
+        window.addEventListener('resize', function () {
+            if (self.dropdown.classList.contains('shift64-woo-search-results--visible')) {
+                self.positionDropdown();
+            }
+        });
+
         // Close on click outside. Check the entire wrapper (which contains
         // the input + clear button + search button) so that interactions with
         // any part of the search field don't accidentally close the tray.
@@ -580,10 +588,39 @@
     };
 
     // ── Show / Close ───────────────────────────────────────────
+
+    /**
+     * Keep a configured-width tray inside the viewport.
+     *
+     * The tray is anchored to the left edge of the search field, so once its width is
+     * set independently of the field (see --s64ws-dropdown-width) a right-aligned
+     * search box pushes it off-screen and the page grows a horizontal scrollbar.
+     * Shift it back by however much it overruns, but never past the left edge — a tray
+     * wider than the viewport is capped by max-width in CSS instead.
+     *
+     * Below the mobile breakpoint the tray tracks the field again and the stylesheet
+     * owns both edges, so any inline offset from a wider viewport is cleared.
+     */
+    Shift64WooSearch.prototype.positionDropdown = function () {
+        this.dropdown.style.left = '';
+
+        if (window.innerWidth <= 1024) return;
+
+        var rect = this.dropdown.getBoundingClientRect();
+        var overflow = rect.right - (document.documentElement.clientWidth - 8);
+        if (overflow <= 0) return;
+
+        var shift = Math.min(overflow, Math.max(0, rect.left - 8));
+        if (shift > 0) {
+            this.dropdown.style.left = '-' + Math.round(shift) + 'px';
+        }
+    };
+
     Shift64WooSearch.prototype.show = function () {
         this.dropdown.classList.add('shift64-woo-search-results--visible');
         this.overlay.classList.add('shift64-woo-search-results__overlay--visible');
         this.input.setAttribute('aria-expanded', 'true');
+        this.positionDropdown();
     };
 
     Shift64WooSearch.prototype.close = function () {
