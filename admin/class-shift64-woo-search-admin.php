@@ -1344,12 +1344,15 @@ class Shift64_Woo_Search_Admin {
 	 * loading all of WordPress. That file is generated, not edited, so what a merchant
 	 * needs here is a status readout and a way to rebuild it — never a form field.
 	 *
-	 * The wrapper is still `#s64ws-settings-form` and carries no fields on purpose:
-	 * the admin script binds the Regenerate button inside its settings-form
-	 * initializer, so the button has to live inside that form for the existing
-	 * JavaScript to find it. Keeping the ids identical is what lets this section move
-	 * without a single line of script change. With no submit control and no named
-	 * inputs, the form can never post a save.
+	 * The wrapper is still `#s64ws-settings-form`: the admin script binds the
+	 * Regenerate button inside its settings-form initializer, so the button has to
+	 * live inside that form for the existing JavaScript to find it. Keeping the ids
+	 * identical is what lets this section move without a single line of script change.
+	 *
+	 * The section also owns the storefront debug panel switch. That panel is a
+	 * diagnostic readout of how a search query was answered, so it belongs next to
+	 * the other diagnostics rather than in Results & Filters with the settings that
+	 * decide what shoppers actually see.
 	 */
 	private function render_system_diagnostics_section() {
 		?>
@@ -1386,6 +1389,23 @@ class Shift64_Woo_Search_Admin {
 					</td>
 				</tr>
 			</table>
+
+			<h3><?php esc_html_e( 'Storefront Debug', 'shift64-woo-search' ); ?></h3>
+			<table class="form-table">
+				<?php
+				$this->render_checkbox_field(
+					'shift64_woo_search_archive_debug_enabled',
+					__( 'Archive Debug Panel', 'shift64-woo-search' ),
+					'no',
+					__( 'Show a debug bar on product search results pages listing how the query was answered — matched terms, Redis passes, timings, and facet computation. Visible only to users who can manage WooCommerce, never to shoppers. Leave this off on production.', 'shift64-woo-search' )
+				);
+				?>
+			</table>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'shift64-woo-search' ); ?></button>
+				<span id="s64ws-settings-status" class="shift64-woo-search-status"></span>
+			</p>
 		</form>
 		<?php
 	}
