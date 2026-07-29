@@ -1,3 +1,10 @@
+## [0.10.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.10.1...v0.10.2) (2026-07-29)
+
+
+### Bug Fixes
+
+* **archive:** hide the storefront debug panel by default and keep it in sync with active filters ([#34](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/34)) ([9805c0c](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/9805c0c70b68ebbb86c0ad19da9cca62972b6b03)), closes [#hist](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/hist)
+
 ## [0.10.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.10.0...v0.10.1) (2026-07-29)
 
 
