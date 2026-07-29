@@ -136,8 +136,9 @@ None — no `--skill-url` arguments were passed.
 
 ### Phase 3: Refresh the debug bar on filter/pagination changes
 
-- [ ] 3.1 Swap the debug bar contents from the fetched partial
-- [ ] 3.2 Unit test that a partial request regenerates the debug payload
+- [x] 3.1 Swap the debug bar contents from the fetched partial — 26bff7e
+- [x] 3.2 Unit test that a partial request regenerates the debug payload — 26bff7e
+- [x] 3.3 Playwright spec covering the browser-side refresh (added; e2e is outside the gate) — 26bff7e
 
 ### Phase 4: Validation, review, PR
 
