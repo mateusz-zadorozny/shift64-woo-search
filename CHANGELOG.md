@@ -1,3 +1,10 @@
+# [0.11.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.10.2...v0.11.0) (2026-07-29)
+
+
+### Features
+
+* **archive:** break the debug panel's timings into request phases and browser timings ([#35](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/35)) ([18ece58](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/18ece5881abdb998305b2261c695a68bbb945b79))
+
 ## [0.10.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.10.1...v0.10.2) (2026-07-29)
 
 
