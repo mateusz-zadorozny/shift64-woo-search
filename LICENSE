@@ -1,6 +1,6 @@
-WordPress - Web publishing software
+Shift64 Woo Search
 
-Copyright 2011-2026 by the contributors
+Copyright (C) 2026 Shift64 (Mateusz Zadorożny)
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,24 +15,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
-This program incorporates work covered by the following copyright and
-permission notices:
-
-  b2 is (c) 2001, 2002 Michel Valdrighi - Cafelog
-
-  Wherever third party code has been used, credit has been given in the code's
-  comments.
-
-  b2 is released under the GPL
-
-and
-
-  WordPress - Web publishing software
-
-  Copyright 2003-2010 by the contributors
-
-  WordPress is released under the GPL
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -375,10 +357,3 @@ proprietary programs.  If your program is a subroutine library, you may
 consider it more useful to permit linking proprietary applications with the
 library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.
-
-WRITTEN OFFER
-
-The source code for any program binaries or compressed scripts that are
-included with WordPress can be freely obtained at the following URL:
-
-	https://wordpress.org/download/source/
