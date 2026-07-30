@@ -1,3 +1,10 @@
+## [0.12.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.12.0...v0.12.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **build:** restore the executable bit on the tracked shell scripts ([#44](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/44)) ([df7bb9b](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/df7bb9b191e667c2ff3d1cc1bdb2bc1967e392af))
+
 # [0.12.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.11.2...v0.12.0) (2026-07-30)
 
 
