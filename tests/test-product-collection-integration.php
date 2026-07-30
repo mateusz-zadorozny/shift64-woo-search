@@ -158,6 +158,98 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A real inherited Product Collection render reaches the scoped adapter.
+	 */
+	public function test_real_product_collection_render_reaches_adapter() {
+		$this->go_to( '/?s=series&post_type=product' );
+		$service = new class() extends Shift64_Woo_Search_Product_Collection_Query_Service {
+			/**
+			 * Number of query executions.
+			 *
+			 * @var int
+			 */
+			public $calls = 0;
+
+			public function execute( Shift64_Woo_Search_Product_Collection_Context $context, Shift64_Woo_Search_Catalog_State $state ) {
+				++$this->calls;
+				return new Shift64_Woo_Search_Product_Collection_Result(
+					$context->get_request_key(),
+					array(),
+					0,
+					$state->get_page(),
+					$context->get_per_page(),
+					$state->get_sort(),
+					array(),
+					array(),
+					Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS
+				);
+			}
+		};
+
+		$adapter = new Shift64_Woo_Search_Product_Collection_Query( $service );
+
+		$registry = WP_Block_Type_Registry::get_instance();
+
+		$registered_collection = false;
+		$registered_template   = false;
+
+		if ( ! $registry->is_registered( 'woocommerce/product-collection' ) ) {
+			register_block_type(
+				'woocommerce/product-collection',
+				array(
+					'attributes'       => array(
+						'query'   => array( 'type' => 'object' ),
+						'queryId' => array( 'type' => 'number' ),
+					),
+					'provides_context' => array(
+						'query'   => 'query',
+						'queryId' => 'queryId',
+					),
+				)
+			);
+			$registered_collection = true;
+		}
+
+		if ( ! $registry->is_registered( 'woocommerce/product-template' ) ) {
+			register_block_type(
+				'woocommerce/product-template',
+				array(
+					'uses_context'    => array( 'query', 'queryId' ),
+					'render_callback' => static function ( $attributes, $content, $block ) {
+						$query_vars = array(
+							'post_type'      => 'product',
+							'posts_per_page' => 12,
+							's'              => 'series',
+						);
+						apply_filters( 'query_loop_block_query_vars', $query_vars, $block, 1 );
+						return $content;
+					},
+				)
+			);
+			$registered_template = true;
+		}
+
+		$markup = '<!-- wp:woocommerce/product-collection {"queryId":99,"query":{"isProductCollectionBlock":true,"inherit":true,"postType":"product","perPage":12}} -->'
+			. '<!-- wp:woocommerce/product-template --><!-- wp:post-title /--><!-- /wp:woocommerce/product-template -->'
+			. '<!-- wp:woocommerce/product-collection-no-results --><p>No products.</p><!-- /wp:woocommerce/product-collection-no-results -->'
+			. '<!-- /wp:woocommerce/product-collection -->';
+		try {
+			do_blocks( $markup );
+			$this->assertSame( 1, $service->calls );
+		} finally {
+			remove_filter( 'render_block_context', array( $adapter, 'scope_inherited_query_context' ), 99 );
+			remove_filter( 'query_loop_block_query_vars', array( $adapter, 'filter_query_vars' ), 99 );
+			remove_filter( 'found_posts', array( $adapter, 'filter_found_posts' ), 99 );
+			if ( $registered_template ) {
+				unregister_block_type( 'woocommerce/product-template' );
+			}
+			if ( $registered_collection ) {
+				unregister_block_type( 'woocommerce/product-collection' );
+			}
+		}
+	}
+
+	/**
 	 * Standalone or REST Product Collections keep native WooCommerce queries.
 	 */
 	public function test_context_rejects_ineligible_collection() {
@@ -226,6 +318,7 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 		$this->assertSame( array( 'filter_product_cat' => array( 'skin-care' ) ), $state->get_selected_filters() );
 		$this->assertSame( array( 'category' => array( 'Skin Care' ) ), $state->get_redis_filters() );
 		$this->assertSame( array( 'query_type_product_cat' => 'and' ), $state->get_operators() );
+		$this->assertSame( array( 'category' => 'and' ), $state->get_redis_operators() );
 	}
 
 	/**
@@ -422,6 +515,31 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 		$this->assertSame( '12', (string) $captured[ array_search( 'LIMIT', $captured, true ) + 1 ] );
 		$this->assertSame( 'price', $captured[ array_search( 'SORTBY', $captured, true ) + 1 ] );
 		$this->assertStringContainsString( '-@visibility:{hidden|catalog}', $captured[2] );
+	}
+
+	/**
+	 * Canonical AND filters become repeated TAG clauses, while OR stays one clause.
+	 */
+	public function test_catalog_query_honors_per_filter_operators() {
+		$redis = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$query = new Shift64_Woo_Search_Query( $redis );
+
+		$and_parts = $query->build_filter_parts(
+			array( 'category' => array( 'Skin Care', 'Body Care' ) ),
+			null,
+			array( 'category' => 'and' )
+		);
+		$or_parts  = $query->build_filter_parts(
+			array( 'category' => array( 'Skin Care', 'Body Care' ) ),
+			null,
+			array( 'category' => 'or' )
+		);
+
+		$this->assertContains( '@categories:{Skin\\ Care}', $and_parts );
+		$this->assertContains( '@categories:{Body\\ Care}', $and_parts );
+		$this->assertContains( '@categories:{Skin\\ Care|Body\\ Care}', $or_parts );
 	}
 
 	/**

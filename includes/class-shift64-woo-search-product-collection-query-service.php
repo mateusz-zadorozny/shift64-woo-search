@@ -68,7 +68,8 @@ class Shift64_Woo_Search_Product_Collection_Query_Service {
 				$context->get_per_page(),
 				$state->get_page(),
 				$sort_by,
-				'search'
+				'search',
+				$state->get_redis_operators()
 			);
 			$terms  = $query->get_search_terms( $query->sanitize_query( $state->get_search() ) );
 		} else {
@@ -78,7 +79,8 @@ class Shift64_Woo_Search_Product_Collection_Query_Service {
 				$context->get_per_page(),
 				$state->get_page(),
 				$sort_by,
-				$context->get_visibility_policy()
+				$context->get_visibility_policy(),
+				$state->get_redis_operators()
 			);
 			$terms  = null;
 		}
@@ -92,7 +94,8 @@ class Shift64_Woo_Search_Product_Collection_Query_Service {
 			$scope,
 			$state->get_redis_filters(),
 			$terms,
-			$context->get_visibility_policy()
+			$context->get_visibility_policy(),
+			$state->get_redis_operators()
 		);
 
 		return new Shift64_Woo_Search_Product_Collection_Result(

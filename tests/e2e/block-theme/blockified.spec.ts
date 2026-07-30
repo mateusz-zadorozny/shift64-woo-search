@@ -48,7 +48,7 @@ import { SEL } from '../helpers/search';
 // journeys use. "series" (not "clothing") is what spans the whole multi-vertical
 // catalog; see the comment in specs/search-results-page.spec.ts.
 const BROAD_QUERY = '/?s=series&post_type=product';
-const EMPTY_QUERY = '/?s=shift64-no-product-can-match-this-query&post_type=product';
+const EMPTY_QUERY = '/?s=zzqvwxjklmnp&post_type=product';
 const PAGE_2 = /\/page\/2\/|[?&](?:paged|query-page|query-\d+-page)=2/;
 
 const MU_FIXTURE = 'shift64-e2e-force-page-reload.php';
@@ -82,6 +82,26 @@ function countTargetRequests(page: import('@playwright/test').Page): { total: ()
 	page.on('request', (req) => {
 		const type = req.resourceType();
 		if ((type === 'document' || type === 'fetch' || type === 'xhr') && PAGE_2.test(req.url())) {
+			n += 1;
+		}
+	});
+	return { total: () => n };
+}
+
+/**
+ * Count only target-page requests issued by this plugin's AJAX pagination.
+ * WooCommerce may legitimately prefetch and navigate to the same URL.
+ */
+function countPluginTargetRequests(page: import('@playwright/test').Page): { total: () => number } {
+	let n = 0;
+	page.on('request', (req) => {
+		const type = req.resourceType();
+		const requestedWith = req.headers()['x-requested-with'];
+		if (
+			(type === 'fetch' || type === 'xhr') &&
+			PAGE_2.test(req.url()) &&
+			requestedWith === 'XMLHttpRequest'
+		) {
 			n += 1;
 		}
 	});
@@ -258,14 +278,14 @@ test.describe('block theme + forcePageReload (the browser owns navigation)', () 
 		await page.goto(BROAD_QUERY);
 		await expect(productCards(page).first()).toBeVisible();
 
-		const requests = countTargetRequests(page);
+		const requests = countPluginTargetRequests(page);
 		await page.locator('a.page-numbers', { hasText: '2' }).first().click();
 		await expect(page).toHaveURL(PAGE_2);
 		// Give a stray plugin-issued fetch time to appear before counting.
 		await page.waitForTimeout(2000);
 
-		// Exactly one — WooCommerce's. Before the ownership fix the plugin
-		// issued a second fetch of the same URL and swapped the grid itself.
-		expect(requests.total()).toBe(1);
+		// WooCommerce may prefetch and navigate to the same URL. The plugin
+		// must not add its XMLHttpRequest-marked fetch to either request.
+		expect(requests.total()).toBe(0);
 	});
 });

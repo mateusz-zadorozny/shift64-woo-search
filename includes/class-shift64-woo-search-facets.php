@@ -31,6 +31,7 @@ class Shift64_Woo_Search_Facets {
 	 * @param array|null               $terms               Optional search terms for text-query context (search archive).
 	 *                                                      NULL on taxonomy archive — facets are computed without a text query.
 	 * @param string|string[]|null     $visibility_policy   Visibility context or explicit exclusions.
+	 * @param array                    $filter_operators     Per-filter `and`/`or` operators.
 	 * @return array Keyed by field name (e.g. 'categories', 'brands', 'attr_pa_kolor') → list of ['value' => string, 'count' => int].
 	 */
 	public static function compute(
@@ -38,23 +39,22 @@ class Shift64_Woo_Search_Facets {
 		array $scope_filters,
 		array $active_user_filters,
 		?array $terms = null,
-		$visibility_policy = null
+		$visibility_policy = null,
+		array $filter_operators = array()
 	) {
 		$facets = array();
 
-		// Merged filters are what the facet query engine sees: scope (always on)
-		// plus user-selected filters. Exclude-self per dimension happens inside
-		// Shift64_Woo_Search_Query::build_facet_query() — the third argument below
-		// (field name, e.g. 'category' / 'attr_pa_kolor') is BOTH the dimension
-		// being aggregated AND the filter key to skip when building the base
-		// query, so users see all candidate values for the dimension they're
-		// currently filtering on.
-		$all_filters = array_merge( $scope_filters, $active_user_filters );
-
 		// Empty terms array is a valid query — FT query built purely from filters.
 		$terms_for_query = $terms ?? array();
-		$build_query     = static function ( $exclude_filter ) use ( $search_query, $terms_for_query, $all_filters, $visibility_policy ) {
-			return $search_query->build_facet_query( $terms_for_query, $all_filters, $exclude_filter, $visibility_policy );
+		$build_query     = static function ( $exclude_filter ) use ( $search_query, $terms_for_query, $scope_filters, $active_user_filters, $visibility_policy, $filter_operators ) {
+			return $search_query->build_facet_query(
+				$terms_for_query,
+				$active_user_filters,
+				$exclude_filter,
+				$visibility_policy,
+				$filter_operators,
+				$scope_filters
+			);
 		};
 
 		if ( 'yes' === get_option( 'shift64_woo_search_filter_categories_enabled', 'yes' ) ) {

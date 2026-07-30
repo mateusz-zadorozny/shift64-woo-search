@@ -311,4 +311,33 @@ final class Shift64_Woo_Search_Catalog_State {
 	public function get_operators() {
 		return $this->operators;
 	}
+
+	/**
+	 * Get validated operators keyed by the Redis filter dimension.
+	 *
+	 * @return array<string,string>
+	 */
+	public function get_redis_operators() {
+		$operators = array();
+		foreach ( $this->selected_filters as $param => $values ) {
+			$taxonomy     = substr( $param, strlen( 'filter_' ) );
+			$operator_key = 'query_type_' . $taxonomy;
+			if ( ! isset( $this->operators[ $operator_key ] ) ) {
+				continue;
+			}
+
+			if ( 'product_cat' === $taxonomy ) {
+				$filter_key = 'category';
+			} elseif ( 'product_brand' === $taxonomy ) {
+				$filter_key = 'brand';
+			} else {
+				$filter_key = 'attr_' . $taxonomy;
+			}
+
+			if ( isset( $this->redis_filters[ $filter_key ] ) ) {
+				$operators[ $filter_key ] = $this->operators[ $operator_key ];
+			}
+		}
+		return $operators;
+	}
 }
