@@ -70,6 +70,8 @@ restores the prior files, and the outgoing `LICENSE` remains in history at
 
 ## Progress
 
+PR: #49
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Assert one licensing claim
@@ -81,6 +83,6 @@ restores the prior files, and the outgoing `LICENSE` remains in history at
 
 ### Phase 2: Prove the release path and close the spec
 
-- [ ] 2.1 Run `bash build-release.sh 0.12.2` on a clean tree and confirm the version sync stays idempotent, then delete the produced ZIP.
-- [ ] 2.2 Flip the spec's `Status:` header to `implemented` and update its `.ai/specs/README.md` index row.
-- [ ] 2.3 Run the full validation gate (`composer validate --strict`, `vendor/bin/phpcs`, `vendor/bin/phpunit`) and confirm it matches the pre-change baseline.
+- [x] 2.1 Run `bash build-release.sh 0.12.2` on a clean tree and confirm the version sync stays idempotent, then delete the produced ZIP. — verified, no code change
+- [x] 2.2 Flip the spec's `Status:` header to `implemented` and update its `.ai/specs/README.md` index row. — b51d019
+- [x] 2.3 Run the full validation gate (`composer validate --strict`, `vendor/bin/phpcs`, `vendor/bin/phpunit`) and confirm it matches the pre-change baseline. — verified, no code change
