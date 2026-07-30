@@ -63,7 +63,7 @@ visibility context.
 
 ### Phase 1: Define the visibility contract
 
-- [ ] 1.1 Add and unit-test a pure visibility resolver covering search, compatibility fallback, missing values, validated explicit exclusions, and invalid input.
+- [x] 1.1 Add and unit-test a pure visibility resolver covering search, compatibility fallback, missing values, validated explicit exclusions, and invalid input. — 875e640
 
 ### Phase 2: Adopt search visibility
 
