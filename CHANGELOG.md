@@ -1,3 +1,10 @@
+# [0.12.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.11.2...v0.12.0) (2026-07-30)
+
+
+### Features
+
+* **autocomplete:** configurable quick-search density and tray width ([#42](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/42)) ([c61dae0](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/c61dae05ea6ff4bf96026a9a27ec28f2debc8949)), closes [#41](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/41) [#41](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/41)
+
 ## [0.11.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.11.1...v0.11.2) (2026-07-29)
 
 
