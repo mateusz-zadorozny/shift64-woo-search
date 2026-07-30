@@ -24,7 +24,7 @@ Features include:
 * Product, category, attribute, brand, and SKU search, using WooCommerce's native product brands.
 * Configurable autocomplete density and result-tray width.
 * A settings screen organised into six workspaces, from connection and indexing through relevance tuning and diagnostics.
-* Search statistics and diagnostic tools, including an opt-in storefront debug panel that breaks a query down into request-phase and browser timings.
+* Search statistics and diagnostic tools, including an opt-in storefront debug panel — visible only to users who can manage WooCommerce, never to shoppers — that breaks a query down into request-phase and browser timings.
 * WP-CLI commands for setup, indexing, tests, and health checks.
 * Shift64 Product Search and Shift64 Modal Product Search blocks on WordPress 7.0+.
 * A `[shift64_woo_search]` product search form shortcode for classic themes.
