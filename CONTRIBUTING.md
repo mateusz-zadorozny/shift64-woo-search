@@ -30,7 +30,8 @@ Working by hand is entirely valid; the pipeline is a convenience, not a gate.
 1. Branch from `main`.
 2. Keep source code, comments, user-facing source strings, and maintained documentation in English.
 3. Add or update tests for behavior changes.
-4. Run `composer test` and `composer lint` — the same review gate the pipeline enforces.
+4. Run `composer test` (PHPUnit) and `composer lint` (PHPCS). The agent pipeline runs the
+   same two plus `composer validate --strict`.
 5. Open a pull request with a Conventional Commit title.
 6. Squash-merge after review and successful checks.
 
