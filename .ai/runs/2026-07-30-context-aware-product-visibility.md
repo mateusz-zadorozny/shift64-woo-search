@@ -37,7 +37,7 @@ visibility context.
 
 ### Phase 2: Adopt search visibility
 
-- [ ] 2.1 Thread the search context through full-search builders, the Redis-backed product search archive, and search facet construction without changing autocomplete or taxonomy callers.
+- [x] 2.1 Thread the search context through full-search builders, the Redis-backed product search archive, and search facet construction without changing autocomplete or taxonomy callers. — c662460
 
 ### Phase 3: Prove the WooCommerce behavior
 
