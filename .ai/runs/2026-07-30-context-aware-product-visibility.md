@@ -33,19 +33,19 @@ visibility context.
 
 ### Phase 1: Define the visibility contract
 
-- [ ] 1.1 Add and unit-test a pure visibility resolver covering search, compatibility fallback, missing values, validated explicit exclusions, and invalid input.
+- 1.1 Add and unit-test a pure visibility resolver covering search, compatibility fallback, missing values, validated explicit exclusions, and invalid input.
 
 ### Phase 2: Adopt search visibility
 
-- [x] 2.1 Thread the search context through full-search builders, the Redis-backed product search archive, and search facet construction without changing autocomplete or taxonomy callers. — c662460
+- 2.1 Thread the search context through full-search builders, the Redis-backed product search archive, and search facet construction without changing autocomplete or taxonomy callers.
 
 ### Phase 3: Prove the WooCommerce behavior
 
-- [x] 3.1 Add a deterministic catalog-only E2E product fixture and assert that Redis search excludes it while its direct product permalink remains accessible. — 48f45a5
+- 3.1 Add a deterministic catalog-only E2E product fixture and assert that Redis search excludes it while its direct product permalink remains accessible.
 
 ### Phase 4: Document and close the spec
 
-- [x] 4.1 Update compatibility documentation and the changelog, then mark the source spec and specs index implemented by this PR. — 0af3a40
+- 4.1 Update compatibility documentation and the changelog, then mark the source spec and specs index implemented by this PR.
 
 ## Risks
 
@@ -67,12 +67,12 @@ visibility context.
 
 ### Phase 2: Adopt search visibility
 
-- [ ] 2.1 Thread the search context through full-search builders, the Redis-backed product search archive, and search facet construction without changing autocomplete or taxonomy callers.
+- [x] 2.1 Thread the search context through full-search builders, the Redis-backed product search archive, and search facet construction without changing autocomplete or taxonomy callers. — c662460
 
 ### Phase 3: Prove the WooCommerce behavior
 
-- [ ] 3.1 Add a deterministic catalog-only E2E product fixture and assert that Redis search excludes it while its direct product permalink remains accessible.
+- [x] 3.1 Add a deterministic catalog-only E2E product fixture and assert that Redis search excludes it while its direct product permalink remains accessible. — 48f45a5
 
 ### Phase 4: Document and close the spec
 
-- [ ] 4.1 Update compatibility documentation and the changelog, then mark the source spec and specs index implemented by this PR.
+- [x] 4.1 Update compatibility documentation and the changelog, then mark the source spec and specs index implemented by this PR. — 0af3a40
