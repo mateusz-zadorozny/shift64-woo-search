@@ -74,10 +74,10 @@ restores the prior files, and the outgoing `LICENSE` remains in history at
 
 ### Phase 1: Assert one licensing claim
 
-- [ ] 1.1 Replace `LICENSE` with the verbatim FSF GPL-2.0 text plus the Shift64 copyright notice.
-- [ ] 1.2 Extend `shift64-woo-search.php`'s header with `Plugin URI`, `Author URI`, `License`, and `License URI`.
-- [ ] 1.3 Extend `mu-plugins/shift64-woo-search-bootstrap.php`'s header with the same four fields.
-- [ ] 1.4 Add `tests/test-license-declarations.php` pinning the license claim across all three files plus `composer.json` and `readme.txt`.
+- [x] 1.1 Replace `LICENSE` with the verbatim FSF GPL-2.0 text plus the Shift64 copyright notice. — 5c8ee00
+- [x] 1.2 Extend `shift64-woo-search.php`'s header with `Plugin URI`, `Author URI`, `License`, and `License URI`. — 7735801
+- [x] 1.3 Extend `mu-plugins/shift64-woo-search-bootstrap.php`'s header with the same four fields. — 3363831
+- [x] 1.4 Add `tests/test-license-declarations.php` pinning the license claim across all three files plus `composer.json` and `readme.txt`. — 38bad19
 
 ### Phase 2: Prove the release path and close the spec
 
