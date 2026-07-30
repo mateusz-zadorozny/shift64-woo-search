@@ -185,10 +185,15 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 		await page.goto(`${BROAD_QUERY}&query-0-page=2`);
 		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
 
-		await page
+		const amber = page
 			.locator(`${SEL.filterCheckbox}[data-taxonomy="pa_color"][data-slug="amber-musk"]`)
-			.first()
-			.check();
+			.first();
+		await page
+			.locator('.shift64-woo-search-filter[data-filter-key="pa_color"]')
+			.locator('.shift64-woo-search-filter__pill')
+			.click();
+		await expect(amber).toBeVisible();
+		await amber.check();
 
 		await expect(page).toHaveURL(/filter_pa_color=amber-musk/);
 		await expect(page).not.toHaveURL(/[?&](?:page|paged|query-page|query-\d+-page)=/);
