@@ -71,18 +71,20 @@ history, and accessibility.
 
 ## Progress
 
+PR: #51
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Query and URL foundation
 
-- [ ] 1.1 Add pure Product Collection eligibility/context and catalog-state parsers
-- [ ] 1.2 Extract a context-driven Redis catalog request service
-- [ ] 1.3 Register the Product Collection query adapter and scoped total adjustment
-- [ ] 1.4 Add block-theme E2E foundation fixtures and coverage
+- [x] 1.1 Add pure Product Collection eligibility/context and catalog-state parsers — be02cc5
+- [x] 1.2 Extract a context-driven Redis catalog request service — be02cc5
+- [x] 1.3 Register the Product Collection query adapter and scoped total adjustment — be02cc5
+- [x] 1.4 Add block-theme E2E foundation fixtures and coverage — be02cc5
 
 ### Phase 2: Router compatibility and shared state
 
-- [ ] 2.1 Add the request-scoped result registry and read-only accessors
-- [ ] 2.2 Add shared canonical URL and navigation utilities
-- [ ] 2.3 Extend block-theme navigation and ownership coverage
-- [ ] 2.4 Document the supported Site Editor template contract and mark the spec implemented
+- [x] 2.1 Add the request-scoped result registry and read-only accessors — be02cc5
+- [x] 2.2 Add shared canonical URL and navigation utilities — be02cc5
+- [x] 2.3 Extend block-theme navigation and ownership coverage — be02cc5
+- [x] 2.4 Document the supported Site Editor template contract and mark the spec implemented — ae1f10c
