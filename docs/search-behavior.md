@@ -16,16 +16,25 @@ Example for input `stella`:
 Strict pass:
 
 ```text
-(stella*) -@excluded:{yes} -@visibility:{hidden}
+(stella*) -@excluded:{yes} -@visibility:{hidden|catalog}
 ```
 
 Fallback pass:
 
 ```text
-(%stella%) -@excluded:{yes} -@visibility:{hidden}
+(%stella%) -@excluded:{yes} -@visibility:{hidden|catalog}
 ```
 
 If the strict pass returns any results, the fuzzy pass is not executed.
+
+Product-search contexts follow WooCommerce catalog visibility: both `hidden`
+and catalog-only (`catalog`) products are excluded. Autocomplete and the full
+results archive both request this search policy so the dropdown cannot offer a
+product that disappears after submission. Taxonomy callers retain the
+historical hidden-only clause because catalog-only products remain eligible in
+catalog contexts. Legacy indexed documents without a `visibility` field
+continue to match because the clause excludes known TAG values rather than
+requiring the field to exist.
 
 ## Why This Is Better
 

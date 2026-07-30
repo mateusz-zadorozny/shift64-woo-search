@@ -21,6 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shift64_Woo_Search_Query {
 
 	/**
+	 * WooCommerce catalog visibility values stored in the Redis TAG field.
+	 *
+	 * @var string[]
+	 */
+	private const VISIBILITY_VALUES = array( 'visible', 'catalog', 'search', 'hidden' );
+
+	/**
 	 * Redis connection instance.
 	 *
 	 * @var Shift64_Woo_Search_Redis
@@ -93,7 +100,8 @@ class Shift64_Woo_Search_Query {
 	public function search( $query, $mode = 'autocomplete', $limit = null, $filters = array() ) {
 		$start_time = microtime( true );
 
-		$query = $this->sanitize_query( $query );
+		$query             = $this->sanitize_query( $query );
+		$visibility_policy = in_array( $mode, array( 'autocomplete', 'full' ), true ) ? 'search' : null;
 
 		if ( mb_strlen( $query ) < $this->config['min_query_length'] ) {
 			return $this->empty_response( $query, $mode, 0.0 );
@@ -127,7 +135,7 @@ class Shift64_Woo_Search_Query {
 
 		if ( 'mixed' === $strategy ) {
 			// Legacy behavior — mixed prefix+fuzzy in one query.
-			$ft_query      = $this->build_ft_query( $query, $filters );
+			$ft_query      = $this->build_ft_query( $query, $filters, $visibility_policy );
 			$results       = $this->execute_ft_search( $ft_query, $fetch_limit );
 			$search_pass   = 'mixed';
 			$debug_queries = array( 'mixed' => $ft_query );
@@ -138,7 +146,7 @@ class Shift64_Woo_Search_Query {
 			$search_pass   = 'strict';
 
 			// Pass 1: Strict (prefix only).
-			$ft_query                = $this->build_strict_query( $terms, $filters );
+			$ft_query                = $this->build_strict_query( $terms, $filters, null, $visibility_policy );
 			$debug_queries['strict'] = $ft_query;
 			$results                 = $this->execute_ft_search( $ft_query, $fetch_limit );
 
@@ -146,7 +154,7 @@ class Shift64_Woo_Search_Query {
 			if ( $this->should_fallback( $results ) && ! empty( $this->config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
 				$reduced = $this->reduce_tokens( $terms );
 				if ( count( $reduced ) < count( $terms ) && ! empty( $reduced ) ) {
-					$ft_query                       = $this->build_strict_query( $reduced, $filters );
+					$ft_query                       = $this->build_strict_query( $reduced, $filters, null, $visibility_policy );
 					$debug_queries['token_reduced'] = $ft_query;
 					$results                        = $this->execute_ft_search( $ft_query, $fetch_limit );
 					if ( ! $this->should_fallback( $results ) ) {
@@ -157,7 +165,7 @@ class Shift64_Woo_Search_Query {
 
 			// Pass 3: OR prefix fallback (relax AND → OR, only when logic is AND).
 			if ( $this->should_fallback( $results ) && 'AND' === strtoupper( $this->config['logic'] ) ) {
-				$ft_query                   = $this->build_strict_query( $terms, $filters, 'OR' );
+				$ft_query                   = $this->build_strict_query( $terms, $filters, 'OR', $visibility_policy );
 				$debug_queries['or_prefix'] = $ft_query;
 				$results                    = $this->execute_ft_search( $ft_query, $fetch_limit );
 				$results                    = self::boost_term_match_count( $terms, $results );
@@ -168,7 +176,7 @@ class Shift64_Woo_Search_Query {
 
 			// Pass 4: Fuzzy fallback.
 			if ( $this->should_fallback( $results ) ) {
-				$ft_query               = $this->build_fuzzy_query( $terms, $filters );
+				$ft_query               = $this->build_fuzzy_query( $terms, $filters, null, $visibility_policy );
 				$debug_queries['fuzzy'] = $ft_query;
 				$results                = $this->execute_ft_search( $ft_query, $fetch_limit );
 				$search_pass            = 'fuzzy';
@@ -240,8 +248,9 @@ class Shift64_Woo_Search_Query {
 	 * @return array   Keyed by pass name: strict, token_reduced, fuzzy.
 	 */
 	public function search_all_passes( $query, $mode = 'autocomplete', $limit = null, $filters = array() ) {
-		$query = $this->sanitize_query( $query );
-		$terms = $this->get_search_terms( $query );
+		$query             = $this->sanitize_query( $query );
+		$terms             = $this->get_search_terms( $query );
+		$visibility_policy = in_array( $mode, array( 'autocomplete', 'full' ), true ) ? 'search' : null;
 
 		if ( null === $limit ) {
 			$limit = ( 'autocomplete' === $mode ) ? $this->config['autocomplete_limit'] : $this->config['full_limit'];
@@ -260,7 +269,7 @@ class Shift64_Woo_Search_Query {
 
 		// Strict pass.
 		$passes['strict'] = $this->run_tuning_pass(
-			$this->build_strict_query( $terms, $filters ),
+			$this->build_strict_query( $terms, $filters, null, $visibility_policy ),
 			$terms,
 			$query,
 			$fetch_limit,
@@ -273,7 +282,7 @@ class Shift64_Woo_Search_Query {
 			$reduced = $this->reduce_tokens( $terms );
 			if ( count( $reduced ) < count( $terms ) && ! empty( $reduced ) ) {
 				$passes['token_reduced'] = $this->run_tuning_pass(
-					$this->build_strict_query( $reduced, $filters ),
+					$this->build_strict_query( $reduced, $filters, null, $visibility_policy ),
 					$terms,
 					$query,
 					$fetch_limit,
@@ -286,7 +295,7 @@ class Shift64_Woo_Search_Query {
 		// OR prefix pass (only when logic is AND).
 		if ( 'AND' === strtoupper( $this->config['logic'] ) ) {
 			$passes['or_prefix'] = $this->run_tuning_pass(
-				$this->build_strict_query( $terms, $filters, 'OR' ),
+				$this->build_strict_query( $terms, $filters, 'OR', $visibility_policy ),
 				$terms,
 				$query,
 				$fetch_limit,
@@ -298,7 +307,7 @@ class Shift64_Woo_Search_Query {
 
 		// Fuzzy pass.
 		$passes['fuzzy'] = $this->run_tuning_pass(
-			$this->build_fuzzy_query( $terms, $filters ),
+			$this->build_fuzzy_query( $terms, $filters, null, $visibility_policy ),
 			$terms,
 			$query,
 			$fetch_limit,
@@ -733,12 +742,13 @@ class Shift64_Woo_Search_Query {
 	/**
 	 * Build a strict FT.SEARCH query (prefix only, no fuzzy).
 	 *
-	 * @param array       $terms          Search terms.
-	 * @param array       $filters        Additional filters.
-	 * @param string|null $logic_override Force 'AND'/'OR' logic for this query.
+	 * @param array                $terms             Search terms.
+	 * @param array                $filters           Additional filters.
+	 * @param string|null          $logic_override    Force 'AND'/'OR' logic for this query.
+	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
 	 * @return string
 	 */
-	public function build_strict_query( $terms, $filters = array(), $logic_override = null ) {
+	public function build_strict_query( $terms, $filters = array(), $logic_override = null, $visibility_policy = null ) {
 		$logic    = null !== $logic_override ? strtoupper( $logic_override ) : strtoupper( $this->config['logic'] );
 		$operator = ( 'AND' === $logic ) ? ' ' : '|';
 		$expanded = $this->expand_terms( $terms );
@@ -783,7 +793,7 @@ class Shift64_Woo_Search_Query {
 			}
 		}
 
-		$parts = array_merge( $parts, $this->build_filter_parts( $filters ) );
+		$parts = array_merge( $parts, $this->build_filter_parts( $filters, $visibility_policy ) );
 
 		return implode( ' ', $parts );
 	}
@@ -791,12 +801,13 @@ class Shift64_Woo_Search_Query {
 	/**
 	 * Build a fuzzy FT.SEARCH query (fuzzy only, no prefix).
 	 *
-	 * @param array    $terms   Search terms.
-	 * @param array    $filters Additional filters.
-	 * @param int|null $level   Fuzzy level override.
+	 * @param array                $terms             Search terms.
+	 * @param array                $filters           Additional filters.
+	 * @param int|null             $level             Fuzzy level override.
+	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
 	 * @return string
 	 */
-	public function build_fuzzy_query( $terms, $filters = array(), $level = null ) {
+	public function build_fuzzy_query( $terms, $filters = array(), $level = null, $visibility_policy = null ) {
 		if ( null === $level ) {
 			$level = max( 1, min( 3, (int) ( $this->config['fallback_fuzzy_level'] ?? $this->config['fuzzy_level'] ?? 1 ) ) );
 		}
@@ -844,7 +855,7 @@ class Shift64_Woo_Search_Query {
 			}
 		}
 
-		$parts = array_merge( $parts, $this->build_filter_parts( $filters ) );
+		$parts = array_merge( $parts, $this->build_filter_parts( $filters, $visibility_policy ) );
 
 		return implode( ' ', $parts );
 	}
@@ -856,11 +867,12 @@ class Shift64_Woo_Search_Query {
 	 * concatenation (see detect_sku_concatenation) is only applied in the
 	 * 'strict_first' strategy, not here.
 	 *
-	 * @param string $query   Sanitized query.
-	 * @param array  $filters Additional filters.
+	 * @param string               $query             Sanitized query.
+	 * @param array                $filters           Additional filters.
+	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
 	 * @return string
 	 */
-	public function build_ft_query( $query, $filters = array() ) {
+	public function build_ft_query( $query, $filters = array(), $visibility_policy = null ) {
 		$terms    = explode( ' ', $query );
 		$operator = ( 'AND' === strtoupper( $this->config['logic'] ) ) ? ' ' : '|';
 
@@ -893,9 +905,60 @@ class Shift64_Woo_Search_Query {
 			$parts[] = '(' . implode( $operator, $term_queries ) . ')';
 		}
 
-		$parts = array_merge( $parts, $this->build_filter_parts( $filters ) );
+		$parts = array_merge( $parts, $this->build_filter_parts( $filters, $visibility_policy ) );
 
 		return implode( ' ', $parts );
+	}
+
+	/**
+	 * Resolve a closed visibility context or validated explicit exclusion set.
+	 *
+	 * A missing policy preserves the compatibility behavior used by callers
+	 * outside product search, such as taxonomy archives. Explicit values are
+	 * accepted only when every item is a known WooCommerce catalog visibility
+	 * value.
+	 *
+	 * @param string|string[]|null $policy Named context or explicit exclusions.
+	 * @return string[] Validated visibility values to exclude.
+	 */
+	public static function resolve_visibility_exclusions( $policy = null ) {
+		if ( null === $policy || '' === $policy ) {
+			return array( 'hidden' );
+		}
+
+		if ( 'search' === $policy ) {
+			return array( 'hidden', 'catalog' );
+		}
+
+		if ( is_array( $policy ) && ! empty( $policy ) ) {
+			$exclusions = array();
+			foreach ( $policy as $value ) {
+				if ( ! is_string( $value ) || ! in_array( $value, self::VISIBILITY_VALUES, true ) ) {
+					self::log_invalid_visibility_policy();
+					return array( 'hidden' );
+				}
+				if ( ! in_array( $value, $exclusions, true ) ) {
+					$exclusions[] = $value;
+				}
+			}
+			return $exclusions;
+		}
+
+		self::log_invalid_visibility_policy();
+		return array( 'hidden' );
+	}
+
+	/**
+	 * Record an invalid visibility policy only when WordPress debugging is on.
+	 *
+	 * The raw value is intentionally omitted so caller-controlled data cannot
+	 * inject arbitrary content into the PHP error log.
+	 */
+	private static function log_invalid_visibility_policy() {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Required debug-only compatibility notice.
+			error_log( '[Shift64 Woo Search] Invalid visibility policy; using the hidden-only compatibility fallback.' );
+		}
 	}
 
 	/**
@@ -904,12 +967,13 @@ class Shift64_Woo_Search_Query {
 	 * Supports static exclusions (stock, visibility, excluded flag) and dynamic
 	 * filters (category, brand, per-attribute TAG fields for faceted search).
 	 *
-	 * @param array $filters Additional filters. Keys: 'category' (string|array),
-	 *                       'brand' (string|array), 'attr_{taxonomy}' (array of
-	 *                       term names).
+	 * @param array                $filters           Additional filters. Keys: 'category' (string|array),
+	 *                                                'brand' (string|array), 'attr_{taxonomy}' (array of
+	 *                                                term names).
+	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
 	 * @return array
 	 */
-	public function build_filter_parts( $filters = array() ) {
+	public function build_filter_parts( $filters = array(), $visibility_policy = null ) {
 		$parts = array();
 
 		// Always exclude excluded products.
@@ -922,7 +986,11 @@ class Shift64_Woo_Search_Query {
 		}
 
 		// Filter: visibility.
-		$parts[] = '-@visibility:{hidden}';
+		$visibility_exclusions = array_map(
+			array( __CLASS__, 'escape_tag_value' ),
+			self::resolve_visibility_exclusions( $visibility_policy )
+		);
+		$parts[]               = '-@visibility:{' . implode( '|', $visibility_exclusions ) . '}';
 
 		// Filter: category (supports single string or array of names).
 		if ( ! empty( $filters['category'] ) ) {
@@ -969,16 +1037,17 @@ class Shift64_Woo_Search_Query {
 	 * The distinction exists so the renderer knows which filters are
 	 * "user-active" (clickable pills with ×) vs "scope" (archive context).
 	 *
-	 * @param array  $scope_filters Archive scope, e.g. ['category' => ['Shift64 Stella']].
-	 * @param array  $user_filters  URL-selected filters, e.g. ['attr_pa_kolor' => ['bialy']].
-	 * @param int    $per_page      Results per page.
-	 * @param int    $paged         1-based page number.
-	 * @param string $sort_by       Optional SORTBY clause, e.g. 'price ASC'. Null = natural order.
+	 * @param array                $scope_filters     Archive scope, e.g. ['category' => ['Shift64 Stella']].
+	 * @param array                $user_filters      URL-selected filters, e.g. ['attr_pa_kolor' => ['bialy']].
+	 * @param int                  $per_page          Results per page.
+	 * @param int                  $paged             1-based page number.
+	 * @param string               $sort_by           Optional SORTBY clause, e.g. 'price ASC'. Null = natural order.
+	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
 	 * @return array ['ids' => int[], 'total' => int]. Empty/zero on Redis failure.
 	 */
-	public function search_by_filters( $scope_filters, $user_filters, $per_page, $paged, $sort_by = null ) {
+	public function search_by_filters( $scope_filters, $user_filters, $per_page, $paged, $sort_by = null, $visibility_policy = null ) {
 		$all_filters = array_merge( (array) $scope_filters, (array) $user_filters );
-		$parts       = $this->build_filter_parts( $all_filters );
+		$parts       = $this->build_filter_parts( $all_filters, $visibility_policy );
 
 		// FT.SEARCH needs at least one positive matcher — exclusions alone are invalid.
 		// When all parts are negations (no scope, no attr filters), prepend `*`.
@@ -2154,12 +2223,13 @@ class Shift64_Woo_Search_Query {
 	 * Includes search terms + all active filters EXCEPT the given dimension,
 	 * so users see all available values for the dimension they are filtering.
 	 *
-	 * @param array  $terms          Search terms.
-	 * @param array  $filters        All active filters.
-	 * @param string $exclude_filter Filter key to exclude (e.g. 'category', 'attr_pa_kolor').
+	 * @param array                $terms             Search terms.
+	 * @param array                $filters           All active filters.
+	 * @param string               $exclude_filter    Filter key to exclude (e.g. 'category', 'attr_pa_kolor').
+	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
 	 * @return string FT query string.
 	 */
-	public function build_facet_query( $terms, $filters, $exclude_filter ) {
+	public function build_facet_query( $terms, $filters, $exclude_filter, $visibility_policy = null ) {
 		$expanded = $this->expand_terms( $terms );
 		$logic    = strtoupper( $this->config['logic'] );
 		$operator = ( 'AND' === $logic ) ? ' ' : '|';
@@ -2196,7 +2266,7 @@ class Shift64_Woo_Search_Query {
 		// Build filter parts excluding the target dimension.
 		$filtered = $filters;
 		unset( $filtered[ $exclude_filter ] );
-		$parts = array_merge( $parts, $this->build_filter_parts( $filtered ) );
+		$parts = array_merge( $parts, $this->build_filter_parts( $filtered, $visibility_policy ) );
 
 		return implode( ' ', $parts );
 	}

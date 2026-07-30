@@ -73,6 +73,47 @@ wpc rewrite flush --hard
 log "Seed deterministic demo catalog (48 products, seed 6464)"
 wpc eval-file "$SCRIPT_DIR/generate-demo-products.php" count=48 mode=mixed seed=6464 reset
 
+log "Seed product visibility fixtures"
+wpc eval '
+$product = new WC_Product_Simple();
+$product->set_name( "Visibilityfixture Catalog-only Product" );
+$product->set_slug( "visibilityfixture-catalog-only-product" );
+$product->set_status( "publish" );
+$product->set_catalog_visibility( "catalog" );
+$product->set_sku( "E2E-CATALOG-ONLY-6464" );
+$product->set_regular_price( "19.99" );
+$product->set_stock_status( "instock" );
+$product->set_description( "A directly accessible product that must not appear in product search." );
+$product->update_meta_data( "_shift64_woo_search_demo_generated", "yes" );
+$product->save();
+
+$visible_product = new WC_Product_Simple();
+$visible_product->set_name( "Visibilityfixture Visible Product" );
+$visible_product->set_slug( "visibilityfixture-visible-product" );
+$visible_product->set_status( "publish" );
+$visible_product->set_catalog_visibility( "visible" );
+$visible_product->set_sku( "E2E-VISIBLE-6464" );
+$visible_product->set_regular_price( "29.99" );
+$visible_product->set_stock_status( "instock" );
+$visible_product->set_description( "A positive-control product that must appear in product search." );
+$visible_product->update_meta_data( "_shift64_woo_search_demo_generated", "yes" );
+$visible_product->save();
+
+# Keep at least two visible matches so WooCommerce renders the archive instead
+# of redirecting an exact single result to its product permalink.
+$second_visible_product = new WC_Product_Simple();
+$second_visible_product->set_name( "Visibilityfixture Search Control Product" );
+$second_visible_product->set_slug( "visibilityfixture-search-control-product" );
+$second_visible_product->set_status( "publish" );
+$second_visible_product->set_catalog_visibility( "visible" );
+$second_visible_product->set_sku( "E2E-SEARCH-CONTROL-6464" );
+$second_visible_product->set_regular_price( "39.99" );
+$second_visible_product->set_stock_status( "instock" );
+$second_visible_product->set_description( "A second visible match that keeps the search results archive observable." );
+$second_visible_product->update_meta_data( "_shift64_woo_search_demo_generated", "yes" );
+$second_visible_product->save();
+'
+
 log "Options (before setup/rebuild — they feed the generated config, the index schema, and the blobs)"
 # Rate limit becomes the generated SHIFT64_WOO_SEARCH_RATE_LIMIT constant: real
 # typing tests must never trip the default 30 req/s limiter (the 429 path is

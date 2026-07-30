@@ -45,7 +45,7 @@ No. Version 0.1.0 uses Bring Your Own Redis. A managed service is planned separa
 
 = Does it replace WooCommerce templates? =
 
-No. Redis retrieves product IDs; WooCommerce remains responsible for catalog rendering, pricing, taxes, and visibility rules.
+No. Redis retrieves product IDs and applies WooCommerce's product-search visibility contract, excluding hidden and catalog-only products. WooCommerce remains responsible for catalog rendering, pricing, taxes, and direct product access.
 
 == Changelog ==
 
