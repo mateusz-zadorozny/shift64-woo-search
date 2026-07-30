@@ -1,6 +1,6 @@
 # Licensing Attribution Correction
 
-> **Status:** draft
+> **Status:** implemented — PR #49, 2026-07-30. Execution plan: `.ai/runs/2026-07-30-licensing-attribution-correction.md`.
 
 ## TLDR
 
