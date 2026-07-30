@@ -73,7 +73,7 @@ wpc rewrite flush --hard
 log "Seed deterministic demo catalog (48 products, seed 6464)"
 wpc eval-file "$SCRIPT_DIR/generate-demo-products.php" count=48 mode=mixed seed=6464 reset
 
-log "Seed catalog-only product visibility fixture"
+log "Seed product visibility fixtures"
 wpc eval '
 $product = new WC_Product_Simple();
 $product->set_name( "Visibilityfixture Catalog-only Product" );
