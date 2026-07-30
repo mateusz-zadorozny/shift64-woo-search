@@ -98,6 +98,20 @@ $visible_product->set_stock_status( "instock" );
 $visible_product->set_description( "A positive-control product that must appear in product search." );
 $visible_product->update_meta_data( "_shift64_woo_search_demo_generated", "yes" );
 $visible_product->save();
+
+# Keep at least two visible matches so WooCommerce renders the archive instead
+# of redirecting an exact single result to its product permalink.
+$second_visible_product = new WC_Product_Simple();
+$second_visible_product->set_name( "Visibilityfixture Search Control Product" );
+$second_visible_product->set_slug( "visibilityfixture-search-control-product" );
+$second_visible_product->set_status( "publish" );
+$second_visible_product->set_catalog_visibility( "visible" );
+$second_visible_product->set_sku( "E2E-SEARCH-CONTROL-6464" );
+$second_visible_product->set_regular_price( "39.99" );
+$second_visible_product->set_stock_status( "instock" );
+$second_visible_product->set_description( "A second visible match that keeps the search results archive observable." );
+$second_visible_product->update_meta_data( "_shift64_woo_search_demo_generated", "yes" );
+$second_visible_product->save();
 '
 
 log "Options (before setup/rebuild — they feed the generated config, the index schema, and the blobs)"
