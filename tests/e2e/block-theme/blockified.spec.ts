@@ -197,8 +197,9 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 
 		await expect(page).toHaveURL(/filter_pa_color=amber-musk/);
 		await expect(page).not.toHaveURL(/[?&](?:page|paged|query-page|query-\d+-page)=/);
-		await expect(page.locator('.page-numbers.current').first()).toHaveText('1');
 		await expect(productCards(page)).toHaveCount(1);
+		await expect(page.locator('.page-numbers.current')).toHaveCount(0);
+		await expect(page.locator('.woocommerce-breadcrumb').first()).not.toContainText('Page 2');
 	});
 
 	test('catalog navigation rejects unsafe destinations', async ({ page }) => {

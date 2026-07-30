@@ -23,6 +23,7 @@
         ordering:       '.woocommerce-ordering',
         filters:        '.shift64-woo-search-filters',
         filterCheckbox: '.shift64-woo-search-filter__checkbox',
+        breadcrumbs:    '.woocommerce-breadcrumb, .shift64-woo-search-header__breadcrumbs',
         // WooCommerce's standard Product Collection block. Pagination rendered
         // inside it is NOT ours — see ownsPagination() below.
         productCollection: '.wp-block-woocommerce-product-collection'
@@ -678,6 +679,15 @@
                     if (curCount && newCount) {
                         curCount.outerHTML = newCount.outerHTML;
                     }
+                }
+
+                // Breadcrumbs live outside both swap wrappers. Refresh them
+                // separately so a state change from page 2 to a one-page result
+                // cannot leave a stale "Page 2" trail above the updated grid.
+                var curBreadcrumbs = document.querySelector(SELECTORS.breadcrumbs);
+                var newBreadcrumbs = doc.querySelector(SELECTORS.breadcrumbs);
+                if (curBreadcrumbs && newBreadcrumbs) {
+                    curBreadcrumbs.outerHTML = newBreadcrumbs.outerHTML;
                 }
 
                 // The debug bar sits outside every wrapper swapped above, so
