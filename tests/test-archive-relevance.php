@@ -11,6 +11,73 @@
 class Archive_Relevance_Test extends WP_UnitTestCase {
 
 	/**
+	 * The product search archive explicitly requests search visibility.
+	 */
+	public function test_archive_requests_search_visibility_context() {
+		$raw = array(
+			1,
+			'shift64_woo_search:product:101',
+			'10',
+			array(
+				'post_id',
+				'101',
+				'title',
+				'Fixture Product',
+				'stock_status',
+				'instock',
+			),
+		);
+
+		$redis = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$redis->method( 'get_index_name' )->willReturn( 'shift64_woo_search_product_idx' );
+		$redis->method( 'raw_command' )->willReturn( $raw );
+
+		$search_query = $this->getMockBuilder( Shift64_Woo_Search_Query::class )
+			->disableOriginalConstructor()
+			->onlyMethods( array( 'sanitize_query', 'get_search_terms', 'build_strict_query' ) )
+			->getMock();
+		$search_query->method( 'sanitize_query' )->willReturn( 'fixture' );
+		$search_query->method( 'get_search_terms' )->willReturn( array( 'fixture' ) );
+		$search_query->expects( $this->once() )
+			->method( 'build_strict_query' )
+			->with(
+				$this->equalTo( array( 'fixture' ) ),
+				$this->equalTo( array() ),
+				$this->isNull(),
+				$this->equalTo( 'search' )
+			)
+			->willReturn( '(fixture*) -@visibility:{hidden|catalog}' );
+
+		$instance = new ReflectionProperty( Shift64_Woo_Search_Redis::class, 'instance' );
+		$instance->setValue( null, $redis );
+
+		try {
+			$archive = ( new ReflectionClass( Shift64_Woo_Search_Archive::class ) )->newInstanceWithoutConstructor();
+			$method  = new ReflectionMethod( Shift64_Woo_Search_Archive::class, 'execute_search' );
+			$result  = $method->invoke(
+				$archive,
+				$search_query,
+				'fixture',
+				'strict_first',
+				array(
+					'logic'                   => 'OR',
+					'outofstock_mode'         => 'exclude',
+					'token_reduction_enabled' => true,
+				),
+				16,
+				1
+			);
+		} finally {
+			$instance->setValue( null, null );
+		}
+
+		$this->assertSame( array( 101 ), $result['ids'] );
+		$this->assertSame( 1, $result['total'] );
+	}
+
+	/**
 	 * Archive relevance applies the same out-of-stock demote as quick search
 	 * before title-start boost, so unavailable products do not outrank better
 	 * available matches only because of the raw Redis score.

@@ -152,6 +152,32 @@ class Facets_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Search archives pass their visibility context through to facet queries so
+	 * facet counts describe the same result membership as the product grid.
+	 */
+	public function test_compute_forwards_search_visibility_context() {
+		$mock = $this->createMock( Shift64_Woo_Search_Query::class );
+		$mock->expects( $this->once() )
+			->method( 'build_facet_query' )
+			->with(
+				$this->equalTo( array( 'fixture' ) ),
+				$this->equalTo( array() ),
+				$this->equalTo( 'attr_pa_kolor' ),
+				$this->equalTo( 'search' )
+			)
+			->willReturn( 'fixture* -@visibility:{hidden|catalog}' );
+		$mock->method( 'execute_ft_aggregate' )->willReturn( array() );
+
+		Shift64_Woo_Search_Facets::compute(
+			$mock,
+			array(),
+			array(),
+			array( 'fixture' ),
+			'search'
+		);
+	}
+
+	/**
 	 * Active user filters are passed through to the underlying query builder.
 	 *
 	 * The exclude-self facet semantics live in `Shift64_Woo_Search_Query::build_facet_query()`

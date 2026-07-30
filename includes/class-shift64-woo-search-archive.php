@@ -475,7 +475,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		}
 
 		// Pass 1: Strict (prefix).
-		$ft_query = $search_query->build_strict_query( $terms, $filters );
+		$ft_query = $search_query->build_strict_query( $terms, $filters, null, 'search' );
 		$this->log( 'Pass 1 (strict)', $ft_query );
 		$t0     = microtime( true );
 		$result = $relevance_mode
@@ -487,7 +487,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		if ( $this->is_empty_result( $result ) && ! empty( $config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
 			$reduced = $search_query->reduce_tokens( $terms );
 			if ( count( $reduced ) < count( $terms ) && ! empty( $reduced ) ) {
-				$ft_query = $search_query->build_strict_query( $reduced, $filters );
+				$ft_query = $search_query->build_strict_query( $reduced, $filters, null, 'search' );
 				$this->log( 'Pass 2 (token reduced)', $ft_query );
 				$t0     = microtime( true );
 				$result = $relevance_mode
@@ -499,7 +499,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 
 		// Pass 3: OR prefix fallback (relax AND → OR).
 		if ( $this->is_empty_result( $result ) && 'AND' === strtoupper( $config['logic'] ?? 'OR' ) ) {
-			$ft_query = $search_query->build_strict_query( $terms, $filters, 'OR' );
+			$ft_query = $search_query->build_strict_query( $terms, $filters, 'OR', 'search' );
 			$this->log( 'Pass 3 (or_prefix)', $ft_query );
 			$t0     = microtime( true );
 			$result = $relevance_mode
@@ -520,7 +520,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		// re-fetching with WITHSCORES and paginating in PHP, losing the point
 		// of the SORTBY branch.
 		if ( 'strict_first' === $strategy && $this->is_empty_result( $result ) ) {
-			$ft_query = $search_query->build_fuzzy_query( $terms, $filters );
+			$ft_query = $search_query->build_fuzzy_query( $terms, $filters, null, 'search' );
 			$this->log( 'Pass 4 (fuzzy)', $ft_query );
 			$t0        = microtime( true );
 			$min_score = (float) ( $config['fallback_score_threshold'] ?? 0.5 );
@@ -1239,7 +1239,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		}
 
 		$t0      = microtime( true );
-		$facets  = Shift64_Woo_Search_Facets::compute( $search_query, array(), $filters, $terms );
+		$facets  = Shift64_Woo_Search_Facets::compute( $search_query, array(), $filters, $terms, 'search' );
 		$elapsed = ( microtime( true ) - $t0 ) * 1000;
 		$this->log( 'Facets computed', sprintf( '%d dimensions in %.1fms', count( $facets ), $elapsed ) );
 
