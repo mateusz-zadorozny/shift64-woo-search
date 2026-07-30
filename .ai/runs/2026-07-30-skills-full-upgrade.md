@@ -42,5 +42,5 @@ The source checkout has unrelated uncommitted files. The upgrade is therefore co
 
 ### Phase 2: Verify and publish
 
-- [ ] 2.1 Verify the installed skills match the lockfile and inspect the scoped diff
-- [ ] 2.2 Run the applicable validation gate and publish the PR for review
+- [x] 2.1 Verify the installed skills match the lockfile and inspect the scoped diff — 80a5552
+- [x] 2.2 Run the applicable validation gate and publish the PR for review — pending commit
