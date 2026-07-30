@@ -87,4 +87,4 @@ PR: #46
 
 ### Phase 5: Address independent review
 
-- [ ] 5.1 Align autocomplete visibility with the results archive, add a visible E2E positive control, simplify facet query forwarding, and update affected documentation.
+- [x] 5.1 Align autocomplete visibility with the results archive, add a visible E2E positive control, simplify facet query forwarding, and update affected documentation. — ad1942d
