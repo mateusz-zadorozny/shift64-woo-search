@@ -213,7 +213,7 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 		$adapted = Shift64_Woo_Search_Product_Collection_Query::apply_result(
 			array(
 				'post_type' => 'product',
-				'meta_key'  => '_price',
+				'author'    => 23,
 			),
 			$result
 		);
@@ -223,7 +223,7 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 		$this->assertSame( 1, $adapted['paged'] );
 		$this->assertSame( 0, $adapted['offset'] );
 		$this->assertSame( '', $adapted['s'] );
-		$this->assertSame( '_price', $adapted['meta_key'] );
+		$this->assertSame( 23, $adapted['author'] );
 		$this->assertSame( 'pc-7-test', $adapted[ Shift64_Woo_Search_Product_Collection_Query::QUERY_MARKER ] );
 	}
 
