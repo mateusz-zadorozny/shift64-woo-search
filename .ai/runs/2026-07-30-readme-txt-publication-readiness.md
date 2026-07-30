@@ -55,18 +55,18 @@ changelog pointer, an upgrade notice, and an external-services disclosure.
 ### Phase 1: readme.txt publication readiness
 
 1. **Header block** — `Tested up to: 7.0`, append `Requires Plugins: woocommerce`; every other
-   header field byte-identical, `Stable tag: 0.12.2` untouched.
+   header field byte-identical, `Stable tag: 0.12.3` untouched.
 2. **Changelog pointer** — replace the `= 0.1.0 =` body under `== Changelog ==` with a single
    link to `CHANGELOG.md` on GitHub; the heading survives.
 3. **Description refresh** — audit-table features added (brands, six-workspace admin IA,
    configurable autocomplete density, opt-in debug timings); tooling rows omitted per the
    decision above.
-4. **Upgrade Notice + FAQ fix** — add `== Upgrade Notice ==` with a `= 0.12.2 =` entry; rewrite
+4. **Upgrade Notice + FAQ fix** — add `== Upgrade Notice ==` with a `= 0.12.3 =` entry; rewrite
    the Redis FAQ answer so the Bring Your Own Redis position carries no version number.
 5. **External services** — add `== External services ==` stating that today the plugin contacts
    no external service and sends no data off-site, and that any future managed connection is
-   opt-in with its own disclosure. Then verify `bash build-release.sh 0.12.2` on a clean tree
-   leaves `Stable tag: 0.12.2` intact and produces only an idempotent rewrite; delete the ZIP.
+   opt-in with its own disclosure. Then verify `bash build-release.sh 0.12.3` on a clean tree
+   leaves `Stable tag: 0.12.3` intact and produces only an idempotent rewrite; delete the ZIP.
 6. **Spec status + gate** — flip the spec's `> **Status:**` line and its `.ai/specs/README.md`
    index row per AGENTS.md, then run the full gate (`composer validate --strict`,
    `vendor/bin/phpcs`, `vendor/bin/phpunit`).
