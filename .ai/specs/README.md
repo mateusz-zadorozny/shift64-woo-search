@@ -21,7 +21,7 @@ and PRs.
 | [Licensing Attribution Correction](2026-07-30-licensing-attribution-correction.md) | ✅ implemented | PR #49 |
 | [readme.txt Publication Readiness](2026-07-30-readme-txt-publication-readiness.md) | 🚧 draft | — |
 | [Repository Docs Restructure](2026-07-30-repository-docs-restructure.md) | 🚧 draft | — |
-| [Block Theme Product Collection Integration](2026-07-30-block-theme-product-collection-integration.md) | 🚧 draft | foundation for block-native controls |
+| [Block Theme Product Collection Integration](2026-07-30-block-theme-product-collection-integration.md) | ✅ implemented | PR #51; foundation for block-native controls |
 | [Composable Search Blocks](2026-07-30-composable-search-blocks.md) | 🚧 draft | depends on Product Collection integration for result navigation |
 | [Product Filter and Filter Pill Blocks](2026-07-30-product-filter-pill-blocks.md) | 🚧 draft | depends on Product Collection integration |
 | [Block Theme-Only Legacy Surface Removal](2026-07-30-block-theme-only-legacy-removal.md) | 🚧 draft | final cleanup after all block-native specs |

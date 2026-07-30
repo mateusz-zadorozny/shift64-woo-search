@@ -14,6 +14,10 @@
 
 ## [Unreleased]
 
+### Features
+
+* **blocks:** integrate inherited WooCommerce Product Collections with Redis membership, marker-scoped totals, canonical URL state, and public Interactivity Router navigation while retaining WooCommerce rendering ownership ([#51](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/51))
+
 ### Bug Fixes
 
 * **search:** exclude catalog-only products from Redis-backed full search and the public endpoint's default autocomplete mode while preserving direct product access ([#46](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/46))

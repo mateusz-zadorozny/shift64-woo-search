@@ -64,6 +64,12 @@ contained open-modal preview.
 The blocks remain registered for server-side rendering on WordPress 6.x, but the
 automatic inserter and inspector UI require WordPress 7.0.
 
+For block-theme archive grids, Shift64 integrates with one inherited
+WooCommerce Product Collection and leaves Product Template rendering,
+pagination, history, and accessibility to WooCommerce and WordPress. See
+[Block Theme Product Collection Integration](docs/block-theme-product-collection.md)
+for the supported Site Editor template and canonical URL contract.
+
 ## Search shortcodes
 
 Both renderers remain available as permanent shortcodes for classic themes,
