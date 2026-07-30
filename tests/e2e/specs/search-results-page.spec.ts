@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { SEL } from '../helpers/search';
+import { SEARCH_PAGE, SEL, traySection, typeQuery, visibleTray } from '../helpers/search';
 
 // The seeded catalog spans four verticals (apparel, tech, home, beauty), so no
 // single category ancestor covers it any more — "clothing" now matches only the
@@ -17,6 +17,7 @@ const BROAD_QUERY = '/?s=series&post_type=product';
 const RELEVANCE_QUERY = '/?s=pulse&post_type=product';
 
 const VISIBILITY_FIXTURE_NAME = 'Visibilityfixture Catalog-only Product';
+const VISIBILITY_CONTROL_NAME = 'Visibilityfixture Visible Product';
 const VISIBILITY_FIXTURE_QUERY = '/?s=visibilityfixture&post_type=product';
 const VISIBILITY_FIXTURE_PERMALINK = '/product/visibilityfixture-catalog-only-product/';
 
@@ -41,10 +42,24 @@ test.describe('search results page (Redis takeover)', () => {
 		await expect(orderby.locator('option[value="relevance"]')).toHaveText('Search relevance');
 	});
 
-	test('excludes catalog-only products from search while keeping direct access', async ({ page }) => {
+	test('excludes catalog-only products from search surfaces while keeping direct access', async ({
+		page,
+	}) => {
 		await page.goto(VISIBILITY_FIXTURE_QUERY);
 
+		await expect(productCards(page).filter({ hasText: VISIBILITY_CONTROL_NAME })).toHaveCount(1);
 		await expect(productCards(page).filter({ hasText: VISIBILITY_FIXTURE_NAME })).toHaveCount(0);
+
+		await page.goto(SEARCH_PAGE);
+		await typeQuery(page, 'visibilityfixture');
+		await expect(visibleTray(page)).toBeVisible();
+		const autocompleteProducts = traySection(page, 'products');
+		await expect(autocompleteProducts.locator(SEL.row, { hasText: VISIBILITY_CONTROL_NAME })).toHaveCount(
+			1
+		);
+		await expect(autocompleteProducts.locator(SEL.row, { hasText: VISIBILITY_FIXTURE_NAME })).toHaveCount(
+			0
+		);
 
 		const response = await page.goto(VISIBILITY_FIXTURE_PERMALINK);
 		expect(response?.status()).toBeLessThan(400);

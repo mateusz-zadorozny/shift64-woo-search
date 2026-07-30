@@ -24,6 +24,48 @@ class Visibility_Context_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Run one search mode and capture the FT.SEARCH query it sends to Redis.
+	 *
+	 * @param string $mode Search mode.
+	 * @return string[]
+	 */
+	private function capture_search_queries( $mode ) {
+		$captured_queries = array();
+		$redis            = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$redis->method( 'get_index_name' )->willReturn( 'shift64_woo_search_product_idx' );
+		$redis->method( 'raw_command' )
+			->willReturnCallback(
+				static function () use ( &$captured_queries ) {
+					$args    = func_get_args();
+					$command = strtoupper( (string) ( $args[0] ?? '' ) );
+
+					if ( 'FT.INFO' === $command ) {
+						return array( 'num_docs', '1' );
+					}
+					if ( 'GET' === $command ) {
+						return '';
+					}
+					if ( 'FT.SEARCH' === $command ) {
+						$captured_queries[] = (string) ( $args[2] ?? '' );
+						return array( 0 );
+					}
+					return array();
+				}
+			);
+
+		$query = new Shift64_Woo_Search_Query(
+			$redis,
+			array( 'strategy' => 'mixed' )
+		);
+		$query->search( 'visibilityfixture', $mode );
+
+		return $captured_queries;
+	}
+
+	/**
 	 * Search excludes products hidden from search by either WooCommerce value.
 	 */
 	public function test_search_context_excludes_hidden_and_catalog() {
@@ -89,6 +131,30 @@ class Visibility_Context_Test extends WP_UnitTestCase {
 			'-@visibility:{hidden|catalog}',
 			$query->build_strict_query( array( 'fixture' ), array(), null, 'search' )
 		);
+	}
+
+	/**
+	 * Autocomplete honors WooCommerce's product-search visibility contract.
+	 */
+	public function test_autocomplete_search_excludes_hidden_and_catalog() {
+		$queries = $this->capture_search_queries( 'autocomplete' );
+
+		$this->assertNotEmpty( $queries );
+		foreach ( $queries as $query ) {
+			$this->assertStringContainsString( '-@visibility:{hidden|catalog}', $query );
+		}
+	}
+
+	/**
+	 * Full search honors the same visibility contract as autocomplete.
+	 */
+	public function test_full_search_excludes_hidden_and_catalog() {
+		$queries = $this->capture_search_queries( 'full' );
+
+		$this->assertNotEmpty( $queries );
+		foreach ( $queries as $query ) {
+			$this->assertStringContainsString( '-@visibility:{hidden|catalog}', $query );
+		}
 	}
 
 	/**

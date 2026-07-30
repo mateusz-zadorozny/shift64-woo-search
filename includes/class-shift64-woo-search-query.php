@@ -101,7 +101,7 @@ class Shift64_Woo_Search_Query {
 		$start_time = microtime( true );
 
 		$query             = $this->sanitize_query( $query );
-		$visibility_policy = ( 'full' === $mode ) ? 'search' : null;
+		$visibility_policy = in_array( $mode, array( 'autocomplete', 'full' ), true ) ? 'search' : null;
 
 		if ( mb_strlen( $query ) < $this->config['min_query_length'] ) {
 			return $this->empty_response( $query, $mode, 0.0 );
@@ -250,7 +250,7 @@ class Shift64_Woo_Search_Query {
 	public function search_all_passes( $query, $mode = 'autocomplete', $limit = null, $filters = array() ) {
 		$query             = $this->sanitize_query( $query );
 		$terms             = $this->get_search_terms( $query );
-		$visibility_policy = ( 'full' === $mode ) ? 'search' : null;
+		$visibility_policy = in_array( $mode, array( 'autocomplete', 'full' ), true ) ? 'search' : null;
 
 		if ( null === $limit ) {
 			$limit = ( 'autocomplete' === $mode ) ? $this->config['autocomplete_limit'] : $this->config['full_limit'];
@@ -913,9 +913,10 @@ class Shift64_Woo_Search_Query {
 	/**
 	 * Resolve a closed visibility context or validated explicit exclusion set.
 	 *
-	 * A missing policy preserves the compatibility behavior used by existing
-	 * autocomplete and taxonomy callers. Explicit values are accepted only when
-	 * every item is a known WooCommerce catalog visibility value.
+	 * A missing policy preserves the compatibility behavior used by callers
+	 * outside product search, such as taxonomy archives. Explicit values are
+	 * accepted only when every item is a known WooCommerce catalog visibility
+	 * value.
 	 *
 	 * @param string|string[]|null $policy Named context or explicit exclusions.
 	 * @return string[] Validated visibility values to exclude.

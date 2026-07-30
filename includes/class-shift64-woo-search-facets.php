@@ -54,9 +54,6 @@ class Shift64_Woo_Search_Facets {
 		// Empty terms array is a valid query — FT query built purely from filters.
 		$terms_for_query = $terms ?? array();
 		$build_query     = static function ( $exclude_filter ) use ( $search_query, $terms_for_query, $all_filters, $visibility_policy ) {
-			if ( null === $visibility_policy ) {
-				return $search_query->build_facet_query( $terms_for_query, $all_filters, $exclude_filter );
-			}
 			return $search_query->build_facet_query( $terms_for_query, $all_filters, $exclude_filter, $visibility_policy );
 		};
 

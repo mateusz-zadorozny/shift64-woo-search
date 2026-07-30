@@ -25,7 +25,8 @@ forking visibility clauses in each integration.
 
 ## Decisions
 
-1. Search context excludes `hidden` and `catalog`.
+1. Shopper-facing product search, including autocomplete and the full results
+   archive, excludes `hidden` and `catalog`.
 2. The shared query builder accepts a closed visibility context or an explicit
    validated exclusion set; callers do not concatenate RediSearch fragments.
 3. This spec implements only the search context. Catalog/taxonomy rules belong
@@ -36,9 +37,9 @@ forking visibility clauses in each integration.
 ## Proposed Solution
 
 Replace the hardcoded visibility fragment in
-`Shift64_Woo_Search_Query` with a context-aware resolver. The search archive
-and the block-theme search Product Collection adapter request `search`
-visibility, producing:
+`Shift64_Woo_Search_Query` with a context-aware resolver. Autocomplete, the
+search archive, and the block-theme search Product Collection adapter request
+`search` visibility, producing:
 
 ```text
 -@visibility:{hidden|catalog}
@@ -54,10 +55,11 @@ cannot inject arbitrary RediSearch syntax.
 clauses. Public query-building entry points receive a small context value;
 they do not receive prebuilt query text.
 
-The current search archive and its block-native successor pass `search`.
-Autocomplete keeps its existing visibility behavior unless its product
-contract is explicitly changed in a later spec. No catalog-context branch is
-added without a real caller and acceptance tests.
+The autocomplete endpoint, current search archive, and its block-native
+successor pass `search`. Taxonomy archives retain the hidden-only compatibility
+fallback because they are catalog contexts where catalog-only products remain
+eligible. No catalog-context branch is added without a real caller and
+acceptance tests.
 
 ## Data Model
 
@@ -66,8 +68,11 @@ field already contains the required WooCommerce values.
 
 ## API Contracts
 
-No REST, SHORTINIT response, CLI, block, option, or public hook contract
-changes. The new visibility context is an internal PHP query-service contract.
+No REST, SHORTINIT response shape, CLI, block, option, or public hook contract
+changes. The public endpoint's default autocomplete mode intentionally changes
+result membership to honor WooCommerce's existing search-visibility setting;
+the changelog announces that correction. The new visibility context remains an
+internal PHP query-service contract.
 
 ## Edge Cases & Failure Scenarios
 
@@ -85,8 +90,8 @@ changes. The new visibility context is an internal PHP query-service contract.
 
 - **User-visible correction:** catalog-only products leave Redis-backed search
   results. This is intentional and needs a changelog entry.
-- **Blast radius:** shared query construction and search result membership;
-  sorting order, facets, Product Collection pagination, autocomplete, and
+- **Blast radius:** shared query construction and search result membership,
+  including autocomplete; sorting order, Product Collection pagination, and
   indexing remain unchanged.
 - **Rollback:** reverting the resolver restores the previous hidden-only
   exclusion. No stored data or schema must be rolled back.
@@ -103,9 +108,10 @@ and document the corrected visibility behavior.
 1. Add a pure visibility-context resolver with PHPUnit coverage for `search`,
    compatibility fallback, missing values, and invalid input. Leave current
    callers unchanged.
-2. Pass `search` from Redis-backed product-search queries and assert the built
-   clause excludes `hidden|catalog`.
-3. Add an integration fixture proving a catalog-only product is absent from
-   Shift64 search while remaining directly accessible.
+2. Pass `search` from Redis-backed product-search queries, including
+   autocomplete, and assert the built clause excludes `hidden|catalog`.
+3. Add integration fixtures proving a catalog-only product is absent from
+   Shift64 search and autocomplete while a visible positive control appears
+   and the catalog-only product remains directly accessible.
 4. Update compatibility documentation and changelog; flip this spec and the
    specs index to implemented in the implementation PR.

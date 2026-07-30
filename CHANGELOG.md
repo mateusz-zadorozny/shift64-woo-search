@@ -1,9 +1,8 @@
 ## [Unreleased]
 
-
 ### Bug Fixes
 
-* **search:** exclude catalog-only products from Redis-backed product search while preserving direct access ([#46](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/46))
+* **search:** exclude catalog-only products from Redis-backed full search and the public endpoint's default autocomplete mode while preserving direct product access ([#46](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/46))
 
 ## [0.12.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.12.0...v0.12.1) (2026-07-30)
 

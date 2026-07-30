@@ -86,6 +86,18 @@ $product->set_stock_status( "instock" );
 $product->set_description( "A directly accessible product that must not appear in product search." );
 $product->update_meta_data( "_shift64_woo_search_demo_generated", "yes" );
 $product->save();
+
+$visible_product = new WC_Product_Simple();
+$visible_product->set_name( "Visibilityfixture Visible Product" );
+$visible_product->set_slug( "visibilityfixture-visible-product" );
+$visible_product->set_status( "publish" );
+$visible_product->set_catalog_visibility( "visible" );
+$visible_product->set_sku( "E2E-VISIBLE-6464" );
+$visible_product->set_regular_price( "29.99" );
+$visible_product->set_stock_status( "instock" );
+$visible_product->set_description( "A positive-control product that must appear in product search." );
+$visible_product->update_meta_data( "_shift64_woo_search_demo_generated", "yes" );
+$visible_product->save();
 '
 
 log "Options (before setup/rebuild — they feed the generated config, the index schema, and the blobs)"
