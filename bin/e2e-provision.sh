@@ -73,6 +73,21 @@ wpc rewrite flush --hard
 log "Seed deterministic demo catalog (48 products, seed 6464)"
 wpc eval-file "$SCRIPT_DIR/generate-demo-products.php" count=48 mode=mixed seed=6464 reset
 
+log "Seed catalog-only product visibility fixture"
+wpc eval '
+$product = new WC_Product_Simple();
+$product->set_name( "Visibilityfixture Catalog-only Product" );
+$product->set_slug( "visibilityfixture-catalog-only-product" );
+$product->set_status( "publish" );
+$product->set_catalog_visibility( "catalog" );
+$product->set_sku( "E2E-CATALOG-ONLY-6464" );
+$product->set_regular_price( "19.99" );
+$product->set_stock_status( "instock" );
+$product->set_description( "A directly accessible product that must not appear in product search." );
+$product->update_meta_data( "_shift64_woo_search_demo_generated", "yes" );
+$product->save();
+'
+
 log "Options (before setup/rebuild — they feed the generated config, the index schema, and the blobs)"
 # Rate limit becomes the generated SHIFT64_WOO_SEARCH_RATE_LIMIT constant: real
 # typing tests must never trip the default 30 req/s limiter (the 429 path is

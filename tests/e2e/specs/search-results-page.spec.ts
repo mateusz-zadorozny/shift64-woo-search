@@ -16,6 +16,10 @@ const BROAD_QUERY = '/?s=series&post_type=product';
 // assertion without depending on a single product.
 const RELEVANCE_QUERY = '/?s=pulse&post_type=product';
 
+const VISIBILITY_FIXTURE_NAME = 'Visibilityfixture Catalog-only Product';
+const VISIBILITY_FIXTURE_QUERY = '/?s=visibilityfixture&post_type=product';
+const VISIBILITY_FIXTURE_PERMALINK = '/product/visibilityfixture-catalog-only-product/';
+
 function productCards(page: import('@playwright/test').Page) {
 	return page.locator(SEL.productsGrid).first().locator('li.product');
 }
@@ -35,6 +39,18 @@ test.describe('search results page (Redis takeover)', () => {
 		await expect(orderby).toBeVisible();
 		await expect(orderby).toHaveValue('relevance');
 		await expect(orderby.locator('option[value="relevance"]')).toHaveText('Search relevance');
+	});
+
+	test('excludes catalog-only products from search while keeping direct access', async ({ page }) => {
+		await page.goto(VISIBILITY_FIXTURE_QUERY);
+
+		await expect(productCards(page).filter({ hasText: VISIBILITY_FIXTURE_NAME })).toHaveCount(0);
+
+		const response = await page.goto(VISIBILITY_FIXTURE_PERMALINK);
+		expect(response?.status()).toBeLessThan(400);
+		await expect(
+			page.getByRole('heading', { name: VISIBILITY_FIXTURE_NAME, exact: true })
+		).toBeVisible();
 	});
 
 	// Test 9: color facet checkbox → URL gains filter_pa_color=copper; results filtered.
