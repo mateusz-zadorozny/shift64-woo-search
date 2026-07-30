@@ -35,10 +35,11 @@ changelog pointer, an upgrade notice, and an external-services disclosure.
    (`api.wordpress.org/core/version-check/1.7/`), so the spec's "never claim past the newest
    released version" edge case is satisfied by 7.0, and the existing "blocks on WordPress 7.0+"
    description line stops being a forward-looking claim.
-2. **Version numbers are 0.12.2, not the spec's 0.12.0** — the spec was written against
-   `Stable tag: 0.12.0`; two patch releases have shipped since. The upgrade notice is written
-   for `= 0.12.2 =` and the step-5 build check runs `bash build-release.sh 0.12.2`, which keeps
-   the "idempotent same-version rewrite" property the spec's test asks for.
+2. **Version numbers are 0.12.3, not the spec's 0.12.0** — the spec was written against
+   `Stable tag: 0.12.0`; three patch releases have shipped since, and `main` now carries
+   `0.12.3`. The upgrade notice is written for `= 0.12.3 =` (the licensing/attribution
+   maintenance release, #49) and the step-5 build check runs `bash build-release.sh 0.12.3`,
+   which keeps the "idempotent same-version rewrite" property the spec's test asks for.
 3. **Feature-audit include/omit calls** (spec §Architecture table, the three tooling rows):
    - `0.8.0` demo/seeding script and `0.9.0` reset-only flag — **omitted** from
      `== Description ==`. They are developer tooling for building a test catalogue, not a
@@ -84,9 +85,11 @@ changelog pointer, an upgrade notice, and an external-services disclosure.
 
 ### Phase 1: readme.txt publication readiness
 
-- [ ] 1.1 Header block: Tested up to 7.0, Requires Plugins woocommerce
-- [ ] 1.2 Replace the Changelog section with a CHANGELOG.md pointer
-- [ ] 1.3 Refresh the Description against the audit table
-- [ ] 1.4 Add Upgrade Notice and de-version the Redis FAQ answer
-- [ ] 1.5 Add External services and verify build-release.sh
-- [ ] 1.6 Flip the spec Status and index row, run the full validation gate
+PR: #50
+
+- [x] 1.1 Header block: Tested up to 7.0, Requires Plugins woocommerce — d05ea32
+- [x] 1.2 Replace the Changelog section with a CHANGELOG.md pointer — c2038da
+- [x] 1.3 Refresh the Description against the audit table — c2038da
+- [x] 1.4 Add Upgrade Notice and de-version the Redis FAQ answer — c2038da
+- [x] 1.5 Add External services and verify build-release.sh — c2038da (build check: `bash build-release.sh 0.12.3` left the tree clean, `Stable tag: 0.12.3` intact, and the ZIP's `readme.txt` carried the new sections; ZIP deleted)
+- [x] 1.6 Flip the spec Status and index row, run the full validation gate — 76fa491 (composer validate ✅, phpcs ✅ 8/8, phpunit ✅ 536 tests / 7860 assertions)
