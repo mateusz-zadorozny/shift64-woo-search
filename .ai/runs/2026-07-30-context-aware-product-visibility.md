@@ -41,7 +41,7 @@ visibility context.
 
 ### Phase 3: Prove the WooCommerce behavior
 
-- [ ] 3.1 Add a deterministic catalog-only E2E product fixture and assert that Redis search excludes it while its direct product permalink remains accessible.
+- [x] 3.1 Add a deterministic catalog-only E2E product fixture and assert that Redis search excludes it while its direct product permalink remains accessible. — 48f45a5
 
 ### Phase 4: Document and close the spec
 
