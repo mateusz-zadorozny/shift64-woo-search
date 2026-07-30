@@ -18,3 +18,6 @@ and PRs.
 | [50k Demo Product Generator Scaling](2026-07-27-50k-demo-product-generator-scaling.md) | ✅ implemented | issue #18 |
 | [Native WooCommerce Catalog Sorting on Search Archives](2026-07-29-native-woocommerce-catalog-sorting.md) | 🚧 draft | — |
 | [Context-Aware Product Visibility in Redis Queries](2026-07-30-context-aware-product-visibility.md) | ✅ implemented | PR #46 |
+| [Licensing Attribution Correction](2026-07-30-licensing-attribution-correction.md) | 🚧 draft | — |
+| [readme.txt Publication Readiness](2026-07-30-readme-txt-publication-readiness.md) | 🚧 draft | — |
+| [Repository Docs Restructure](2026-07-30-repository-docs-restructure.md) | 🚧 draft | — |
