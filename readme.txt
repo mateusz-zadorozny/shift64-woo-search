@@ -2,8 +2,9 @@
 Contributors: mateuszzadorozny
 Tags: woocommerce, search, redis, redisearch, autocomplete
 Requires at least: 6.0
-Tested up to: 6.8
+Tested up to: 7.0
 Requires PHP: 8.3
+Requires Plugins: woocommerce
 Stable tag: 0.12.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -20,8 +21,10 @@ Features include:
 * Strict-first search with token reduction, OR fallback, and fuzzy fallback.
 * Synonym expansion, including multi-word and one-way rules.
 * Configurable field weights and result-ranking controls.
-* Product, category, attribute, and SKU search.
-* Search statistics and diagnostic tools.
+* Product, category, attribute, brand, and SKU search, using WooCommerce's native product brands.
+* Configurable autocomplete density and result-tray width.
+* A settings screen organised into six workspaces, from connection and indexing through relevance tuning and diagnostics.
+* Search statistics and diagnostic tools, including an opt-in storefront debug panel — visible only to users who can manage WooCommerce, never to shoppers — that breaks a query down into request-phase and browser timings.
 * WP-CLI commands for setup, indexing, tests, and health checks.
 * Shift64 Product Search and Shift64 Modal Product Search blocks on WordPress 7.0+.
 * A `[shift64_woo_search]` product search form shortcode for classic themes.
@@ -41,14 +44,31 @@ The plugin requires Redis Stack, or another Redis server with RediSearch, and th
 
 = Does this plugin include Redis? =
 
-No. Version 0.1.0 uses Bring Your Own Redis. A managed service is planned separately.
+No. The plugin is Bring Your Own Redis: you point it at a Redis Stack deployment, or any Redis server with the RediSearch module, that you control. A managed connection option is planned separately and would be opt-in.
 
 = Does it replace WooCommerce templates? =
 
 No. Redis retrieves product IDs and applies WooCommerce's product-search visibility contract, excluding hidden and catalog-only products. WooCommerce remains responsible for catalog rendering, pricing, taxes, and direct product access.
 
+== External services ==
+
+This plugin contacts no external service and sends no data off-site. All search
+data stays between your WordPress site and the Redis deployment you configure and
+control; the plugin makes no other network request of its own.
+
+A managed Redis connection is planned as a future option. It would be opt-in, and
+it would ship with its own disclosure of the service used, the data sent, and the
+applicable terms, privacy policy, and pricing.
+
 == Changelog ==
 
-= 0.1.0 =
+The full, per-release changelog lives in the repository:
+https://github.com/mateusz-zadorozny/shift64-woo-search/blob/main/CHANGELOG.md
 
-* Initial Shift64 Woo Search development release.
+== Upgrade Notice ==
+
+= 0.12.3 =
+
+Maintenance release: the plugin's GPLv2-or-later licensing and Shift64 attribution
+are now stated consistently across the package. No configuration change is needed,
+and no reindex is required.

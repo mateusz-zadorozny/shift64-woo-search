@@ -19,8 +19,8 @@ and PRs.
 | [Native WooCommerce Catalog Sorting Engine and Product Sort Block](2026-07-29-native-woocommerce-catalog-sorting.md) | 🚧 draft | — |
 | [Context-Aware Product Visibility in Redis Queries](2026-07-30-context-aware-product-visibility.md) | ✅ implemented | PR #46 |
 | [Licensing Attribution Correction](2026-07-30-licensing-attribution-correction.md) | ✅ implemented | PR #49 |
-| [readme.txt Publication Readiness](2026-07-30-readme-txt-publication-readiness.md) | 🚧 draft | — |
-| [Repository Docs Restructure](2026-07-30-repository-docs-restructure.md) | 🚧 draft | — |
+| [readme.txt Publication Readiness](2026-07-30-readme-txt-publication-readiness.md) | ✅ implemented | PR #50 |
+| [Repository Docs Restructure](2026-07-30-repository-docs-restructure.md) | ✅ implemented | PR #52 |
 | [Block Theme Product Collection Integration](2026-07-30-block-theme-product-collection-integration.md) | ✅ implemented | PR #51; foundation for block-native controls |
 | [Composable Search Blocks](2026-07-30-composable-search-blocks.md) | 🚧 draft | depends on Product Collection integration for result navigation |
 | [Product Filter and Filter Pill Blocks](2026-07-30-product-filter-pill-blocks.md) | 🚧 draft | depends on Product Collection integration |

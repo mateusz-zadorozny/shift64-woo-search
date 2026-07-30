@@ -1,5 +1,12 @@
 # Shift64 Woo Search
 
+<!-- The CI badge targets .github/workflows/release.yml, whose workflow `name:` is
+     "CI". Renaming that workflow file or its name breaks this badge. -->
+[![Shift64](https://img.shields.io/badge/Shift64-search-000000?style=flat-square)](https://shift64.com)
+[![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0--or--later-blue?style=flat-square)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/mateusz-zadorozny/shift64-woo-search?style=flat-square)](https://github.com/mateusz-zadorozny/shift64-woo-search/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/mateusz-zadorozny/shift64-woo-search/release.yml?branch=main&style=flat-square&label=CI)](https://github.com/mateusz-zadorozny/shift64-woo-search/actions/workflows/release.yml)
+
 Shift64 Woo Search is a Redis Stack–powered product search engine for WooCommerce. It keeps WooCommerce responsible for catalog rendering and business rules while RediSearch handles retrieval, autocomplete, filtering, and relevance.
 
 This repository currently contains the `0.x` development line. The first public, compatibility-stable release is planned as `1.0.0`.
@@ -11,22 +18,7 @@ This repository currently contains the `0.x` development line. The first public,
 - PHP 8.3 or newer with the `redis` extension
 - Redis Stack or another Redis deployment with the RediSearch module
 
-## Search flow
-
-```text
-Search field -> SHORTINIT endpoint -> FT.SEARCH -> ranked product IDs -> WooCommerce rendering
-```
-
-The query engine uses a strict-first cascade:
-
-1. AND prefix search.
-2. AND prefix search after optional weak-token reduction.
-3. OR prefix fallback with term-coverage scoring and a minimum match ratio.
-4. Fuzzy fallback.
-
-Results can then be re-ranked by exact title position, SKU match, category or tag rules, promoted-product status, and stock status. See [Search Result Controls](docs/search-result-controls-audit.md) for the complete inventory.
-
-## Installation for development
+## Installation
 
 1. Place this repository in `wp-content/plugins/shift64-woo-search`.
 2. Run `composer install` and `npm ci`.
@@ -36,7 +28,11 @@ Results can then be re-ranked by exact title position, SKU match, category or ta
 
 The setup command deploys the source files from `mu-plugins/` to the site's `wp-content/mu-plugins/` directory and generates a site-specific `config.php`. That generated file contains connection details and is never part of a release package.
 
-## WP-CLI
+### Configuration modes
+
+In a normal WordPress request, settings are read from `wp_options`. The SHORTINIT endpoint reads constants from its generated `config.php`, so regenerate that configuration after changing search settings.
+
+### WP-CLI
 
 ```bash
 wp shift64-woo-search setup
@@ -89,7 +85,10 @@ be customized per instance:
 [shift64_woo_search_modal placeholder="Find products..." button="Go" label="Search the catalog" trigger_label="Open product search" close_label="Close search" clear_label="Clear search" icon="alternative"]
 ```
 
-## Development commands
+## Development
+
+Install the plugin as described in [Installation](#installation), then use these
+commands:
 
 ```bash
 composer test
@@ -99,9 +98,28 @@ npm ci
 bash build-release.sh 0.1.0
 ```
 
-## Configuration modes
+How to propose a change — branching, commit format, the review gate, the agent
+pipeline, and the repository's spec and E2E rules — is documented in
+[CONTRIBUTING.md](CONTRIBUTING.md). Naming, architecture, and agent-facing
+conventions live in [AGENTS.md](AGENTS.md).
 
-In a normal WordPress request, settings are read from `wp_options`. The SHORTINIT endpoint reads constants from its generated `config.php`, so regenerate that configuration after changing search settings.
+## Architecture
+
+```text
+Search field -> SHORTINIT endpoint -> FT.SEARCH -> ranked product IDs -> WooCommerce rendering
+```
+
+The query engine uses a strict-first cascade:
+
+1. AND prefix search.
+2. AND prefix search after optional weak-token reduction.
+3. OR prefix fallback with term-coverage scoring and a minimum match ratio.
+4. Fuzzy fallback.
+
+Results can then be re-ranked by exact title position, SKU match, category or tag rules, promoted-product status, and stock status.
+
+For the full picture see [Search Architecture](docs/search-architecture.md) and the
+[Search Result Controls](docs/search-result-controls-audit.md) inventory.
 
 ## Distribution direction
 
@@ -110,8 +128,11 @@ The product is designed to support two connection modes:
 - Bring Your Own Redis for the initial public plugin and technical validation.
 - A managed Shift64 service, activated with a service key, after the BYOR version is proven.
 
-The commercial and hosted-service plans are documented in [Product Roadmap](docs/product-roadmap.md) and [Hosted MVP Plan](docs/hosted-mvp-plan.md).
+The plugin is GPL and fully useful on its own; the commercial direction is
+documented in [Distribution and Commercial Plan](docs/distribution-and-commercial-plan.md).
 
 ## License
 
 GPL-2.0-or-later. See [LICENSE](LICENSE).
+
+Built by [Shift64](https://shift64.com).

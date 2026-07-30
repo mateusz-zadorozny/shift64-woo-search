@@ -1,6 +1,6 @@
 # readme.txt Publication Readiness
 
-> **Status:** draft
+> **Status:** implemented — PR #50, 2026-07-30
 
 ## TLDR
 

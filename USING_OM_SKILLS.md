@@ -20,20 +20,25 @@ that is only how Claude Code discovers them, and it is gitignored. Edit files un
 Because they are instructions rather than code, the skills all read shared configuration
 instead of hardcoding this project's details. That configuration is one file.
 
-## Start here: the pipeline is not configured yet
+## Start here: the pipeline is already configured
 
-Every `om-*` skill begins by loading `.ai/agentic.config.json`. **That file does not exist in
-this repository yet.** Until it does, the skills work only in a degraded way: each one that
-finds the config missing will try to run the setup skill itself before continuing, which
-means you get asked setup questions in the middle of doing something else.
+Every `om-*` skill begins by loading `.ai/agentic.config.json`. **That file exists in this
+repository**, so there is no setup step before your first task — go straight to
+`/om-auto-create-pr`. Its committed configuration is:
 
-So the first command to run, in a Claude Code session with this repository open, is:
+- `baseBranch: "auto"` (resolved to the repository's default branch, `main`);
+- `validation.commands` — `composer validate --strict`, `vendor/bin/phpcs`,
+  `vendor/bin/phpunit`;
+- the OM label taxonomy, with `qaGate: true`;
+- `paths` for plans, specs, analysis, scripts, and QA artifacts under `.ai/`.
+
+Re-run the setup skill only when the toolchain or the label taxonomy changes:
 
 ```
 /om-setup-agent-pipeline
 ```
 
-It inspects the repo, asks a handful of questions, and writes:
+It inspects the repo, asks a handful of questions, and writes (or refreshes):
 
 - `.ai/agentic.config.json` — the base branch, the validation commands, the label taxonomy,
   the QA gate switch, and where plans/specs/QA artifacts live. Every other skill reads it.
@@ -44,18 +49,19 @@ It inspects the repo, asks a handful of questions, and writes:
 - `SDLC.md`, `CODE_REVIEW.md`, `BACKWARD_COMPATIBILITY.md` — generated only if missing.
   `AGENTS.md` already exists here, so setup will leave it alone.
 
-Two answers in that questionnaire deserve real thought in this repo:
+Two of those answers were already decided here, and a re-run should not casually reverse
+them:
 
-1. **Validation commands.** The honest gate here is `composer lint` (PHPCS) and
-   `composer test` (PHPUnit). CI additionally runs the suite across the supported PHP range.
-2. **Labels.** This repo already uses an `agent:*` taxonomy (`agent:ready`,
-   `agent:in-progress`, `agent:pr-open`, `agent:changes-requested`, …). The OM default
-   taxonomy is different (`review`, `changes-requested`, `qa`, `merge-queue`, …). Setup will
-   offer to create the missing OM labels — decide deliberately whether you want both sets
-   living side by side, want to map onto the existing ones, or want `labels.enabled: false`.
-   Setup never deletes or recolors labels you already have.
+1. **Validation commands.** The gate is `composer validate --strict`, `vendor/bin/phpcs`,
+   and `vendor/bin/phpunit`. CI additionally runs the suite across the supported PHP range.
+   Playwright is deliberately kept out of the gate — see the E2E section of
+   [CONTRIBUTING.md](CONTRIBUTING.md).
+2. **Labels.** The repo carries an older `agent:*` taxonomy alongside the OM one
+   (`review`, `changes-requested`, `qa`, `merge-queue`, …), which is what
+   `.ai/agentic.config.json` declares. Setup never deletes or recolors labels you already
+   have.
 
-Commit `.ai/` when setup is done. It is team configuration, not personal preference.
+`.ai/` is committed: it is team configuration, not personal preference.
 
 ## Which skill do I use?
 
@@ -140,9 +146,9 @@ config at a file.
   `.ai/skills/<skill-name>/SKILL.md` to extend one skill for this repo only; edit
   `CODE_REVIEW.md` / `BACKWARD_COMPATIBILITY.md` to change what reviews enforce. Editing the
   files under `.agents/skills/` means your changes are overwritten on the next upgrade.
-- **The release ZIP.** `build-release.sh` excludes `.claude` but not `.agents` or `.ai`. Once
-  setup writes `.ai/agentic.config.json`, that JSON will ship inside the plugin ZIP. Add both
-  directories to the rsync exclude list.
+- **The release ZIP.** `build-release.sh` already excludes `.claude`, `.agents`, and `.ai`,
+  so no pipeline configuration ships inside the plugin ZIP. If you add a new top-level
+  automation directory, add it to that rsync exclude list too.
 
 ## A simpler way to think about it
 
