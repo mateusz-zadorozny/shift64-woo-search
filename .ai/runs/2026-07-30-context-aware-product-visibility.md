@@ -45,7 +45,7 @@ visibility context.
 
 ### Phase 4: Document and close the spec
 
-- [ ] 4.1 Update compatibility documentation and the changelog, then mark the source spec and specs index implemented by this PR.
+- [x] 4.1 Update compatibility documentation and the changelog, then mark the source spec and specs index implemented by this PR. — 0af3a40
 
 ## Risks
 
