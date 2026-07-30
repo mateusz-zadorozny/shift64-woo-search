@@ -37,8 +37,8 @@ The source checkout has unrelated uncommitted files. The upgrade is therefore co
 
 ### Phase 1: Synchronize the collection
 
-- [ ] 1.1 Copy the scoped full skills upgrade into the isolated branch
-- [ ] 1.2 Include the matching lockfile and pipeline-descriptor updates
+- [x] 1.1 Copy the scoped full skills upgrade into the isolated branch — 80a5552
+- [x] 1.2 Include the matching lockfile and pipeline-descriptor updates — 80a5552
 
 ### Phase 2: Verify and publish
 
