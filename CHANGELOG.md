@@ -1,3 +1,10 @@
+## [0.12.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.12.1...v0.12.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **search:** honor WooCommerce catalog visibility ([#46](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/46)) ([be1d8dc](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/be1d8dc6c0a7148bfb429e9a2d5b718aa3a100b1))
+
 ## [Unreleased]
 
 ### Bug Fixes

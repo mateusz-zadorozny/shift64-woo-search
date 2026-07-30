@@ -1,6 +1,6 @@
 {
   "name": "shift64-woo-search",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "description": "Shift64 Woo Search — WooCommerce + RediSearch plugin",
   "private": true,
   "scripts": {
