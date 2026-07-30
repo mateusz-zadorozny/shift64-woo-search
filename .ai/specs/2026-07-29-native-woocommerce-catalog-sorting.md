@@ -12,6 +12,16 @@ block in the Site Editor, chooses and orders the modes shoppers may select, and
 may omit the block entirely; Search Relevance is available only in search
 contexts.
 
+The block presentation and query integration depend on:
+
+- `2026-07-30-block-theme-product-collection-integration.md` for inherited
+  Product Collection query, totals, URL state, and router ownership; and
+- `2026-07-30-product-filter-pill-blocks.md` for the shared pill
+  trigger/panel/block-support primitive.
+
+The pure sorting engine can be implemented before those dependencies. The
+Product Sort block is not exposed until both contracts are available.
+
 ## Decisions (resolved gate questions)
 
 1. **Sort engine: Redis-side for all known Woo sorts.** `SORTBY` on indexed
@@ -149,7 +159,8 @@ Register one dynamic block:
 - supported host: an inherited `woocommerce/product-collection` on a block
   template;
 - navigation: canonical `?orderby=<slug>` through the WordPress Interactivity
-  Router, with `/page/N/` and `paged` removed when the mode changes;
+  Router, with `/page/N/`, `paged`, `query-page`, and
+  `query-{queryId}-page` removed when the mode changes;
 - presentation: the same pill trigger, popover/list semantics, and block-support
   contract as `shift64-woo-search/filter-pill`;
 - pagination ownership: WooCommerce Product Collection, never Shift64.
@@ -231,7 +242,9 @@ No SHORTINIT search-endpoint changes. Changed public surfaces:
 The block uses a WordPress script module declared through `block.json` with
 Interactivity API client-navigation support. It does not read a private
 WooCommerce JavaScript store. Its only browser-visible state contract is the
-canonical `orderby` query parameter.
+canonical `orderby` query parameter. It uses the Catalog State parser/builder
+from the Product Collection integration spec and the visual primitive from the
+Filter Pill spec; it does not create alternate URL or panel implementations.
 
 ## UI/UX
 
@@ -332,9 +345,11 @@ canonical `orderby` query parameter.
 
 - **Phase 1 — engine plus Product Sort block, no reindex required.**
   Popularity, rating, and menu_order use existing indexed fields; date uses
-  `wc` mode. The manually placed block exposes the merchant-selected subset,
+  `wc` mode. Engine steps are independently shippable but remain unexposed.
+  Once the Product Collection and Filter Pill shared contracts are
+  implemented, the manually placed block exposes the merchant-selected subset,
   routes through Product Collection navigation, and includes default
-  resolution and large-catalog-safe pass-through. Independently shippable.
+  resolution and large-catalog-safe pass-through.
 - **Phase 2 — `date` field.** Schema addition + indexer + migration + health
   reporting; `date` upgrades from `wc` mode to `SORTBY`. Pure performance
   upgrade, independently shippable. It touches a different subsystem (indexer,
@@ -356,12 +371,17 @@ canonical `orderby` query parameter.
    orderby value asserting the FT command built.
 4. **`menu_order` composite sort via `FT.AGGREGATE`** with failure fallback to
    the MySQL bail-out. Tests for command shape + failure path.
-5. **Register `shift64-woo-search/product-sort`.** Add block metadata, an
+5. **Adopt the Product Collection and Filter Pill contracts.** Require their
+   implemented spec statuses; reuse Catalog State, the request-scoped result
+   envelope, router ownership, and shared pill visual primitive. Add contract
+   tests proving no duplicate URL builder, Woo region replacement, or private
+   Woo JS store.
+6. **Register `shift64-woo-search/product-sort`.** Add block metadata, an
    editor ordered-checklist/label model, standard block supports, dynamic
    rendering, canonical Woo/context option resolution, and selected-state
    rendering. PHPUnit covers attribute validation, Woo feature/context
    filtering, label fallbacks, and direct-URL truthfulness.
-6. **Connect the block to Product Collection navigation.** Add an Interactivity
+7. **Connect the block to Product Collection navigation.** Add an Interactivity
    API script module that changes canonical `orderby`, removes pagination,
    closes/restores focus, and delegates navigation to the WordPress router.
    E2E in the block-theme project asserts merchant-selected option visibility,
@@ -371,15 +391,15 @@ canonical `orderby` query parameter.
 
 ### Phase 2
 
-7. **Schema + indexer:** add `date` NUMERIC SORTABLE; indexer writes the
+8. **Schema + indexer:** add `date` NUMERIC SORTABLE; indexer writes the
    timestamp; `setup` creates it fresh.
-8. **Migration + gating:** upgrade-time `FT.ALTER`, reindex-completion flag,
+9. **Migration + gating:** upgrade-time `FT.ALTER`, reindex-completion flag,
    `health` reporting; `date` flips from `wc` mode to `SORTBY date DESC` only
    when the flag is set. Tests for both states.
-9. **Docs:** changelog entries; document the Product Sort block and its Site
+10. **Docs:** changelog entries; document the Product Sort block and its Site
    Editor-only placement; flip this spec's Status header and the
    `.ai/specs/README.md` row in the implementing PR (AGENTS.md lifecycle
    rule).
 
-Each step leaves the plugin releasable; steps 1–4 are invisible until step 5
-exposes the new options.
+Each step leaves the plugin releasable; steps 1–4 are invisible until steps
+5–7 expose the new options.

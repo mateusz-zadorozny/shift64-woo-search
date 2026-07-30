@@ -1,9 +1,23 @@
 # Filter Bar Gutenberg Block, Flexible Hooks & Result Display Settings
 
-> **Status:** draft — BLOCKED: must be aligned with `.ai/specs/2026-07-22-admin-settings-information-architecture.md` before implementation (its "Display" tab conflicts with the new admin IA).
+> **Status:** superseded — see `2026-07-30-product-filter-pill-blocks.md`
 
 ## TLDR
 Introduce a Gutenberg Block (`shift64-woo-search/filter-bar`) and Shortcode (`[shift64_woo_search_filters]`) for placing faceted search filters anywhere on WooCommerce shop and archive pages. Add flexible placement options (Default Hook `woocommerce_before_shop_loop`, alternate hook selector, or manual block/shortcode mode) and a dedicated "Display / Wygląd" WP Admin tab to easily manage filter placement and product card result meta toggles (SKU, Category, Brand).
+
+## Superseded direction
+
+This proposal is retained for history but must not be implemented. The plugin
+now targets modern block themes only: merchants compose
+`shift64-woo-search/product-filters` from repeatable Filter Pill children in
+the Site Editor, appearance comes from block supports, and WooCommerce Product
+Collection owns the result grid and pagination. Hooks, shortcodes, theme
+placement settings, and an admin Display/appearance tab are explicitly out of
+scope. See:
+
+- `2026-07-30-block-theme-product-collection-integration.md`;
+- `2026-07-30-product-filter-pill-blocks.md`; and
+- `2026-07-30-block-theme-only-legacy-removal.md`.
 
 ## Problem Statement
 Currently, faceted search filters output automatically via a single hardcoded action hook (`woocommerce_before_shop_loop`). Merchants using Block Themes (FSE), custom page builders (Elementor, Divi), or custom shop layouts cannot position filters in a sidebar, custom header, or alternate hook position without editing PHP code. Furthermore, managing product card result meta lines (SKU, Category, Brand) lacks a unified, easy-to-use Admin setting tab.
