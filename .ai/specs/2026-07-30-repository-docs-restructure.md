@@ -1,6 +1,6 @@
 # Repository Docs Restructure
 
-> **Status:** draft
+> **Status:** implemented — PR #52, 2026-07-30
 
 ## TLDR
 

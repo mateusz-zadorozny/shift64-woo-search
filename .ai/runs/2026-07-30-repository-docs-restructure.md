@@ -89,23 +89,25 @@ itself matches `composer.json`'s `GPL-2.0-or-later` either way. Rollback is
 
 ## Progress
 
+PR: #52
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Badge row and README audience split
 
-- [ ] 1.1 Insert the badge row
-- [ ] 1.2 Reorder README sections by audience
-- [ ] 1.3 Remove internal-planning links from §Distribution
+- [x] 1.1 Insert the badge row — 9d23edb
+- [x] 1.2 Reorder README sections by audience — 9d23edb
+- [x] 1.3 Remove internal-planning links from §Distribution — 9d23edb
 
 ### Phase 2: De-duplication and the CONTRIBUTING rewrite
 
-- [ ] 2.1 README §Development owns the command list
-- [ ] 2.2 CONTRIBUTING drops the duplicated command list
-- [ ] 2.3 CONTRIBUTING leads with the pipeline and states the config exists
-- [ ] 2.4 Correct USING_OM_SKILLS.md
-- [ ] 2.5 Add the spec lifecycle law to CONTRIBUTING
-- [ ] 2.6 Add the E2E and PHPCS rules to CONTRIBUTING
+- [x] 2.1 README §Development owns the command list — 9d23edb
+- [x] 2.2 CONTRIBUTING drops the duplicated command list — 5236002
+- [x] 2.3 CONTRIBUTING leads with the pipeline and states the config exists — 5236002
+- [x] 2.4 Correct USING_OM_SKILLS.md — 5236002
+- [x] 2.5 Add the spec lifecycle law to CONTRIBUTING — 5236002
+- [x] 2.6 Add the E2E and PHPCS rules to CONTRIBUTING — 5236002
 
 ### Phase 3: Spec lifecycle
 
-- [ ] 3.1 Flip the spec Status header and the specs index row
+- [x] 3.1 Flip the spec Status header and the specs index row — 722e96c
