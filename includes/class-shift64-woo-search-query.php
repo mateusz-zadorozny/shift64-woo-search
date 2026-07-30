@@ -21,6 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shift64_Woo_Search_Query {
 
 	/**
+	 * WooCommerce catalog visibility values stored in the Redis TAG field.
+	 *
+	 * @var string[]
+	 */
+	private const VISIBILITY_VALUES = array( 'visible', 'catalog', 'search', 'hidden' );
+
+	/**
 	 * Redis connection instance.
 	 *
 	 * @var Shift64_Woo_Search_Redis
@@ -896,6 +903,56 @@ class Shift64_Woo_Search_Query {
 		$parts = array_merge( $parts, $this->build_filter_parts( $filters ) );
 
 		return implode( ' ', $parts );
+	}
+
+	/**
+	 * Resolve a closed visibility context or validated explicit exclusion set.
+	 *
+	 * A missing policy preserves the compatibility behavior used by existing
+	 * autocomplete and taxonomy callers. Explicit values are accepted only when
+	 * every item is a known WooCommerce catalog visibility value.
+	 *
+	 * @param string|string[]|null $policy Named context or explicit exclusions.
+	 * @return string[] Validated visibility values to exclude.
+	 */
+	public static function resolve_visibility_exclusions( $policy = null ) {
+		if ( null === $policy || '' === $policy ) {
+			return array( 'hidden' );
+		}
+
+		if ( 'search' === $policy ) {
+			return array( 'hidden', 'catalog' );
+		}
+
+		if ( is_array( $policy ) && ! empty( $policy ) ) {
+			$exclusions = array();
+			foreach ( $policy as $value ) {
+				if ( ! is_string( $value ) || ! in_array( $value, self::VISIBILITY_VALUES, true ) ) {
+					self::log_invalid_visibility_policy();
+					return array( 'hidden' );
+				}
+				if ( ! in_array( $value, $exclusions, true ) ) {
+					$exclusions[] = $value;
+				}
+			}
+			return $exclusions;
+		}
+
+		self::log_invalid_visibility_policy();
+		return array( 'hidden' );
+	}
+
+	/**
+	 * Record an invalid visibility policy only when WordPress debugging is on.
+	 *
+	 * The raw value is intentionally omitted so caller-controlled data cannot
+	 * inject arbitrary content into the PHP error log.
+	 */
+	private static function log_invalid_visibility_policy() {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Required debug-only compatibility notice.
+			error_log( '[Shift64 Woo Search] Invalid visibility policy; using the hidden-only compatibility fallback.' );
+		}
 	}
 
 	/**
