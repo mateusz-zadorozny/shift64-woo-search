@@ -10,6 +10,7 @@ Copy this file to `.ai/trackers/{name}.md`, set `"tracker": "{name}"` in `.ai/ag
 - **Concepts that must map somewhere:** issue/PR identifiers and how they are written in text; how a PR declares which issue it resolves (and whether that auto-closes it); draft PRs (or the nearest equivalent, e.g. a "WIP" state); labels (or the tracker's tags/states — if the tracker models workflow as states instead of labels, say how each pipeline label maps to a state); assignees; comments; CI check status; review verdicts (approve / request changes); merge.
 - **Claim/lock protocol.** Skills coordinate via three claim signals: assignee = automation user, `in-progress` marker, and a `🤖`-prefixed claim comment with a timestamp. Define how each is expressed in this tracker; all three should be readable back by **get-issue**/**get-pr** so concurrent skills detect the lock.
 - **Guards.** Reproduce the label-guard behavior: a label/tag mutation checks existence first and degrades to a logged skip when missing; `labels.enabled: false` in the config skips label operations entirely.
+- **Cross-repo targets.** Every operation should accept an optional `{repo}` (owner/name, or this tracker's project identifier) and default to the current checkout's repository when omitted — some skills address repositories other than the current one and always pass the target explicitly. `github.md` documents this contract as its blanket `--repo` rule. A provider that cannot support cross-repo targets must say so explicitly here, so dependent skills fail loud instead of silently querying the wrong repository.
 
 ## Prerequisites
 
@@ -39,10 +40,12 @@ Copy this file to `.ai/trackers/{name}.md`, set `"tracker": "{name}"` in `.ai/ag
 - **create-issue** — title, body, assignee, labels → created issue URL.
 - **close-issue** — id, reason, closing comment.
 - **comment-issue** — id, body.
+- **update-issue** — id, new title and/or body → edits the issue's own fields (not labels/assignees).
 - **assign-issue / unassign-issue** — id, user.
 - **label-issue / unlabel-issue** — id, label (through the guard).
 - **get-issue-comment** — comment id → body, author, URL.
 - **list-issue-comments** — id → conversation comments.
+- **update-comment** — comment id, new body → rewrite an existing conversation comment in place (issue and PR conversation comments alike). Powers marker-idempotent comments: a skill finds its `🤖 …` marker via **list-issue-comments** and updates that comment instead of posting a duplicate. When the tracker cannot edit comments, document that here and skills degrade to posting a replacement that states it supersedes the previous one.
 
 ### Pull requests
 
@@ -50,6 +53,7 @@ Copy this file to `.ai/trackers/{name}.md`, set `"tracker": "{name}"` in `.ai/ag
 - **list-prs** — state/search filters, limit → PRs.
 - **search-prs** — free-text query (e.g. an issue reference), state → matching PRs.
 - **create-pr** — base branch, draft flag, title, body → PR URL + number.
+- **update-pr** — number, new title and/or new body → the PR's own title/body rewritten in place (not a comment). For keeping a PR's description in sync with what it actually ships.
 - **comment-pr** — number, body (multi-line bodies must preserve formatting).
 - **attach-image-evidence** — number, a comment body, a slug (e.g. `pr-<n>`), and a list of local image file paths → post a single comment that embeds the images so they render **inline** in the tracker, and return the comment URL. The mechanism is the tracker's business (an upload/attachment endpoint, a media API, or a pushed evidence branch referenced by raw URLs) — the skills only name the operation and pass image paths. Contract: never mutate the change's own branch to store evidence; when the tracker cannot render uploaded images (e.g. a private repo whose raw URLs need auth), still post the comment with links to the images and say so rather than failing the caller. This is how QA skills post screenshots without any host-specific logic living in the skill.
 - **assign-pr / unassign-pr** — number, user.
@@ -63,6 +67,7 @@ Copy this file to `.ai/trackers/{name}.md`, set `"tracker": "{name}"` in `.ai/ag
 - **get-pr-checks** — number → CI check runs (name, state, link).
 - **get-required-checks** — base branch → required status checks; when unreadable, treat all reported checks as required.
 - **get-pr-comment / get-review-comment** — comment id → body, author, URL (conversation vs inline review comment).
+- **list-review-comments** — number → the PR's inline review comments (author, file, line, body, URL), so a reviewing skill can pick up feedback other reviewers already posted on the diff. Skills degrade to **get-pr**'s `reviews` bodies plus **list-issue-comments** when a descriptor copy predates this operation.
 
 ### CI runs
 

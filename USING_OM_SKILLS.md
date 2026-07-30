@@ -1,7 +1,8 @@
 # Using OM Skills
 
-This repository ships 27 `om-*` skills in `.agents/skills/`. They automate the path from
-"here is a task" to "here is a reviewed, merged pull request". This note explains where to
+This repository ships 38 skills in `.agents/skills/` — 34 `om-*` skills that automate the
+path from "here is a task" to "here is a reviewed, merged pull request", plus four `wp-*`
+skills carrying WordPress and Gutenberg domain knowledge. This note explains where to
 start, which skill to pick, and what each one does.
 
 If you read nothing else: **run `/om-setup-agent-pipeline` once, then use
@@ -72,17 +73,36 @@ Find your situation in the left column.
 | Just make my branch green and push it | `om-check-and-commit` | Runs the full gate, fixes easy failures, commits, pushes. No PR. |
 | Approve and merge a PR by number | `om-approve-merge-pr` | Refuses when the QA gate or a blocking label says no. |
 | See what is mergeable right now | `om-merge-buddy` | Read-only report across open PRs. |
-| Get red CI to green | `om-stabilize-ci` | Classifies each failure as real bug / test bug / flake / infra. Never disables checks to pass. |
+| Drive one PR all the way to merge-ready | `om-auto-fix-pr` | Merges the latest base, then loops review-autofix, CI stabilization, and UI QA until approvable. Hands off to `om-approve-merge-pr`; never merges itself. |
+| Get red CI to green | `om-auto-fix-pr --ci-only` | Classifies each failure as real bug / test bug / flake / infra. Never disables checks to pass. Works on a PR or a plain branch. |
+| Think an idea through before building | `om-brainstorm` | Divergent conversation, one question at a time. Alternatives include building nothing. Runs before the spec skills. |
+| Shape a vague product or UI idea | `om-ux-shape` | Turns ambiguity into a decided direction, screen states, and an engineering handoff. |
 | Write or review a feature spec | `om-spec-writing` | Its output feeds `om-auto-create-pr-loop`. |
+| Get a spec written and landed on a PR | `om-auto-write-spec` | Unattended wrapper: writes the spec, attaches mockups, opens the PR. Chains into `om-auto-implement-spec`. |
+| Implement an existing spec end to end | `om-auto-implement-spec` | Resolves the spec by path, name, issue, or spec-PR number, then delegates to the create/continue skills and the review loop. |
 | File an issue without implementing it | `om-prepare-issue` | Checks for duplicates, writes step-by-step guidance into the body. |
+| Clean up issues that already exist | `om-auto-manage-issues` | Applies missing SDLC labels, clarifies laconic issues, flags feature issues with no covering spec. Never implements anything. |
 | Turn PR feedback into a follow-up issue | `om-followup-issue-from-pr` | Paste a PR or PR-comment link. |
 | Set up a local test/QA environment | `om-prepare-test-env` | Prerequisite for the two QA skills below. |
-| QA a UI change in a real browser | `om-auto-verify-pr-ui` | Screenshots and a pass/fail report. Never touches source. |
+| QA a UI change in a real browser | `om-auto-qa-pr` | Screenshots and a pass/fail report. Never touches source. Also runs locally against the current worktree. |
 | Run or write integration/E2E tests | `om-integration-tests` | Reuses the environment from `om-prepare-test-env`. |
+| Design-review a PR's UI | `om-ux-review-pr` | Walks the changed screens in a browser and ranks findings by user impact, each with evidence. Needs `om-ux-setup` first. |
+| Capture the repo's design contract | `om-ux-setup` | Extracts tokens, components, and screen archetypes into `.uxproof/`. Run once; re-run after design-system changes. |
 | Draft the changelog for a release | `om-auto-update-changelog` | Lands as a docs PR. |
-| Close issues after PRs merged | `om-sync-merged-pr-issues` | Post-merge housekeeping. |
+| Close issues after PRs merged | `om-close-fixed-issues` | Post-merge housekeeping. Acts only on authoritative close links, never on bare `#N` mentions. |
 | Write a new om-skill | `om-create-skill` | Knows the house conventions and lint rules. |
 | Apply an upgrade of the skills collection | `om-apply-upgrade-notes` | Re-syncs descriptors while preserving local edits. |
+
+The four `wp-*` skills are domain references rather than pipeline steps — they carry
+WordPress and Gutenberg knowledge that the pipeline skills draw on while working in this
+plugin.
+
+| I am working on… | Use |
+| --- | --- |
+| Gutenberg blocks — `block.json`, attributes, dynamic rendering, deprecations | `wp-block-development` |
+| Block themes — `theme.json`, templates, patterns, Site Editor behavior | `wp-block-themes` |
+| The Interactivity API — `data-wp-*` directives, store/state/actions, hydration | `wp-interactivity-api` |
+| Getting a structured inventory of a WordPress repo's tooling and tests | `wp-project-triage` |
 
 Four skills — `om-verify-in-repo`, `om-root-cause`, `om-fix`, `om-open-pr` — are the internal
 steps of the autofix chain. `om-auto-fix-issue` calls them in order. You rarely invoke them by

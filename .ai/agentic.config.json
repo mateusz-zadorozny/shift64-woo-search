@@ -3,6 +3,11 @@
   "baseBranch": "auto",
   "tracker": "github",
   "browser": { "provider": "agent-browser" },
+  "engine": {
+    "stepReview": "final",
+    "executorTier": "standard",
+    "loopStepThreshold": 20
+  },
   "validation": {
     "commands": [
       "composer validate --strict",

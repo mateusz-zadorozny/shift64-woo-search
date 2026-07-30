@@ -1,6 +1,6 @@
-# PR body template (step 9)
+# PR body template (draft open at step 7, refreshed at step 11)
 
-The PR body `om-auto-create-pr-loop` opens the PR with in step 9. It **MUST**
+The PR body `om-auto-create-pr-loop` opens the draft PR with in step 7 (and refreshes in step 11). It **MUST**
 include the `Tracking plan:` line so `om-auto-continue-pr-loop` can resume.
 
 PR title convention: conventional-commit prefix scoped to the primary area.
@@ -14,23 +14,23 @@ Tracking plan: {RUNS_DIR}/{DATE}-{SLUG}/PLAN.md
 Tracking run folder: {RUNS_DIR}/{DATE}-{SLUG}/
 Status: in-progress
 
-## Goal
-- {one-line task summary from brief}
+## 🎯 Goal
+- {1–2 sentences: the user-visible outcome this PR delivers, and the problem/root cause when this is a fix}
 
 ## External References
 - {url — what was adopted, what was rejected}  <!-- only if --skill-url was used -->
 
 ## What Changed
-- {bullet list of phase-level changes}
+- {one bullet per changed area — name the files/modules touched and the behavioral change; write for a reviewer who has not opened the diff, not a one-line restatement of the title}
 
-## Tests
-- {unit tests added or updated}
-- {other checks}
+## 🧪 Tests
+- {commands run with result counts, e.g. `npm test — 2927 passed / 172 files`; note any skipped or failing gate}
+- {the new/updated test cases and what behavior they lock in}
 
-## Breaking Changes
+## 💥 Breaking Changes
 - {None | describe affected contracts and migration notes}
 
-## Progress
+## 📋 Progress
 See the Tasks table in the plan — that is the authoritative Step-status source (`todo` / `done`).
 
 ## Handoff & Notifications
