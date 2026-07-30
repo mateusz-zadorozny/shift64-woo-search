@@ -1,3 +1,10 @@
+## [0.12.3](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.12.2...v0.12.3) (2026-07-30)
+
+
+### Bug Fixes
+
+* **license:** assert one GPLv2-or-later claim with Shift64 attribution ([#49](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/49)) ([ebf0d88](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/ebf0d884aad9c44630b86a152a57f37ceeb09866))
+
 ## [0.12.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.12.1...v0.12.2) (2026-07-30)
 
 
