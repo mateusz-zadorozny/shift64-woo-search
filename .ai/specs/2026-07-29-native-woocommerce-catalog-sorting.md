@@ -1,17 +1,16 @@
-# Native WooCommerce Catalog Sorting on Search Archives
+# Native WooCommerce Catalog Sorting Engine and Product Sort Block
 
 > **Status:** draft
 
 ## TLDR
 
-The search-archive interceptor currently replaces WooCommerce's catalog sort
-dropdown with only three options (relevance, price asc, price desc) and treats
-every non-price `?orderby=` as relevance. This spec removes that limitation:
-all default WooCommerce sorting options (`menu_order`, `popularity`, `rating`,
-`date`, `price`, `price-desc`) work on search archives, sorted Redis-side, with
-`relevance` remaining the search-specific extra. The sorting engine is built as
-a context-agnostic service so taxonomy (category) archives can adopt Redis-side
-filtering and sorting in a later spec.
+The search-archive interceptor currently supports only relevance and two price
+sorts. This spec adds a context-agnostic Redis sorting engine for WooCommerce's
+native catalog modes and exposes it through a block-theme-only
+`shift64-woo-search/product-sort` block. A merchant places and styles that
+block in the Site Editor, chooses and orders the modes shoppers may select, and
+may omit the block entirely; Search Relevance is available only in search
+contexts.
 
 ## Decisions (resolved gate questions)
 
@@ -27,17 +26,22 @@ filtering and sorting in a later spec.
    `menu_order` acts as `relevance` on search pages, matching WooCommerce
    core's own search remap (core removes "Default sorting" from the dropdown on
    search and maps `menu_order` → `relevance`).
-4. **Dropdown: filter to Woo's stock default list** (`menu_order`,
-   `popularity`, `rating`, `date`, `price`, `price-desc`). WooCommerce core
-   itself injects `relevance` and removes `menu_order` on search pages — the
-   plugin does not duplicate that. Third-party dropdown additions are
-   overridden (deliberate, per gate answer), but a third-party `?orderby=`
-   arriving via URL still works through the pass-through path.
-5. **Amendments (2026-07-29):** (a) the candidate-set path must handle large
-   result sets — a hard 1k trim breaks large stores; (b) the index carries the
-   fields needed for Woo's sorts (`date`; `menu_order`/`title` already
-   sortable) and `visibility` filtering becomes context-aware, so that a future
-   spec can serve category pages entirely from Redis filters.
+4. **Canonical choices come from WooCommerce.** The Product Sort block starts
+   with Woo's filtered stock list (`menu_order`, `popularity`, `rating`,
+   `date`, `price`, `price-desc`), applies Woo's context rules, and adds
+   Shift64's `relevance` choice only on product-search results. Third-party
+   `?orderby=` values arriving by URL still work through the pass-through path,
+   but are not automatically exposed in the block editor.
+5. **Amendment (2026-07-29):** the candidate-set path must handle large result
+   sets — a hard 1k trim breaks large stores. The index carries the fields
+   needed for Woo's sorts (`date`; `menu_order`/`title` already sortable).
+6. **Amendment (2026-07-30): block-native presentation.** There is no automatic
+   hook placement, shortcode, mobile sheet, theme takeover, or appearance
+   setting in WP Admin. The merchant places `shift64-woo-search/product-sort`
+   beside the inherited WooCommerce Product Collection, selects an ordered
+   subset of available modes, optionally overrides their labels, and styles
+   the block with Site Editor block supports. Omitting the block means the
+   storefront exposes no Shift64 sorting control.
 
 ## Problem Statement
 
@@ -47,14 +51,18 @@ filtering and sorting in a later spec.
 `intercept()` (line ~180) classifies orderby as "price or relevance" only. A
 shopper choosing "Sort by popularity" on a non-search page loses that option on
 search pages; a merchant's configured default catalog sort is ignored. The
-mobile sort bottom sheet
-(`frontend/class-shift64-woo-search-filters.php:443`) hardcodes the same 3
-options. Meanwhile the taxonomy archive
+current mobile sort bottom sheet
+(`frontend/class-shift64-woo-search-filters.php:443`) hardcodes the same three
+options and couples presentation to theme-hook rendering. The new product
+direction supports only block themes, so the desired UI is not a repaired
+classic dropdown: it is an explicitly placed, Site Editor-styled block that
+lets the merchant omit unwanted modes such as popularity. Meanwhile the
+taxonomy archive
 (`includes/class-shift64-woo-search-taxonomy-archive.php`) already follows the
 correct philosophy — "Redis acts as a FILTER, orderby is left untouched" — so
 the plugin is internally inconsistent.
 
-## Research (market comparison, from prior knowledge — not re-verified online)
+## Research
 
 - **ElasticPress** maps every WC catalog sort to an indexed engine field
   (`post_date`, `_price`, `total_sales`, `average_rating`) — the approach
@@ -64,6 +72,24 @@ the plugin is internally inconsistent.
 - **Relevanssi / FiboSearch** hand ordering back to WP/MySQL (our candidate-set
   path). It composes perfectly with third-party sort logic but scales poorly —
   which is why it is the fallback here, not the default.
+- **WooCommerce Product Collection and Catalog Sorting** use canonical
+  `orderby` URL state, server-rendered block output, and the WordPress
+  Interactivity Router. Shift64 follows those public contracts rather than
+  owning pagination or hiding a theme control. The Product Sort block declares
+  Interactivity API client-navigation support so its script module remains
+  active after Product Collection navigation. See WooCommerce's
+  [Product Collection extensibility documentation](https://developer.woocommerce.com/docs/block-development/extensible-blocks/product-collection-block/)
+  and WordPress's
+  [client-navigation compatibility contract](https://developer.wordpress.org/block-editor/reference-guides/interactivity-api/core-concepts/client-side-navigation-compatibility/).
+
+### Scope cohesion decision
+
+The Redis sorting engine and its Product Sort block can be tested separately,
+but the block is the only supported merchant-facing surface for the engine in
+the block-theme direction. The owner explicitly chose to connect them in this
+existing spec so every exposed mode lands with its complete query semantics.
+Phase 1 keeps the pure engine steps invisible until the block exposes them;
+Phase 2 remains a separate performance/migration PR.
 
 ## Architecture
 
@@ -114,52 +140,51 @@ Generalizes the current `use_wc_price` branch in `intercept()`:
    native query.
 4. The existing hardcoded `1000` in the B2B price path inherits this mechanism.
 
-### Dropdown & mobile sheet
+### Product Sort block
 
-- `filter_sort_options()` returns WooCommerce's stock six-option list instead
-  of the 3-option replacement. Core's own search handling then injects
-  `relevance` and drops `menu_order`.
-- The mobile sort bottom sheet builds its options from the same filtered
-  `woocommerce_catalog_orderby` output (`apply_filters` on the stock list)
-  instead of a private hardcoded array — one source of truth.
+Register one dynamic block:
+
+- name: `shift64-woo-search/product-sort`;
+- placement: manual in the Site Editor only;
+- supported host: an inherited `woocommerce/product-collection` on a block
+  template;
+- navigation: canonical `?orderby=<slug>` through the WordPress Interactivity
+  Router, with `/page/N/` and `paged` removed when the mode changes;
+- presentation: the same pill trigger, popover/list semantics, and block-support
+  contract as `shift64-woo-search/filter-pill`;
+- pagination ownership: WooCommerce Product Collection, never Shift64.
+
+The editor exposes an ordered checklist of sort choices. The merchant can
+enable only the modes the storefront needs, reorder them, and optionally
+override the visible label for each enabled mode. The default selection
+contains every context-compatible Woo mode plus Search Relevance. The editor
+must prevent an inserted block from being saved with zero enabled choices;
+merchants who want no sorting remove the block instead.
+
+The option resolver has one source of truth:
+
+1. Start with WooCommerce's stock list after
+   `woocommerce_catalog_orderby`.
+2. Apply Woo's availability rules, including removing rating when reviews are
+   disabled.
+3. On product-search results, prepend `relevance` and remove `menu_order`.
+4. Outside product-search results, omit `relevance`.
+5. Intersect that result with the block's ordered `enabledOptions` attribute
+   and apply non-empty label overrides.
+
+This is configuration of the visible control, not a global sorting allowlist.
+A known or third-party `orderby` arriving through a direct URL remains an
+engine/query concern and is not rejected merely because one block instance
+does not advertise it.
 
 ### Default-sort resolution
 
-In `intercept()`: explicit `?orderby=` wins; otherwise
-`get_option( 'woocommerce_default_catalog_orderby', 'menu_order' )`, with
-`menu_order` → `relevance` remapped on search. **Known wrinkle:** WooCommerce's
-orderby template hardcodes `relevance` as the *selected* option on search when
-no `?orderby=` is present, so a store default of e.g. `popularity` would sort
-by popularity while the dropdown shows "Relevance". The implementation must
-align the selected state; the candidate lever is populating the `orderby`
-query var / `$_GET['orderby']` superglobal early in `intercept()` (sanitized),
-which every WC template reads. This is a hack with precedent in the WC
-ecosystem — flagged for review; if it proves fragile, the fallback is a small
-override of the `loop/orderby.php` template args. **The mechanism must be
-decided (spike + verified against the active theme) in step 5 before the rest
-of that step is built** — the fallback is a template override with a
-materially larger theme-compatibility surface, and discovering that mid-PR
-would silently grow the step's scope.
-
-### Visibility becomes context-aware (enabler for future category pages)
-
-The index already stores raw catalog visibility
-(`visible`/`catalog`/`search`/`hidden` — indexer line 293) but the query layer
-hardcodes a single exclusion, `-@visibility:{hidden}`
-(`class-shift64-woo-search-query.php:920`). This spec **parameterizes** that
-exclusion by context and fixes the search context:
-
-- **search context:** `-@visibility:{hidden|catalog}` (catalog-only products
-  must not surface in search — this also fixes a latent correctness bug);
-- other contexts pass their own exclusion set; **no catalog-context branch is
-  implemented here** (it would have zero callers until the future
-  "Redis filters on category pages" spec, which will define and test it).
-
-Scope note (from adversarial review): this item is separable from sorting and
-is kept in this spec by explicit owner decision (it is the index groundwork for
-the category-pages direction). It lands as the final, independently revertable
-step of Phase 1 with its own changelog line, so a rollback of the sorting work
-and a rollback of the visibility fix stay independent.
+In the Product Collection query adapter, explicit `?orderby=` wins; otherwise
+use `get_option( 'woocommerce_default_catalog_orderby', 'menu_order' )`, with
+`menu_order` → `relevance` remapped on search. The Product Sort block receives
+the same resolved value during server rendering, so its selected state and the
+Redis query cannot diverge. No superglobal mutation, Woo template override, or
+classic-theme dropdown synchronization is required.
 
 ## Data Model
 
@@ -180,19 +205,84 @@ shift64-woo-search reindex` backfills. The `health` command reports
 option, per BACKWARD_COMPATIBILITY §"options" — adding options carries
 contract weight this tunable doesn't need).
 
+The Product Sort block stores presentation choices in block content:
+
+| Attribute | Type | Default | Contract |
+| --- | --- | --- | --- |
+| `enabledOptions` | ordered string array | all seven canonical slugs | Closed to `menu_order`, `popularity`, `rating`, `date`, `price`, `price-desc`, `relevance`; context filtering happens at render time |
+| `labels` | object keyed by slug | `{}` | Empty/missing uses WooCommerce's translated label; values are plain text |
+
+Appearance uses standard block-support attributes (`style`, preset classes,
+font size, colors, spacing, borders, and dimensions), not Shift64 options.
+There is no migration or generated SHORTINIT config entry for block
+presentation.
+
 ## API Contracts
 
-No REST/SHORTINIT endpoint changes. Changed public surfaces:
+No SHORTINIT search-endpoint changes. Changed public surfaces:
 
-- `woocommerce_catalog_orderby` filter output on search pages changes from 3
-  options to the stock six (user-visible behavior change, the point of this
-  spec — not a break of any documented plugin contract).
+- New dynamic block name `shift64-woo-search/product-sort`.
+- Persistent block attributes `enabledOptions` and `labels` with the shapes
+  above.
 - New filter `shift64_woo_search_wc_sort_candidate_limit` (int, default
   10000). Additive — allowed per BACKWARD_COMPATIBILITY hook rules.
 - All existing `shift64_woo_search_*` options keep keys, types, defaults.
 
+The block uses a WordPress script module declared through `block.json` with
+Interactivity API client-navigation support. It does not read a private
+WooCommerce JavaScript store. Its only browser-visible state contract is the
+canonical `orderby` query parameter.
+
+## UI/UX
+
+### Site Editor
+
+- The merchant inserts **Shift64 Product Sort** wherever the control belongs
+  in the archive/search template.
+- Inspector controls show an ordered list of canonical modes with enable
+  toggles, drag ordering, and optional label overrides.
+- Search Relevance is identified as search-only. It remains configurable in
+  the template, but the editor preview explains that it renders only for a
+  product-search context.
+- The block exposes the same color, typography, spacing, border, dimensions,
+  and focus-state styling contract as Filter Pill. No appearance control links
+  to Shift64 WP Admin.
+- If every mode is disabled, the editor shows a blocking validation message:
+  remove the block to offer no sorting, or enable at least one mode.
+
+### Storefront
+
+- The closed control is visually compatible with Filter Pill and announces
+  the current mode.
+- Activating it reveals only the merchant-enabled choices that are valid in
+  the current context.
+- Choosing a mode updates `orderby`, removes path/query pagination, closes the
+  choice surface, and delegates navigation/rendering to the WordPress router
+  and WooCommerce Product Collection.
+- The current choice is communicated with native selected/checked semantics;
+  the trigger has an accessible name independent of custom visible labels.
+- Removing the block from the template removes Shift64's sorting UI. The
+  plugin never auto-inserts it and never hides a separately inserted
+  WooCommerce Catalog Sorting block.
+
 ## Edge Cases & Failure Scenarios
 
+- **Search Relevance outside search:** omitted even when present in
+  `enabledOptions`; it never becomes a meaningless catalog ordering mode.
+- **A configured native mode becomes unavailable:** for example, rating after
+  reviews are disabled. The resolver omits it without changing stored block
+  content, so it returns automatically if the Woo feature is re-enabled.
+- **Direct URL uses a mode omitted from this block:** the engine still honors
+  a known mode, and third-party values still use `wc` pass-through. To keep the
+  control truthful, the current URL mode is rendered as a temporary selected
+  entry for that request; once the shopper chooses an enabled mode, the
+  omitted mode is no longer offered.
+- **No context-compatible configured choices:** render no frontend control and
+  emit an editor warning. This can occur when a block contains only
+  `relevance` but is placed on a non-search archive.
+- **Product Sort and Woo Catalog Sorting are both inserted:** both remain
+  visible. Site Editor placement is authoritative; Shift64 does not hide or
+  take over another block.
 - **`date` sort before reindex completes:** `SORTBY date` on documents missing
   the field would silently misorder (RediSearch treats missing numeric as 0) —
   therefore `date` routes to `wc` mode until `health` confirms the field is
@@ -212,35 +302,39 @@ No REST/SHORTINIT endpoint changes. Changed public surfaces:
 - **Facets/filters combined with sorting:** filter TAG clauses are part of the
   FT query string and compose with SORTBY/AGGREGATE unchanged; `wc` mode
   passes the same filtered query to the ID fetch.
-- **AJAX partial re-render (Kadence):** re-renders via
-  `woocommerce_catalog_ordering()` — inherits the restored options with no
-  extra work.
-- **Redis unavailable:** unchanged — `should_intercept()` bails, native WC.
+- **Product Collection client navigation:** the Sort block script module is
+  declared client-navigation compatible and the control is server-rendered in
+  its own router-refreshable region, so selected state survives pagination,
+  filtering, browser history, and direct navigation.
+- **Redis unavailable:** the Product Collection query adapter declines the
+  Redis path and WooCommerce serves its native result query; the Sort block
+  retains canonical URL behavior.
 
 ## Risks & Impact Review
 
-- **Blast radius:** search archive sorting/pagination and the sort UI; the
+- **Blast radius:** Product Collection sorting and the Product Sort block; the
   relevance pipeline, taxonomy archive, autocomplete, and SHORTINIT endpoint
-  are untouched. The visibility fix (`catalog`-only products leaving search
-  results) is a deliberate, user-visible correctness change — called out in
-  the changelog.
+  are untouched.
 - **Rollback:** no destructive migration. `FT.ALTER` adds a field old code
   ignores; reverting the plugin restores prior behavior without a rebuild.
 - **Performance:** SORTBY paths are one Redis call, same as today's price
   sort. `wc` mode on large sets does a chunked ID fetch + big `post__in`;
   bounded by the ceiling and reachable only via third-party orderby values or
   B2B price mode.
-- **Selected-state superglobal population** is the riskiest implementation
-  detail (flagged above for review).
+- **Router integration** is the riskiest presentation detail. E2E coverage
+  must prove one navigation, one history entry, pagination reset, selected
+  state, and correct Product Collection ordering.
 - **Compatibility:** BACKWARD_COMPATIBILITY option/hook rules honored (no
-  renames, additive filter only).
+  renames, additive filter and block only). The separate block-theme transition
+  work owns removal of classic-theme and shortcode contracts.
 
 ## Phasing
 
-- **Phase 1 — full functionality, no reindex required.** Popularity, rating,
-  menu_order via existing indexed fields; date via `wc` mode; dropdown +
-  mobile sheet + default resolution; large-catalog-safe pass-through;
-  context-aware visibility. Independently shippable.
+- **Phase 1 — engine plus Product Sort block, no reindex required.**
+  Popularity, rating, and menu_order use existing indexed fields; date uses
+  `wc` mode. The manually placed block exposes the merchant-selected subset,
+  routes through Product Collection navigation, and includes default
+  resolution and large-catalog-safe pass-through. Independently shippable.
 - **Phase 2 — `date` field.** Schema addition + indexer + migration + health
   reporting; `date` upgrades from `wc` mode to `SORTBY`. Pure performance
   upgrade, independently shippable. It touches a different subsystem (indexer,
@@ -262,16 +356,18 @@ No REST/SHORTINIT endpoint changes. Changed public surfaces:
    orderby value asserting the FT command built.
 4. **`menu_order` composite sort via `FT.AGGREGATE`** with failure fallback to
    the MySQL bail-out. Tests for command shape + failure path.
-5. **Restore the dropdown** (`filter_sort_options` → stock list) **and rebuild
-   the mobile sheet options from the filtered `woocommerce_catalog_orderby`
-   output.** Selected-state alignment for store defaults. E2E scenario in the
-   existing Playwright suite (CI only — never in the validation gate, per
-   AGENTS.md): assert option list and result order for price + popularity on a
-   seeded search.
-6. **Parameterized visibility exclusion** in the shared query builder; search
-   context passes `hidden|catalog`; no other context implemented. Lands as its
-   own commit, independently revertable. PHPUnit on the built query string;
-   changelog note for the behavior fix.
+5. **Register `shift64-woo-search/product-sort`.** Add block metadata, an
+   editor ordered-checklist/label model, standard block supports, dynamic
+   rendering, canonical Woo/context option resolution, and selected-state
+   rendering. PHPUnit covers attribute validation, Woo feature/context
+   filtering, label fallbacks, and direct-URL truthfulness.
+6. **Connect the block to Product Collection navigation.** Add an Interactivity
+   API script module that changes canonical `orderby`, removes pagination,
+   closes/restores focus, and delegates navigation to the WordPress router.
+   E2E in the block-theme project asserts merchant-selected option visibility,
+   relevance only on search, price + popularity result order, one request, one
+   history entry, Back behavior, and pagination reset. Playwright remains out
+   of the hermetic validation gate per `AGENTS.md`.
 
 ### Phase 2
 
@@ -280,7 +376,8 @@ No REST/SHORTINIT endpoint changes. Changed public surfaces:
 8. **Migration + gating:** upgrade-time `FT.ALTER`, reindex-completion flag,
    `health` reporting; `date` flips from `wc` mode to `SORTBY date DESC` only
    when the flag is set. Tests for both states.
-9. **Docs:** changelog entries; flip this spec's Status header and the
+9. **Docs:** changelog entries; document the Product Sort block and its Site
+   Editor-only placement; flip this spec's Status header and the
    `.ai/specs/README.md` row in the implementing PR (AGENTS.md lifecycle
    rule).
 
