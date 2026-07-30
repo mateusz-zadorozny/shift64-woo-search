@@ -105,23 +105,7 @@ final class Shift64_Woo_Search_Catalog_State {
 			$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
 		}
 
-		$page_keys = array();
-		if ( null !== $context->get_query_id() ) {
-			$page_keys[] = 'query-' . $context->get_query_id() . '-page';
-		}
-		$page_keys[] = 'query-page';
-		$page_keys[] = 'paged';
-
-		$page = $context->get_page();
-		foreach ( $page_keys as $key ) {
-			if ( isset( $request[ $key ] ) ) {
-				$page = max( 1, absint( $request[ $key ] ) );
-				break;
-			}
-		}
-		if ( 1 === $page && preg_match( '#/page/(\d+)(?:/|$)#', (string) $request_uri, $matches ) ) {
-			$page = max( 1, absint( $matches[1] ) );
-		}
+		$page = self::requested_page( $context->get_page(), $request, $request_uri, $context->get_query_id() );
 
 		$sort = isset( $request['orderby'] ) ? sanitize_key( $request['orderby'] ) : 'relevance';
 		if ( ! in_array( $sort, self::SORT_SLUGS, true ) ) {
@@ -171,6 +155,54 @@ final class Shift64_Woo_Search_Catalog_State {
 		}
 
 		return new self( $page, $sort, $search, $selected, $redis, $operators );
+	}
+
+	/**
+	 * Resolve a page from every storefront paging form.
+	 *
+	 * With a query ID, its dedicated Product Collection parameter wins. Without
+	 * one, the first Product Collection page parameter bridges child-block state
+	 * back to archive presentation such as WooCommerce breadcrumbs.
+	 *
+	 * @param int      $fallback    Page to use when the request has no paging.
+	 * @param array    $request     Query parameters.
+	 * @param string   $request_uri Request URI for pretty pagination.
+	 * @param int|null $query_id    Product Collection query ID.
+	 * @return int
+	 */
+	public static function requested_page( $fallback = 1, $request = null, $request_uri = null, $query_id = null ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public storefront state.
+		$request = is_array( $request ) ? $request : wp_unslash( $_GET );
+		if ( null === $request_uri ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Parsed only for an integer /page/N/ segment.
+			$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		}
+
+		$page_keys = array();
+		if ( null !== $query_id ) {
+			$page_keys[] = 'query-' . absint( $query_id ) . '-page';
+		} else {
+			foreach ( array_keys( $request ) as $key ) {
+				if ( preg_match( '/^query-\d+-page$/', (string) $key ) ) {
+					$page_keys[] = $key;
+				}
+			}
+		}
+		$page_keys[] = 'query-page';
+		$page_keys[] = 'paged';
+
+		foreach ( array_unique( $page_keys ) as $key ) {
+			if ( isset( $request[ $key ] ) && is_scalar( $request[ $key ] ) ) {
+				return max( 1, absint( $request[ $key ] ) );
+			}
+		}
+
+		$page = max( 1, absint( $fallback ) );
+		if ( 1 === $page && preg_match( '#/page/(\d+)(?:/|$)#', (string) $request_uri, $matches ) ) {
+			return max( 1, absint( $matches[1] ) );
+		}
+
+		return $page;
 	}
 
 	/**

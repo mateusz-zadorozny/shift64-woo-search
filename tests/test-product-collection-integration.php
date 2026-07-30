@@ -322,6 +322,24 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Archive presentation sees Product Collection's query-ID page.
+	 */
+	public function test_requested_page_bridges_product_collection_state_to_archive() {
+		$this->assertSame(
+			2,
+			Shift64_Woo_Search_Catalog_State::requested_page(
+				1,
+				array(
+					's'            => 'series',
+					'post_type'    => 'product',
+					'query-0-page' => '2',
+				),
+				'/?s=series&post_type=product&query-0-page=2'
+			)
+		);
+	}
+
+	/**
 	 * State changes reset all paging forms and drop private preview parameters.
 	 */
 	public function test_canonical_url_resets_paging_and_preserves_safe_parameters() {
@@ -392,6 +410,54 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 		$this->assertSame( '', $adapted['s'] );
 		$this->assertSame( 23, $adapted['author'] );
 		$this->assertSame( 'pc-7-test', $adapted[ Shift64_Woo_Search_Product_Collection_Query::QUERY_MARKER ] );
+	}
+
+	/**
+	 * Redis membership narrows an existing WooCommerce post constraint.
+	 */
+	public function test_query_adapter_intersects_existing_post_in_in_redis_order() {
+		$result = new Shift64_Woo_Search_Product_Collection_Result(
+			'pc-7-test',
+			array( 11, 12, 13 ),
+			3,
+			1,
+			12,
+			'relevance',
+			array(),
+			array(),
+			Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS
+		);
+
+		$adapted = Shift64_Woo_Search_Product_Collection_Query::apply_result(
+			array( 'post__in' => array( 13, 11, 99 ) ),
+			$result
+		);
+
+		$this->assertSame( array( 11, 13 ), $adapted['post__in'] );
+	}
+
+	/**
+	 * Disjoint WooCommerce and Redis memberships remain impossible.
+	 */
+	public function test_query_adapter_keeps_disjoint_post_in_empty() {
+		$result = new Shift64_Woo_Search_Product_Collection_Result(
+			'pc-7-test',
+			array( 11, 12 ),
+			2,
+			1,
+			12,
+			'relevance',
+			array(),
+			array(),
+			Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS
+		);
+
+		$adapted = Shift64_Woo_Search_Product_Collection_Query::apply_result(
+			array( 'post__in' => array( 99 ) ),
+			$result
+		);
+
+		$this->assertSame( array( 0 ), $adapted['post__in'] );
 	}
 
 	/**

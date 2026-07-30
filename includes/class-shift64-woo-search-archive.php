@@ -274,7 +274,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		$this->debug_start = microtime( true );
 		$search_term       = trim( $query->get( 's' ) );
 		$this->search_term = $search_term;
-		$paged             = max( 1, (int) $query->get( 'paged' ) );
+		$paged             = Shift64_Woo_Search_Catalog_State::requested_page( $query->get( 'paged' ) );
 		$per_page          = (int) $query->get( 'posts_per_page' );
 		if ( $per_page <= 0 ) {
 			$per_page = (int) get_option( 'posts_per_page', 12 );

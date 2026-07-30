@@ -161,7 +161,6 @@
             if (!form) return;
 
             var params = new URLSearchParams(new FormData(form));
-            params.set('paged', '1');
 
             // Preserve filter params from current URL.
             var currentUrl = new URL(window.location.href);
@@ -171,8 +170,10 @@
                 }
             });
 
-            var base = window.location.pathname.replace(/\/page\/\d+\/?/, '/');
-            loadPage(base + '?' + params.toString());
+            var url = new URL(window.location.href);
+            url.search = params.toString();
+            stripPagingState(url);
+            loadPage(url.toString());
         }, true); // true = capture phase
 
         // Filter checkboxes — delegated to document for dynamically replaced content.
@@ -266,8 +267,7 @@
 
             var url = new URL(window.location.href);
             url.searchParams.set('orderby', value);
-            url.searchParams.delete('paged');
-            url.pathname = url.pathname.replace(/\/page\/\d+\/?/, '/');
+            stripPagingState(url);
 
             // Preserve filter params.
             loadPage(url.toString());
@@ -286,7 +286,23 @@
     }
 
     /**
-     * Remove all filter_* params, paged param, and /page/N/ from a URL object.
+     * Remove every paging form recognized by WordPress and Product Collection.
+     */
+    function stripPagingState(url) {
+        var keysToRemove = [];
+        url.searchParams.forEach(function (val, key) {
+            if (key === 'page' || key === 'paged' || key === 'query-page' || /^query-\d+-page$/.test(key)) {
+                keysToRemove.push(key);
+            }
+        });
+        keysToRemove.forEach(function (key) {
+            url.searchParams.delete(key);
+        });
+        url.pathname = url.pathname.replace(/\/page\/\d+\/?$/, '/');
+    }
+
+    /**
+     * Remove all filter_* params and reset pagination from a URL object.
      */
     function stripFilterParams(url) {
         var keysToRemove = [];
@@ -298,8 +314,7 @@
         keysToRemove.forEach(function (key) {
             url.searchParams.delete(key);
         });
-        url.searchParams.delete('paged');
-        url.pathname = url.pathname.replace(/\/page\/\d+\/?/, '/');
+        stripPagingState(url);
     }
 
     /**

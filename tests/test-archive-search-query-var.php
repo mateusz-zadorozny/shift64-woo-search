@@ -135,6 +135,29 @@ class Archive_Search_Query_Var_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Product Collection's query-ID page is restored for archive renderers.
+	 */
+	public function test_product_collection_page_returns_once_the_posts_are_in() {
+		update_option( 'shift64_woo_search_archive_enabled', 'yes' );
+		$this->with_stubbed_redis();
+		$_GET['query-0-page'] = '2';
+
+		try {
+			$archive = $this->archive();
+			$query   = $this->product_search_query( 'walnut' );
+			$query->set( 'paged', 1 );
+			$archive->intercept( $query );
+
+			$this->assertSame( 1, $query->get( 'paged' ), 'MySQL must not apply a second page offset' );
+			$archive->restore_paged( array(), $query );
+
+			$this->assertSame( 2, $query->get( 'paged' ), 'WooCommerce breadcrumbs must see the Product Collection page' );
+		} finally {
+			unset( $_GET['query-0-page'] );
+		}
+	}
+
+	/**
 	 * The restoration is scoped to the main query: a secondary query running in
 	 * the same request keeps whatever term it was given.
 	 */

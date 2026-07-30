@@ -19,6 +19,20 @@ const PRIVATE_PARAMS = [
 ];
 
 /**
+ * Resolve a navigation target that cannot leave the current storefront.
+ *
+ * @param {string|URL} source Candidate destination.
+ * @return {URL} Same-origin HTTP(S) URL.
+ */
+function storefrontUrl(source) {
+	const url = new URL(source, window.location.href);
+	if (!['http:', 'https:'].includes(url.protocol) || url.origin !== window.location.origin) {
+		throw new TypeError('Catalog navigation requires a same-origin HTTP(S) URL.');
+	}
+	return url;
+}
+
+/**
  * Return every paging parameter recognized by WordPress and Product Collection.
  *
  * @param {number|null} queryId Product Collection query ID.
@@ -44,7 +58,7 @@ function pagingKeys(queryId) {
  * @return {string} Canonical absolute URL.
  */
 export function buildCatalogUrl(source, changes, queryId = null) {
-	const url = new URL(source, window.location.href);
+	const url = storefrontUrl(source);
 	PRIVATE_PARAMS.forEach((key) => url.searchParams.delete(key));
 
 	let resetsPage = false;
@@ -93,7 +107,7 @@ export function hasEnhancedProductCollection(root = document) {
  * @return {Promise<void>}
  */
 export async function navigate(destination, { forceReload = false } = {}) {
-	const url = String(destination);
+	const url = storefrontUrl(destination).toString();
 	if (forceReload || !hasEnhancedProductCollection()) {
 		window.location.assign(url);
 		return;

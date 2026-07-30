@@ -174,6 +174,59 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 		);
 	});
 
+	test('direct Product Collection paging updates breadcrumbs', async ({ page }) => {
+		await page.goto(`${BROAD_QUERY}&query-0-page=2`);
+
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+		await expect(page.locator('.woocommerce-breadcrumb').first()).toContainText('Page 2');
+	});
+
+	test('facet changes reset Product Collection paging to page one', async ({ page }) => {
+		await page.goto(`${BROAD_QUERY}&query-0-page=2`);
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+
+		await page
+			.locator(`${SEL.filterCheckbox}[data-taxonomy="pa_color"][data-slug="amber-musk"]`)
+			.first()
+			.check();
+
+		await expect(page).toHaveURL(/filter_pa_color=amber-musk/);
+		await expect(page).not.toHaveURL(/[?&](?:page|paged|query-page|query-\d+-page)=/);
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('1');
+		await expect(productCards(page)).toHaveCount(1);
+	});
+
+	test('catalog navigation rejects unsafe destinations', async ({ page }) => {
+		await page.goto(BROAD_QUERY);
+		const moduleUrl =
+			'/wp-content/plugins/shift64-woo-search/frontend/js/shift64-woo-search-catalog-navigation.js';
+		const result = await page.evaluate(async (url) => {
+			const navigation = await import(url);
+			const outcomes: Record<string, boolean> = {};
+			for (const [name, destination] of Object.entries({
+				javascript: 'javascript:alert(1)',
+				crossOrigin: 'https://example.com/shop/',
+			})) {
+				try {
+					navigation.buildCatalogUrl(destination, { orderby: 'price' });
+					outcomes[name] = false;
+				} catch {
+					outcomes[name] = true;
+				}
+			}
+			try {
+				await navigation.navigate('https://example.com/shop/', { forceReload: true });
+				outcomes.navigate = false;
+			} catch {
+				outcomes.navigate = true;
+			}
+			return outcomes;
+		}, moduleUrl);
+
+		expect(result).toEqual({ javascript: true, crossOrigin: true, navigate: true });
+		await expect(page).toHaveURL(/post_type=product/);
+	});
+
 	test('an empty Redis membership lets Product Collection render its no-results surface', async ({
 		page,
 	}) => {

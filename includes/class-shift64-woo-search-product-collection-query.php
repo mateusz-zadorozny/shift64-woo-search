@@ -130,7 +130,19 @@ class Shift64_Woo_Search_Product_Collection_Query {
 			return $query_vars;
 		}
 
-		$ids                              = $result->get_product_ids();
+		$ids = array_values( array_unique( array_map( 'absint', $result->get_product_ids() ) ) );
+		if ( ! empty( $query_vars['post__in'] ) && is_array( $query_vars['post__in'] ) ) {
+			$allowed = array_values(
+				array_filter(
+					array_unique( array_map( 'intval', $query_vars['post__in'] ) ),
+					static function ( $id ) {
+						return $id > 0;
+					}
+				)
+			);
+			$ids     = array_values( array_intersect( $ids, $allowed ) );
+		}
+
 		$query_vars['post__in']           = empty( $ids ) ? array( 0 ) : $ids;
 		$query_vars['orderby']            = 'post__in';
 		$query_vars['paged']              = 1;
