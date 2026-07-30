@@ -35,8 +35,12 @@ WooCommerce queries.
 
 ## Query ownership
 
-The late `query_loop_block_query_vars` adapter receives WooCommerce's completed
-query variables and changes only fields Shift64 owns:
+WooCommerce normally clones the already-executed main query for an inherited
+Product Collection. A late `render_block_context` bridge changes only the
+collection's query-consuming child contexts to scoped queries. That makes
+WooCommerce's public query builder run without changing the saved block or main
+archive query. The late `query_loop_block_query_vars` adapter then receives
+WooCommerce's completed query variables and changes only fields Shift64 owns:
 
 - `post__in` is constrained to the Redis page of IDs.
 - `orderby=post__in` preserves Redis order.
@@ -48,9 +52,9 @@ Unrelated query variables stay intact. Redis failure returns the original query
 variables unchanged, so the Product Collection remains usable through native
 WooCommerce retrieval.
 
-The adapter never renders a template, product card, grid, pager, spinner, or
-live region. It does not mutate `$_GET`, parsed block attributes, or WooCommerce
-loop globals.
+The bridge and adapter never render a template, product card, grid, pager,
+spinner, or live region. They do not mutate `$_GET`, parsed block attributes,
+the main query, or WooCommerce loop globals.
 
 ## Canonical URL state
 

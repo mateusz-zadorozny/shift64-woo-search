@@ -30,8 +30,67 @@ class Shift64_Woo_Search_Product_Collection_Query {
 	 */
 	public function __construct( $service = null ) {
 		$this->service = $service ?? new Shift64_Woo_Search_Product_Collection_Query_Service();
+		add_filter( 'render_block_context', array( $this, 'scope_inherited_query_context' ), 99, 2 );
 		add_filter( 'query_loop_block_query_vars', array( $this, 'filter_query_vars' ), 99, 3 );
 		add_filter( 'found_posts', array( $this, 'filter_found_posts' ), 99, 2 );
+	}
+
+	/**
+	 * Route inherited Product Collection query consumers through a scoped query.
+	 *
+	 * WooCommerce clones the already-executed main query for inherited
+	 * collections. Changing only the child block context to non-inherited makes
+	 * its public query builder run, where the late adapter can constrain Redis
+	 * membership. The parsed block attributes and main query remain untouched.
+	 *
+	 * @param array $context      Available block context.
+	 * @param array $parsed_block Parsed block.
+	 * @return array
+	 */
+	public function scope_inherited_query_context( $context, $parsed_block ) {
+		if (
+			! is_array( $context )
+			|| ! is_array( $parsed_block )
+			|| 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' )
+			|| ! Shift64_Woo_Search_Product_Collection_Context::is_current_archive_request()
+		) {
+			return $context;
+		}
+
+		$query = is_array( $context['query'] ?? null ) ? $context['query'] : array();
+		if (
+			true !== ( $query['isProductCollectionBlock'] ?? false )
+			|| true !== ( $query['inherit'] ?? false )
+			|| ! self::is_query_consumer( $parsed_block['blockName'] ?? '' )
+		) {
+			return $context;
+		}
+
+		$query[ Shift64_Woo_Search_Product_Collection_Context::SCOPED_INHERIT_MARKER ] = true;
+		$query['inherit'] = false;
+		$context['query'] = $query;
+		return $context;
+	}
+
+	/**
+	 * Whether a Product Collection child executes or counts its query.
+	 *
+	 * @param string $block_name Block name.
+	 * @return bool
+	 */
+	private static function is_query_consumer( $block_name ) {
+		return in_array(
+			$block_name,
+			array(
+				'woocommerce/product-template',
+				'woocommerce/product-collection-no-results',
+				'core/query-pagination-next',
+				'core/query-pagination-previous',
+				'core/query-pagination-numbers',
+				'core/query-total',
+			),
+			true
+		);
 	}
 
 	/**

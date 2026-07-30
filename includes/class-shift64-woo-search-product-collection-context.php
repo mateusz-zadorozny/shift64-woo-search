@@ -15,6 +15,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Shift64_Woo_Search_Product_Collection_Context {
 
 	/**
+	 * Context marker used to route inherited Product Collection children
+	 * through their own WP_Query without mutating the main archive query.
+	 */
+	const SCOPED_INHERIT_MARKER = 'shift64WooSearchInheritedProductCollection';
+
+	/**
 	 * Stable Product Collection query ID.
 	 *
 	 * @var int|null
@@ -117,11 +123,17 @@ final class Shift64_Woo_Search_Product_Collection_Context {
 		$product_collection_blocks = array(
 			'woocommerce/product-collection',
 			'woocommerce/product-template',
+			'woocommerce/product-collection-no-results',
+			'core/query-pagination-next',
+			'core/query-pagination-previous',
+			'core/query-pagination-numbers',
+			'core/query-total',
 		);
+		$is_scoped_inherit         = true === ( $query[ self::SCOPED_INHERIT_MARKER ] ?? false );
 		if (
 			! in_array( $block_name, $product_collection_blocks, true )
 			|| true !== ( $query['isProductCollectionBlock'] ?? false )
-			|| true !== ( $query['inherit'] ?? false )
+			|| ( true !== ( $query['inherit'] ?? false ) && ! $is_scoped_inherit )
 		) {
 			return null;
 		}
@@ -163,6 +175,28 @@ final class Shift64_Woo_Search_Product_Collection_Context {
 			$facts['term_name'] ?? '',
 			$is_search ? 'search' : null
 		);
+	}
+
+	/**
+	 * Whether the current frontend request is an eligible inherited archive.
+	 *
+	 * This is used before WooCommerce constructs the child WP_Block instance,
+	 * when no query vars have been composed yet.
+	 *
+	 * @return bool
+	 */
+	public static function is_current_archive_request() {
+		$facts = self::current_request_context( array() );
+		if (
+			! empty( $facts['is_admin'] )
+			|| ! empty( $facts['is_rest'] )
+			|| ! empty( $facts['is_feed'] )
+		) {
+			return false;
+		}
+
+		$is_tax = ! empty( $facts['taxonomy'] ) && ! empty( $facts['taxonomy_enabled'] );
+		return ! empty( $facts['is_product_search'] ) || ! empty( $facts['is_shop'] ) || $is_tax;
 	}
 
 	/**

@@ -1043,7 +1043,7 @@ class Shift64_Woo_Search_Query {
 	 * @param int                  $paged             1-based page number.
 	 * @param string               $sort_by           Optional SORTBY clause, e.g. 'price ASC'. Null = natural order.
 	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
-	 * @return array ['ids' => int[], 'total' => int]. Empty/zero on Redis failure.
+	 * @return array{ids:int[],total:int,ok:bool} Result and command status.
 	 */
 	public function search_by_filters( $scope_filters, $user_filters, $per_page, $paged, $sort_by = null, $visibility_policy = null ) {
 		$all_filters = array_merge( (array) $scope_filters, (array) $user_filters );
@@ -1093,6 +1093,7 @@ class Shift64_Woo_Search_Query {
 			return array(
 				'ids'   => array(),
 				'total' => 0,
+				'ok'    => false,
 			);
 		}
 
@@ -1111,6 +1112,7 @@ class Shift64_Woo_Search_Query {
 		return array(
 			'ids'   => $ids,
 			'total' => $total,
+			'ok'    => true,
 		);
 	}
 
@@ -1127,7 +1129,7 @@ class Shift64_Woo_Search_Query {
 	 * @param int                  $paged Current page.
 	 * @param string|null          $sort_by Optional Redis sort clause.
 	 * @param string|string[]|null $visibility_policy Visibility context.
-	 * @return array{ids:int[],total:int}
+	 * @return array{ids:int[],total:int,ok:bool}
 	 */
 	public function search_catalog( $query, array $filters, $per_page, $paged, $sort_by = null, $visibility_policy = 'search' ) {
 		$sanitized = $this->sanitize_query( $query );
@@ -1136,6 +1138,7 @@ class Shift64_Woo_Search_Query {
 			return array(
 				'ids'   => array(),
 				'total' => 0,
+				'ok'    => true,
 			);
 		}
 
@@ -1159,6 +1162,9 @@ class Shift64_Woo_Search_Query {
 
 		foreach ( $queries as $ft_query ) {
 			$result = $this->execute_catalog_query( $ft_query, $offset, $per_page, $sort_by );
+			if ( empty( $result['ok'] ) ) {
+				return $result;
+			}
 			if ( $result['total'] > 0 ) {
 				return $result;
 			}
@@ -1167,6 +1173,7 @@ class Shift64_Woo_Search_Query {
 		return array(
 			'ids'   => array(),
 			'total' => 0,
+			'ok'    => true,
 		);
 	}
 
@@ -1177,7 +1184,7 @@ class Shift64_Woo_Search_Query {
 	 * @param int         $offset Offset.
 	 * @param int         $limit Page size.
 	 * @param string|null $sort_by Sort clause.
-	 * @return array{ids:int[],total:int}
+	 * @return array{ids:int[],total:int,ok:bool}
 	 */
 	private function execute_catalog_query( $ft_query, $offset, $limit, $sort_by ) {
 		$args = array( 'FT.SEARCH', $this->redis->get_index_name(), $ft_query );
@@ -1200,6 +1207,7 @@ class Shift64_Woo_Search_Query {
 			return array(
 				'ids'   => array(),
 				'total' => 0,
+				'ok'    => false,
 			);
 		}
 
@@ -1219,6 +1227,7 @@ class Shift64_Woo_Search_Query {
 		return array(
 			'ids'   => $ids,
 			'total' => $total,
+			'ok'    => true,
 		);
 	}
 

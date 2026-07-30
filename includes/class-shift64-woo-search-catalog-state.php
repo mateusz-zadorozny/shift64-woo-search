@@ -179,10 +179,11 @@ final class Shift64_Woo_Search_Catalog_State {
 	 * @return array<string,string> Taxonomy => Redis filter key.
 	 */
 	private static function filter_taxonomies() {
-		$taxonomies = array(
-			'product_cat' => 'category',
-		);
-		if ( taxonomy_exists( 'product_brand' ) ) {
+		$taxonomies = array();
+		if ( 'yes' === get_option( 'shift64_woo_search_filter_categories_enabled', 'yes' ) ) {
+			$taxonomies['product_cat'] = 'category';
+		}
+		if ( 'yes' === get_option( 'shift64_woo_search_filter_brands_enabled', 'no' ) && taxonomy_exists( 'product_brand' ) ) {
 			$taxonomies['product_brand'] = 'brand';
 		}
 		foreach ( Shift64_Woo_Search_Schema::get_filter_attributes() as $taxonomy ) {
@@ -233,8 +234,10 @@ final class Shift64_Woo_Search_Catalog_State {
 			$page_keys[] = 'query-' . absint( $query_id ) . '-page';
 		}
 		if ( $resets_page ) {
-			foreach ( $page_keys as $page_key ) {
-				unset( $query[ $page_key ] );
+			foreach ( array_keys( $query ) as $query_key ) {
+				if ( in_array( $query_key, $page_keys, true ) || preg_match( '/^query-\d+-page$/', $query_key ) ) {
+					unset( $query[ $query_key ] );
+				}
 			}
 			if ( ! empty( $parts['path'] ) ) {
 				$parts['path'] = preg_replace( '#/page/\d+/?$#', '/', $parts['path'] );
@@ -251,7 +254,8 @@ final class Shift64_Woo_Search_Catalog_State {
 		$port   = isset( $parts['port'] ) ? ':' . $parts['port'] : '';
 		$path   = $parts['path'] ?? '/';
 		$url    = $scheme . $host . $port . $path;
-		return empty( $query ) ? $url : add_query_arg( $query, $url );
+		$url    = empty( $query ) ? $url : add_query_arg( $query, $url );
+		return isset( $parts['fragment'] ) ? $url . '#' . $parts['fragment'] : $url;
 	}
 
 	/**

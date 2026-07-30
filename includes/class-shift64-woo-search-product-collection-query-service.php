@@ -43,6 +43,10 @@ class Shift64_Woo_Search_Product_Collection_Query_Service {
 			return $this->fallback( $context, $state );
 		}
 
+		if ( ! in_array( $state->get_sort(), array( 'relevance', 'price', 'price-desc' ), true ) ) {
+			return $this->fallback( $context, $state );
+		}
+
 		$query = $this->search_query ?? new Shift64_Woo_Search_Query( $redis );
 		$scope = array();
 		$map   = Shift64_Woo_Search_Taxonomy_Archive::get_scope_map();
@@ -79,7 +83,7 @@ class Shift64_Woo_Search_Product_Collection_Query_Service {
 			$terms  = null;
 		}
 
-		if ( ! is_array( $result ) || ! isset( $result['ids'], $result['total'] ) ) {
+		if ( ! is_array( $result ) || ! isset( $result['ids'], $result['total'] ) || empty( $result['ok'] ) ) {
 			return $this->fallback( $context, $state );
 		}
 

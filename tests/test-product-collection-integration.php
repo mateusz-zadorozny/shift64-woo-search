@@ -109,6 +109,55 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Woo's inherited-query clone is bridged into the public query filter.
+	 */
+	public function test_scoped_context_bridge_preserves_inherited_eligibility() {
+		$this->go_to( '/?s=series&post_type=product' );
+		$adapter = new Shift64_Woo_Search_Product_Collection_Query();
+		$context = array(
+			'queryId' => 7,
+			'query'   => array(
+				'isProductCollectionBlock' => true,
+				'inherit'                  => true,
+				'postType'                 => 'product',
+				'perPage'                  => 12,
+			),
+		);
+
+		$scoped = $adapter->scope_inherited_query_context(
+			$context,
+			array( 'blockName' => 'woocommerce/product-template' )
+		);
+
+		$this->assertFalse( $scoped['query']['inherit'] );
+		$this->assertTrue( $scoped['query'][ Shift64_Woo_Search_Product_Collection_Context::SCOPED_INHERIT_MARKER ] );
+
+		$block          = $this->product_collection_block( false, 7, 'woocommerce/product-template' );
+		$block->context = $scoped;
+		$resolved       = Shift64_Woo_Search_Product_Collection_Context::from_block(
+			array(
+				'post_type'      => 'product',
+				'posts_per_page' => 12,
+				's'              => 'series',
+			),
+			$block,
+			1,
+			array(
+				'is_admin'          => false,
+				'is_rest'           => false,
+				'is_feed'           => false,
+				'is_product_search' => true,
+				'is_shop'           => false,
+				'taxonomy'          => '',
+				'taxonomy_enabled'  => false,
+				'search_term'       => 'series',
+			)
+		);
+
+		$this->assertInstanceOf( Shift64_Woo_Search_Product_Collection_Context::class, $resolved );
+	}
+
+	/**
 	 * Standalone or REST Product Collections keep native WooCommerce queries.
 	 */
 	public function test_context_rejects_ineligible_collection() {
@@ -184,15 +233,40 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function test_canonical_url_resets_paging_and_preserves_safe_parameters() {
 		$url = Shift64_Woo_Search_Catalog_State::build_url(
-			'https://example.test/shop/page/4/?query-7-page=4&paged=4&utm_source=test&_wpnonce=secret',
+			'https://example.test/shop/page/4/?query-7-page=4&query-99-page=2&paged=4&utm_source=test&_wpnonce=secret#products',
 			array( 'orderby' => 'price' ),
 			7
 		);
 
 		$this->assertSame(
-			'https://example.test/shop/?orderby=price&utm_source=test',
+			'https://example.test/shop/?orderby=price&utm_source=test#products',
 			$url
 		);
+	}
+
+	/**
+	 * Disabled facet taxonomies cannot be smuggled into Redis state.
+	 */
+	public function test_catalog_state_drops_disabled_facets() {
+		update_option( 'shift64_woo_search_filter_categories_enabled', 'no' );
+		$term = $this->factory->term->create_and_get(
+			array(
+				'taxonomy' => 'product_cat',
+				'name'     => 'Skin Care',
+				'slug'     => 'skin-care',
+			)
+		);
+		$this->assertInstanceOf( WP_Term::class, $term );
+
+		$context = new Shift64_Woo_Search_Product_Collection_Context( 7, 'pc-7-test', 1, 12, '', '', '', null );
+		$state   = Shift64_Woo_Search_Catalog_State::from_request(
+			$context,
+			array( 'filter_product_cat' => 'skin-care' ),
+			'/shop/'
+		);
+
+		$this->assertSame( array(), $state->get_selected_filters() );
+		$this->assertSame( array(), $state->get_redis_filters() );
 	}
 
 	/**
@@ -344,8 +418,55 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 
 		$this->assertSame( array( 13 ), $result['ids'] );
 		$this->assertSame( 25, $result['total'] );
+		$this->assertTrue( $result['ok'] );
 		$this->assertSame( '12', (string) $captured[ array_search( 'LIMIT', $captured, true ) + 1 ] );
 		$this->assertSame( 'price', $captured[ array_search( 'SORTBY', $captured, true ) + 1 ] );
 		$this->assertStringContainsString( '-@visibility:{hidden|catalog}', $captured[2] );
+	}
+
+	/**
+	 * A failed Redis command is not mistaken for a legitimate empty result.
+	 */
+	public function test_query_service_uses_native_fallback_when_redis_command_fails() {
+		$redis = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$redis->method( 'get_index_name' )->willReturn( 'shift64_woo_search_product_idx' );
+		$redis->method( 'raw_command' )->willReturn( false );
+
+		$service = new Shift64_Woo_Search_Product_Collection_Query_Service( new Shift64_Woo_Search_Query( $redis ) );
+		$context = new Shift64_Woo_Search_Product_Collection_Context( 7, 'pc-7-test', 1, 12, 'series', '', '', 'search' );
+		$state   = Shift64_Woo_Search_Catalog_State::from_request(
+			$context,
+			array(
+				's'         => 'series',
+				'post_type' => 'product',
+			),
+			'/'
+		);
+		$result  = $service->execute( $context, $state );
+
+		$this->assertSame( Shift64_Woo_Search_Product_Collection_Result::STATUS_NATIVE_FALLBACK, $result->get_status() );
+	}
+
+	/**
+	 * Sort modes not yet owned by Redis remain native WooCommerce queries.
+	 */
+	public function test_query_service_preserves_native_sort_modes() {
+		$redis = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$query = new Shift64_Woo_Search_Query( $redis );
+
+		$service = new Shift64_Woo_Search_Product_Collection_Query_Service( $query );
+		$context = new Shift64_Woo_Search_Product_Collection_Context( 7, 'pc-7-test', 1, 12, '', '', '', null );
+		$state   = Shift64_Woo_Search_Catalog_State::from_request(
+			$context,
+			array( 'orderby' => 'date' ),
+			'/shop/'
+		);
+		$result  = $service->execute( $context, $state );
+
+		$this->assertSame( Shift64_Woo_Search_Product_Collection_Result::STATUS_NATIVE_FALLBACK, $result->get_status() );
 	}
 }

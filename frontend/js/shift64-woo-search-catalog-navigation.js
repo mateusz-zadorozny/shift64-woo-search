@@ -61,6 +61,9 @@ export function buildCatalogUrl(source, changes, queryId = null) {
 
 	if (resetsPage) {
 		pagingKeys(queryId).forEach((key) => url.searchParams.delete(key));
+		[...url.searchParams.keys()]
+			.filter((key) => /^query-\d+-page$/.test(key))
+			.forEach((key) => url.searchParams.delete(key));
 		url.pathname = url.pathname.replace(/\/page\/\d+\/?$/, '/');
 	} else if (Object.prototype.hasOwnProperty.call(changes, 'page')) {
 		url.searchParams.delete('page');

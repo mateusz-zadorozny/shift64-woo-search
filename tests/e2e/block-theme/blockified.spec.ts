@@ -49,7 +49,7 @@ import { SEL } from '../helpers/search';
 // catalog; see the comment in specs/search-results-page.spec.ts.
 const BROAD_QUERY = '/?s=series&post_type=product';
 const EMPTY_QUERY = '/?s=shift64-no-product-can-match-this-query&post_type=product';
-const PAGE_2 = /\/page\/2\/|[?&]paged=2/;
+const PAGE_2 = /\/page\/2\/|[?&](?:paged|query-page|query-\d+-page)=2/;
 
 const MU_FIXTURE = 'shift64-e2e-force-page-reload.php';
 
@@ -143,11 +143,15 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 		await page.goto(page2Href!);
 
 		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
-		const firstTitle = await productCards(page).first().innerText();
+		const firstProductHref = await productCards(page).first().locator('a').first().getAttribute('href');
+		expect(firstProductHref).toBeTruthy();
 
 		await page.reload();
 		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
-		await expect(productCards(page).first()).toHaveText(firstTitle);
+		await expect(productCards(page).first().locator('a').first()).toHaveAttribute(
+			'href',
+			firstProductHref!
+		);
 	});
 
 	test('an empty Redis membership lets Product Collection render its no-results surface', async ({

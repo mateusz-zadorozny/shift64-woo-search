@@ -88,3 +88,13 @@ PR: #51
 - [x] 2.2 Add shared canonical URL and navigation utilities — be02cc5
 - [x] 2.3 Extend block-theme navigation and ownership coverage — be02cc5
 - [x] 2.4 Document the supported Site Editor template contract and mark the spec implemented — ae1f10c
+
+## Post-review fixes
+
+- Route inherited Product Collection query consumers through a scoped child
+  context because WooCommerce otherwise clones the already-executed main query
+  and bypasses `query_loop_block_query_vars`.
+- Distinguish Redis command failure from a legitimate zero-result response so
+  the adapter preserves native WooCommerce fallback behavior.
+- Keep unimplemented Woo/third-party sort modes native, reject disabled facet
+  taxonomies, and reset every query-ID paging parameter in canonical URLs.
