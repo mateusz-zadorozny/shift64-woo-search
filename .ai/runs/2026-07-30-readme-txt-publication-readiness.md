@@ -92,4 +92,5 @@ PR: #50
 - [x] 1.3 Refresh the Description against the audit table — c2038da
 - [x] 1.4 Add Upgrade Notice and de-version the Redis FAQ answer — c2038da
 - [x] 1.5 Add External services and verify build-release.sh — c2038da (build check: `bash build-release.sh 0.12.3` left the tree clean, `Stable tag: 0.12.3` intact, and the ZIP's `readme.txt` carried the new sections; ZIP deleted)
+- [x] Post-review fix: state that the storefront debug panel is visible to shop managers only, not shoppers — 5de1868
 - [x] 1.6 Flip the spec Status and index row, run the full validation gate — 76fa491 (composer validate ✅, phpcs ✅ 8/8, phpunit ✅ 536 tests / 7860 assertions)
