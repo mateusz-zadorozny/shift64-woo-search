@@ -1115,6 +1115,114 @@ class Shift64_Woo_Search_Query {
 	}
 
 	/**
+	 * Execute a paginated text query for a Product Collection.
+	 *
+	 * This is the rendering-neutral counterpart to the legacy archive
+	 * interceptor. It returns only membership and total count, leaving
+	 * WooCommerce to load and render products.
+	 *
+	 * @param string               $query Search text.
+	 * @param array                $filters Validated Redis filters.
+	 * @param int                  $per_page Products per page.
+	 * @param int                  $paged Current page.
+	 * @param string|null          $sort_by Optional Redis sort clause.
+	 * @param string|string[]|null $visibility_policy Visibility context.
+	 * @return array{ids:int[],total:int}
+	 */
+	public function search_catalog( $query, array $filters, $per_page, $paged, $sort_by = null, $visibility_policy = 'search' ) {
+		$sanitized = $this->sanitize_query( $query );
+		$terms     = $this->get_search_terms( $sanitized );
+		if ( empty( $terms ) || mb_strlen( $sanitized ) < $this->config['min_query_length'] ) {
+			return array(
+				'ids'   => array(),
+				'total' => 0,
+			);
+		}
+
+		$per_page = max( 1, (int) $per_page );
+		$paged    = max( 1, (int) $paged );
+		$offset   = ( $paged - 1 ) * $per_page;
+		$queries  = array( $this->build_strict_query( $terms, $filters, null, $visibility_policy ) );
+
+		if ( ! empty( $this->config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
+			$reduced = $this->reduce_tokens( $terms );
+			if ( ! empty( $reduced ) && count( $reduced ) < count( $terms ) ) {
+				$queries[] = $this->build_strict_query( $reduced, $filters, null, $visibility_policy );
+			}
+		}
+		if ( 'AND' === strtoupper( $this->config['logic'] ) ) {
+			$queries[] = $this->build_strict_query( $terms, $filters, 'OR', $visibility_policy );
+		}
+		if ( 'strict_first' === ( $this->config['strategy'] ?? 'strict_first' ) ) {
+			$queries[] = $this->build_fuzzy_query( $terms, $filters, null, $visibility_policy );
+		}
+
+		foreach ( $queries as $ft_query ) {
+			$result = $this->execute_catalog_query( $ft_query, $offset, $per_page, $sort_by );
+			if ( $result['total'] > 0 ) {
+				return $result;
+			}
+		}
+
+		return array(
+			'ids'   => array(),
+			'total' => 0,
+		);
+	}
+
+	/**
+	 * Execute one lightweight FT.SEARCH catalog pass.
+	 *
+	 * @param string      $ft_query RediSearch query.
+	 * @param int         $offset Offset.
+	 * @param int         $limit Page size.
+	 * @param string|null $sort_by Sort clause.
+	 * @return array{ids:int[],total:int}
+	 */
+	private function execute_catalog_query( $ft_query, $offset, $limit, $sort_by ) {
+		$args = array( 'FT.SEARCH', $this->redis->get_index_name(), $ft_query );
+		if ( is_string( $sort_by ) && preg_match( '/^(price) (ASC|DESC)$/', $sort_by, $matches ) ) {
+			$args[] = 'SORTBY';
+			$args[] = $matches[1];
+			$args[] = $matches[2];
+		}
+		$args[] = 'LIMIT';
+		$args[] = (string) $offset;
+		$args[] = (string) $limit;
+		$args[] = 'RETURN';
+		$args[] = '1';
+		$args[] = 'post_id';
+		$args[] = 'DIALECT';
+		$args[] = '2';
+
+		$raw = $this->redis->raw_command( ...$args );
+		if ( false === $raw || ! is_array( $raw ) || empty( $raw ) ) {
+			return array(
+				'ids'   => array(),
+				'total' => 0,
+			);
+		}
+
+		$total = max( 0, (int) array_shift( $raw ) );
+		$ids   = array();
+		$count = count( $raw );
+		for ( $i = 0; $i < $count; $i += 2 ) {
+			$fields = $raw[ $i + 1 ] ?? array();
+			if ( is_array( $fields ) && isset( $fields[1] ) ) {
+				$id = absint( $fields[1] );
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
+			}
+		}
+
+		return array(
+			'ids'   => $ids,
+			'total' => $total,
+		);
+	}
+
+	/**
 	 * Determine whether the current results should trigger a fallback to the next pass.
 	 *
 	 * 'no_results' — fallback only when results are empty.

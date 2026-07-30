@@ -48,6 +48,7 @@ import { SEL } from '../helpers/search';
 // journeys use. "series" (not "clothing") is what spans the whole multi-vertical
 // catalog; see the comment in specs/search-results-page.spec.ts.
 const BROAD_QUERY = '/?s=series&post_type=product';
+const EMPTY_QUERY = '/?s=shift64-no-product-can-match-this-query&post_type=product';
 const PAGE_2 = /\/page\/2\/|[?&]paged=2/;
 
 const MU_FIXTURE = 'shift64-e2e-force-page-reload.php';
@@ -133,9 +134,39 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 		expect(noFullReload).toBe(true);
 	});
 
-	// OWNERSHIP (expected to fail until #20). WooCommerce owns this click, so
-	// the target page must be fetched exactly once. Today the plugin's
-	// delegated handler fetches it as well, so the browser issues two.
+	test('direct page links and browser refresh preserve Redis membership', async ({ page }) => {
+		await page.goto(BROAD_QUERY);
+		await expect(productCards(page).first()).toBeVisible();
+
+		const page2Href = await page.locator('a.page-numbers', { hasText: '2' }).first().getAttribute('href');
+		expect(page2Href).toBeTruthy();
+		await page.goto(page2Href!);
+
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+		const firstTitle = await productCards(page).first().innerText();
+
+		await page.reload();
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+		await expect(productCards(page).first()).toHaveText(firstTitle);
+	});
+
+	test('an empty Redis membership lets Product Collection render its no-results surface', async ({
+		page,
+	}) => {
+		await page.goto(EMPTY_QUERY);
+
+		await expect(productCards(page)).toHaveCount(0);
+		await expect(
+			page
+				.locator(
+					'.wp-block-woocommerce-product-collection-no-results, .woocommerce-info'
+				)
+				.first()
+		).toBeVisible();
+	});
+
+	// WooCommerce owns this click, so the target page must be fetched exactly
+	// once. A plugin-side swap here would duplicate both network and history.
 	test('fetches the target page exactly once — no duplicate plugin swap', async ({ page }) => {
 		await page.goto(BROAD_QUERY);
 		await expect(productCards(page).first()).toBeVisible();
@@ -149,11 +180,9 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 		expect(requests.total()).toBe(1);
 	});
 
-	// OWNERSHIP (expected to fail until #20). Back/forward is the user-visible
-	// cost of dual ownership: the plugin pushes its own history entry and Woo
-	// pushes another, so ONE click stacks TWO entries and the user has to press
-	// Back twice to leave page 2.
-	test('one click creates one history entry, and Back returns to page 1', async ({ page }) => {
+	test('one click creates one history entry, and Back/Forward restore server state', async ({
+		page,
+	}) => {
 		await page.goto(BROAD_QUERY);
 		await expect(productCards(page).first()).toBeVisible();
 
@@ -168,6 +197,11 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 
 		await page.goBack();
 		await expect(page).not.toHaveURL(PAGE_2);
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('1');
+
+		await page.goForward();
+		await expect(page).toHaveURL(PAGE_2);
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
 	});
 });
 
