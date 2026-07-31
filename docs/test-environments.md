@@ -36,7 +36,8 @@ That is the whole setup. When it returns, the launcher has:
 Expected time-to-ready: ~2–4 minutes cold (network downloads dominate),
 seconds on a healthy reuse.
 
-Flags: `--no-validate` (skip the background gate), `--force` (restart even if
+Flags: `--allow-degraded` (accept a searchless storefront when phpredis
+cannot be installed), `--no-validate` (skip the background gate), `--force` (restart even if
 healthy), `--fresh` (wipe and rebuild everything, new database and catalog).
 
 ## Status, logs, and validation progress
@@ -86,10 +87,15 @@ worktrees run fully disjoint environments concurrently.
 
 ## Degradations (recorded, never silent)
 
-- **phpredis missing from the selected PHP** — the storefront still
-  provisions (`SKIP_REDIS_WIRING=1` path in `bin/e2e-provision.sh`); search
-  falls back to native WooCommerce search; the descriptor `notes` say so.
-  PHPUnit is unaffected.
+- **phpredis missing from the selected PHP** — `up` first tries to fix it
+  itself: it prefers an installed PHP that already has the extension, and
+  otherwise runs a non-interactive `pecl install redis` (log:
+  `.ai/qa/logs/pecl-redis-<runId>.log`). Only when that fails — and only
+  with the explicit `--allow-degraded` flag — does it provision a searchless
+  storefront (`SKIP_REDIS_WIRING=1` path in `bin/e2e-provision.sh`, native
+  WooCommerce search fallback, a loud banner plus descriptor `notes`).
+  Without the flag, a failed install stops `up` with exit 2 and the fix
+  named. PHPUnit is unaffected either way.
 - **No dedicated Redis possible** (no usable binary, no Docker) — the
   launcher attaches to a shared RediSearch-capable instance
   (`TEST_ENV_SHARED_REDIS`, default `127.0.0.1:6379`) with a run-scoped key
