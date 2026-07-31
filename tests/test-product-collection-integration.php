@@ -113,7 +113,30 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function test_scoped_context_bridge_preserves_inherited_eligibility() {
 		$this->go_to( '/?s=series&post_type=product' );
-		$adapter = new Shift64_Woo_Search_Product_Collection_Query();
+		$service = new class() extends Shift64_Woo_Search_Product_Collection_Query_Service {
+			/**
+			 * Number of query executions.
+			 *
+			 * @var int
+			 */
+			public $calls = 0;
+
+			public function execute( Shift64_Woo_Search_Product_Collection_Context $context, Shift64_Woo_Search_Catalog_State $state ) {
+				++$this->calls;
+				return new Shift64_Woo_Search_Product_Collection_Result(
+					$context->get_request_key(),
+					array( 11 ),
+					1,
+					$state->get_page(),
+					$context->get_per_page(),
+					$state->get_sort(),
+					array(),
+					array(),
+					Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS
+				);
+			}
+		};
+		$adapter = new Shift64_Woo_Search_Product_Collection_Query( $service );
 		$context = array(
 			'queryId' => 7,
 			'query'   => array(
@@ -131,6 +154,7 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 
 		$this->assertFalse( $scoped['query']['inherit'] );
 		$this->assertTrue( $scoped['query'][ Shift64_Woo_Search_Product_Collection_Context::SCOPED_INHERIT_MARKER ] );
+		$this->assertSame( 1, $service->calls );
 
 		$block          = $this->product_collection_block( false, 7, 'woocommerce/product-template' );
 		$block->context = $scoped;
@@ -155,6 +179,195 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 		);
 
 		$this->assertInstanceOf( Shift64_Woo_Search_Product_Collection_Context::class, $resolved );
+	}
+
+	/**
+	 * A runtime Redis fallback keeps WooCommerce's inherited query path.
+	 */
+	public function test_scoped_context_bridge_preserves_native_runtime_fallback() {
+		$this->go_to( '/?s=series&post_type=product' );
+		$service = new class() extends Shift64_Woo_Search_Product_Collection_Query_Service {
+			public function execute( Shift64_Woo_Search_Product_Collection_Context $context, Shift64_Woo_Search_Catalog_State $state ) {
+				return new Shift64_Woo_Search_Product_Collection_Result(
+					$context->get_request_key(),
+					array(),
+					0,
+					$state->get_page(),
+					$context->get_per_page(),
+					$state->get_sort(),
+					array(),
+					array(),
+					Shift64_Woo_Search_Product_Collection_Result::STATUS_NATIVE_FALLBACK
+				);
+			}
+		};
+		$adapter = new Shift64_Woo_Search_Product_Collection_Query( $service );
+		$context = array(
+			'queryId' => 7,
+			'query'   => array(
+				'isProductCollectionBlock' => true,
+				'inherit'                  => true,
+				'postType'                 => 'product',
+				'perPage'                  => 12,
+			),
+		);
+
+		$this->assertSame(
+			$context,
+			$adapter->scope_inherited_query_context(
+				$context,
+				array( 'blockName' => 'woocommerce/product-template' )
+			)
+		);
+	}
+
+	/**
+	 * The early Redis query uses Product Collection's request-specific page.
+	 */
+	public function test_scoped_context_bridge_prepares_the_requested_query_page() {
+		$this->go_to( '/?s=series&post_type=product&query-7-page=2' );
+		$_GET['query-7-page'] = '2';
+		$service              = new class() extends Shift64_Woo_Search_Product_Collection_Query_Service {
+			/**
+			 * Requested page seen by the service.
+			 *
+			 * @var int|null
+			 */
+			public $page;
+
+			public function execute( Shift64_Woo_Search_Product_Collection_Context $context, Shift64_Woo_Search_Catalog_State $state ) {
+				$this->page = $context->get_page();
+				return new Shift64_Woo_Search_Product_Collection_Result(
+					$context->get_request_key(),
+					array( 11 ),
+					1,
+					$state->get_page(),
+					$context->get_per_page(),
+					$state->get_sort(),
+					array(),
+					array(),
+					Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS
+				);
+			}
+		};
+		$adapter              = new Shift64_Woo_Search_Product_Collection_Query( $service );
+		$context              = array(
+			'queryId' => 7,
+			'query'   => array(
+				'isProductCollectionBlock' => true,
+				'inherit'                  => true,
+				'postType'                 => 'product',
+				'perPage'                  => 12,
+			),
+		);
+
+		try {
+			$adapter->scope_inherited_query_context(
+				$context,
+				array( 'blockName' => 'woocommerce/product-template' )
+			);
+
+			$this->assertSame( 2, $service->page );
+		} finally {
+			unset( $_GET['query-7-page'] );
+		}
+	}
+
+	/**
+	 * Unrelated blocks do not pay archive-option or request-resolution cost.
+	 */
+	public function test_scoped_context_bridge_skips_hot_path_work_for_unrelated_blocks() {
+		$this->go_to( '/?s=series&post_type=product' );
+		$option_reads = 0;
+		$filter       = static function ( $value ) use ( &$option_reads ) {
+			++$option_reads;
+			return $value;
+		};
+		add_filter( 'pre_option_shift64_woo_search_archive_enabled', $filter );
+
+		try {
+			$adapter = new Shift64_Woo_Search_Product_Collection_Query();
+			$context = array( 'query' => array() );
+			$this->assertSame(
+				$context,
+				$adapter->scope_inherited_query_context(
+					$context,
+					array( 'blockName' => 'core/paragraph' )
+				)
+			);
+			$this->assertSame( 0, $option_reads );
+		} finally {
+			remove_filter( 'pre_option_shift64_woo_search_archive_enabled', $filter );
+		}
+	}
+
+	/**
+	 * Relevant sibling consumers share one eligibility check and Redis result.
+	 */
+	public function test_scoped_context_bridge_caches_request_work_across_consumers() {
+		$this->go_to( '/?s=series&post_type=product' );
+		$service = new class() extends Shift64_Woo_Search_Product_Collection_Query_Service {
+			/**
+			 * Number of query executions.
+			 *
+			 * @var int
+			 */
+			public $calls = 0;
+
+			public function execute( Shift64_Woo_Search_Product_Collection_Context $context, Shift64_Woo_Search_Catalog_State $state ) {
+				++$this->calls;
+				return new Shift64_Woo_Search_Product_Collection_Result(
+					$context->get_request_key(),
+					array( 11 ),
+					1,
+					$state->get_page(),
+					$context->get_per_page(),
+					$state->get_sort(),
+					array(),
+					array(),
+					Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS
+				);
+			}
+		};
+		$adapter = new Shift64_Woo_Search_Product_Collection_Query( $service );
+		$context = array(
+			'queryId' => 7,
+			'query'   => array(
+				'isProductCollectionBlock' => true,
+				'inherit'                  => true,
+				'postType'                 => 'product',
+				'perPage'                  => 12,
+			),
+		);
+
+		$option_reads = 0;
+		$filter       = static function ( $value ) use ( &$option_reads ) {
+			++$option_reads;
+			return $value;
+		};
+		add_filter( 'pre_option_shift64_woo_search_archive_enabled', $filter );
+
+		try {
+			$template = $adapter->scope_inherited_query_context(
+				$context,
+				array( 'blockName' => 'woocommerce/product-template' )
+			);
+			$numbers  = $adapter->scope_inherited_query_context(
+				$context,
+				array( 'blockName' => 'core/query-pagination-numbers' )
+			);
+
+			$this->assertFalse( $template['query']['inherit'] );
+			$this->assertFalse( $numbers['query']['inherit'] );
+			$this->assertSame(
+				$template['query'][ Shift64_Woo_Search_Product_Collection_Context::SCOPED_RESULT_KEY ],
+				$numbers['query'][ Shift64_Woo_Search_Product_Collection_Context::SCOPED_RESULT_KEY ]
+			);
+			$this->assertSame( 1, $option_reads );
+			$this->assertSame( 1, $service->calls );
+		} finally {
+			remove_filter( 'pre_option_shift64_woo_search_archive_enabled', $filter );
+		}
 	}
 
 	/**

@@ -21,6 +21,11 @@ final class Shift64_Woo_Search_Product_Collection_Context {
 	const SCOPED_INHERIT_MARKER = 'shift64WooSearchInheritedProductCollection';
 
 	/**
+	 * Request key for a Redis result prepared before query construction.
+	 */
+	const SCOPED_RESULT_KEY = 'shift64WooSearchProductCollectionResultKey';
+
+	/**
 	 * Stable Product Collection query ID.
 	 *
 	 * @var int|null
@@ -138,7 +143,78 @@ final class Shift64_Woo_Search_Product_Collection_Context {
 			return null;
 		}
 
-		$facts = is_array( $request_context ) ? $request_context : self::current_request_context( $query_vars );
+		$facts       = is_array( $request_context ) ? $request_context : self::current_request_context( $query_vars );
+		$request_key = sanitize_key( $query[ self::SCOPED_RESULT_KEY ] ?? '' );
+		if ( '' === $request_key ) {
+			$query_id    = isset( $block->context['queryId'] ) ? absint( $block->context['queryId'] ) : null;
+			$instance    = function_exists( 'spl_object_id' ) ? spl_object_id( $block ) : 0;
+			$request_key = sprintf( 'pc-%s-%d', null === $query_id ? 'fallback' : $query_id, $instance );
+		}
+
+		return self::from_query_context(
+			$query_vars,
+			$query,
+			$block->context['queryId'] ?? null,
+			$page,
+			$facts,
+			$request_key
+		);
+	}
+
+	/**
+	 * Resolve context early enough to preserve native inherited fallback.
+	 *
+	 * @param array      $block_context   Product Collection block context.
+	 * @param string     $request_key     Request-scoped result key.
+	 * @param array|null $request_context Optional normalized request facts.
+	 * @return self|null
+	 */
+	public static function from_render_context( array $block_context, $request_key, $request_context = null ) {
+		$query = is_array( $block_context['query'] ?? null ) ? $block_context['query'] : array();
+		if (
+			true !== ( $query['isProductCollectionBlock'] ?? false )
+			|| true !== ( $query['inherit'] ?? false )
+		) {
+			return null;
+		}
+
+		$facts    = is_array( $request_context ) ? $request_context : self::current_request_context( array() );
+		$query_id = $block_context['queryId'] ?? null;
+		return self::from_query_context(
+			array(),
+			$query,
+			$query_id,
+			self::current_query_page( $query_id ),
+			$facts,
+			$request_key,
+			true
+		);
+	}
+
+	/**
+	 * Resolve Product Collection pagination before its child query is built.
+	 *
+	 * @param mixed $raw_query_id Product Collection query ID.
+	 * @return int
+	 */
+	private static function current_query_page( $raw_query_id ) {
+		$query_id = null === $raw_query_id ? null : absint( $raw_query_id );
+		return Shift64_Woo_Search_Catalog_State::requested_page( 1, null, null, $query_id );
+	}
+
+	/**
+	 * Build an eligible immutable context from normalized inputs.
+	 *
+	 * @param array  $query_vars Query variables.
+	 * @param array  $query Block query context.
+	 * @param mixed  $raw_query_id Product Collection query ID.
+	 * @param int    $page Query page.
+	 * @param array  $facts Normalized request facts.
+	 * @param string $request_key Request-scoped result key.
+	 * @param bool   $archive_enabled Whether the archive gate was already checked.
+	 * @return self|null
+	 */
+	private static function from_query_context( array $query_vars, array $query, $raw_query_id, $page, array $facts, $request_key, $archive_enabled = false ) {
 		if (
 			! empty( $facts['is_admin'] )
 			|| ! empty( $facts['is_rest'] )
@@ -155,13 +231,11 @@ final class Shift64_Woo_Search_Product_Collection_Context {
 			return null;
 		}
 
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
+		if ( ! $archive_enabled && 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
 			return null;
 		}
 
-		$query_id    = isset( $block->context['queryId'] ) ? absint( $block->context['queryId'] ) : null;
-		$instance    = function_exists( 'spl_object_id' ) ? spl_object_id( $block ) : 0;
-		$request_key = sprintf( 'pc-%s-%d', null === $query_id ? 'fallback' : $query_id, $instance );
+		$query_id    = null === $raw_query_id ? null : absint( $raw_query_id );
 		$per_page    = max( 1, (int) ( $query_vars['posts_per_page'] ?? $query['perPage'] ?? get_option( 'posts_per_page', 12 ) ) );
 		$search_term = $is_search ? sanitize_text_field( $facts['search_term'] ?? '' ) : '';
 

@@ -108,6 +108,16 @@ function countPluginTargetRequests(page: import('@playwright/test').Page): { tot
 	return { total: () => n };
 }
 
+function countTargetDocumentRequests(page: import('@playwright/test').Page): { total: () => number } {
+	let n = 0;
+	page.on('request', (req) => {
+		if (req.resourceType() === 'document' && PAGE_2.test(req.url())) {
+			n += 1;
+		}
+	});
+	return { total: () => n };
+}
+
 test.describe('block theme + enhanced pagination (WooCommerce owns navigation)', () => {
 	// The projection is only worth anything if the theme really renders
 	// blockified markup with the Interactivity API live. Without this guard, a
@@ -316,35 +326,28 @@ test.describe('block theme + forcePageReload (the browser owns navigation)', () 
 		await expect(page.locator('[data-wp-router-region^="wc-product-collection"]')).toHaveCount(0);
 	});
 
-	// OWNERSHIP. With forcePageReload the site has opted out of client-side
-	// navigation, so this plugin must not substitute its own AJAX swap. What it
-	// asserts is deliberately narrow — that the plugin adds no fetch of its own
-	// — rather than "a real page navigation happens".
-	//
-	// Why not the stronger assertion: WooCommerce gates the router region on
-	// $block['attrs'] but the pagination link directives on $this->parsed_block,
-	// which it captures in pre_render_block — BEFORE render_block_data, where
-	// the fixture sets the attribute. So the fixture can drop the router region
-	// but cannot stop the directives, and the resulting page still has Woo's
-	// navigate action bound with nothing to re-render.
-	//
-	// That is WooCommerce's behavior, not ours: with this plugin's pagination
-	// script blocked entirely, stock WooCommerce produces exactly the same
-	// result (URL advances to /page/2/, no reload, indicator stuck on "1").
-	// Asserting a full navigation here would test a WooCommerce bug and would
-	// fail for reasons this plugin cannot fix. See #20.
-	test('adds no AJAX interception of its own', async ({ page }) => {
+	test('uses one browser-owned document navigation and renders page 2', async ({ page }) => {
 		await page.goto(BROAD_QUERY);
-		await expect(productCards(page).first()).toBeVisible();
+		const cards = productCards(page);
+		await expect(cards.first()).toBeVisible();
+		const firstTitleBefore = await cards.first().innerText();
 
-		const requests = countPluginTargetRequests(page);
+		await page.evaluate(() => {
+			(window as unknown as Record<string, unknown>).__e2eNoReload = true;
+		});
+
+		const documentRequests = countTargetDocumentRequests(page);
+		const pluginRequests = countPluginTargetRequests(page);
 		await page.locator('a.page-numbers', { hasText: '2' }).first().click();
 		await expect(page).toHaveURL(PAGE_2);
-		// Give a stray plugin-issued fetch time to appear before counting.
-		await page.waitForTimeout(2000);
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+		await expect(productCards(page).first()).not.toHaveText(firstTitleBefore);
 
-		// WooCommerce may prefetch and navigate to the same URL. The plugin
-		// must not add its XMLHttpRequest-marked fetch to either request.
-		expect(requests.total()).toBe(0);
+		const survivedNavigation = await page.evaluate(
+			() => (window as unknown as Record<string, unknown>).__e2eNoReload === true
+		);
+		expect(survivedNavigation).not.toBe(true);
+		expect(documentRequests.total()).toBe(1);
+		expect(pluginRequests.total()).toBe(0);
 	});
 });

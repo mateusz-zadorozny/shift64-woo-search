@@ -24,6 +24,27 @@ class Shift64_Woo_Search_Product_Collection_Query {
 	private $service;
 
 	/**
+	 * Cached request-level eligibility.
+	 *
+	 * @var bool|null
+	 */
+	private $request_eligible;
+
+	/**
+	 * Results prepared before WooCommerce decides how to build child queries.
+	 *
+	 * @var array<string,Shift64_Woo_Search_Product_Collection_Result|null>
+	 */
+	private $prepared_results = array();
+
+	/**
+	 * Sequence for request-local result keys.
+	 *
+	 * @var int
+	 */
+	private $result_sequence = 0;
+
+	/**
 	 * Register public query hooks.
 	 *
 	 * @param Shift64_Woo_Search_Product_Collection_Query_Service|null $service Query service.
@@ -39,21 +60,23 @@ class Shift64_Woo_Search_Product_Collection_Query {
 	 * Route inherited Product Collection query consumers through a scoped query.
 	 *
 	 * WooCommerce clones the already-executed main query for inherited
-	 * collections. Changing only the child block context to non-inherited makes
-	 * its public query builder run, where the late adapter can constrain Redis
-	 * membership. The parsed block attributes and main query remain untouched.
+	 * collections. After a successful Redis query, changing only the child block
+	 * context to non-inherited makes its public query builder run, where the late
+	 * adapter can constrain Redis membership. A native-fallback result leaves the
+	 * inherited context untouched. The parsed block attributes and main query
+	 * remain untouched.
 	 *
 	 * @param array $context      Available block context.
 	 * @param array $parsed_block Parsed block.
 	 * @return array
 	 */
 	public function scope_inherited_query_context( $context, $parsed_block ) {
-		if (
-			! is_array( $context )
-			|| ! is_array( $parsed_block )
-			|| 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' )
-			|| ! Shift64_Woo_Search_Product_Collection_Context::is_current_archive_request()
-		) {
+		if ( ! is_array( $context ) || ! is_array( $parsed_block ) ) {
+			return $context;
+		}
+
+		$block_name = $parsed_block['blockName'] ?? '';
+		if ( ! self::is_query_consumer( $block_name ) ) {
 			return $context;
 		}
 
@@ -61,15 +84,73 @@ class Shift64_Woo_Search_Product_Collection_Query {
 		if (
 			true !== ( $query['isProductCollectionBlock'] ?? false )
 			|| true !== ( $query['inherit'] ?? false )
-			|| ! self::is_query_consumer( $parsed_block['blockName'] ?? '' )
+			|| ! $this->is_eligible_request()
+		) {
+			return $context;
+		}
+
+		$signature = $this->context_signature( $context );
+		if ( ! array_key_exists( $signature, $this->prepared_results ) ) {
+			$request_key = sprintf(
+				'pc-%s-scope-%d',
+				isset( $context['queryId'] ) ? absint( $context['queryId'] ) : 'fallback',
+				++$this->result_sequence
+			);
+			$resolved    = Shift64_Woo_Search_Product_Collection_Context::from_render_context( $context, $request_key );
+			if ( null === $resolved ) {
+				$this->prepared_results[ $signature ] = null;
+				return $context;
+			}
+
+			$state  = Shift64_Woo_Search_Catalog_State::from_request( $resolved );
+			$result = $this->service->execute( $resolved, $state );
+			Shift64_Woo_Search_Product_Collection_Results::set( $result );
+			$this->prepared_results[ $signature ] = $result;
+		}
+
+		$result = $this->prepared_results[ $signature ];
+		if (
+			! $result instanceof Shift64_Woo_Search_Product_Collection_Result
+			|| Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS !== $result->get_status()
 		) {
 			return $context;
 		}
 
 		$query[ Shift64_Woo_Search_Product_Collection_Context::SCOPED_INHERIT_MARKER ] = true;
+		$query[ Shift64_Woo_Search_Product_Collection_Context::SCOPED_RESULT_KEY ]     = $result->get_request_key();
 		$query['inherit'] = false;
 		$context['query'] = $query;
 		return $context;
+	}
+
+	/**
+	 * Resolve archive eligibility once per request.
+	 *
+	 * @return bool
+	 */
+	private function is_eligible_request() {
+		if ( null === $this->request_eligible ) {
+			$this->request_eligible = 'yes' === get_option( 'shift64_woo_search_archive_enabled', 'no' )
+				&& Shift64_Woo_Search_Product_Collection_Context::is_current_archive_request();
+		}
+		return $this->request_eligible;
+	}
+
+	/**
+	 * Build a stable key shared by one collection's query-consuming children.
+	 *
+	 * @param array $context Block context.
+	 * @return string
+	 */
+	private function context_signature( array $context ) {
+		return md5(
+			wp_json_encode(
+				array(
+					'queryId' => $context['queryId'] ?? null,
+					'query'   => $context['query'] ?? array(),
+				)
+			)
+		);
 	}
 
 	/**
@@ -111,9 +192,12 @@ class Shift64_Woo_Search_Product_Collection_Query {
 			return $query_vars;
 		}
 
-		$state  = Shift64_Woo_Search_Catalog_State::from_request( $context );
-		$result = $this->service->execute( $context, $state );
-		Shift64_Woo_Search_Product_Collection_Results::set( $result );
+		$result = Shift64_Woo_Search_Product_Collection_Results::get( $context->get_request_key() );
+		if ( null === $result ) {
+			$state  = Shift64_Woo_Search_Catalog_State::from_request( $context );
+			$result = $this->service->execute( $context, $state );
+			Shift64_Woo_Search_Product_Collection_Results::set( $result );
+		}
 
 		return self::apply_result( $query_vars, $result );
 	}
