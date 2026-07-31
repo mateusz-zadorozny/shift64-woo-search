@@ -1,3 +1,11 @@
+# [0.13.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.12.3...v0.13.0) (2026-07-31)
+
+
+### Features
+
+* **blocks:** integrate inherited Product Collection queries ([#51](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/51)) ([697cdef](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/697cdefdf3bfb234834013d15e14ff2ab1349419))
+* **tooling:** one-shot isolated worktree test environments ([#53](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/53)) ([#55](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/55)) ([4527807](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/4527807adb89f094e015f3567ba8c89489228cb9))
+
 ## [0.12.3](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.12.2...v0.12.3) (2026-07-30)
 
 
