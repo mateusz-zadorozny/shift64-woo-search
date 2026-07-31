@@ -33,8 +33,25 @@
     // emits, and is only ever used when a filter change has to rebuild a bar the
     // initial page render did not produce.
     var DEBUG_BAR_TITLE = 'Shift64 Archive Debug';
+    var HISTORY_STATE_KEY = 'shift64WooSearchCatalog';
 
     var isLoading = false;
+    var ownsCurrentHistoryEntry = isPluginHistoryState(window.history.state);
+
+    /**
+     * Whether a browser-history entry was created by this script's AJAX swap.
+     *
+     * Product Collection pagination writes its own router entries. Facet,
+     * ordering, and classic-pagination swaps are written here instead, so
+     * popstate must restore them here even when the visible grid lives inside
+     * a Product Collection.
+     *
+     * @param {*} state Browser history state.
+     * @return {boolean} True for a plugin-owned catalog entry.
+     */
+    function isPluginHistoryState(state) {
+        return Boolean(state && state[HISTORY_STATE_KEY] === true);
+    }
 
     /**
      * Pagination ownership (issue #20).
@@ -275,9 +292,23 @@
         });
 
         // Handle browser back/forward — only for search pages.
-        window.addEventListener('popstate', function () {
+        window.addEventListener('popstate', function (event) {
             var wrap = document.querySelector(SELECTORS.productWrap);
             if (!wrap) return;
+
+            var leftPluginEntry = ownsCurrentHistoryEntry;
+            var enteredPluginEntry = isPluginHistoryState(event.state);
+            ownsCurrentHistoryEntry = enteredPluginEntry;
+
+            // The destination state alone is insufficient on Back: the browser
+            // reports the entry being entered, while the stale DOM belongs to
+            // the plugin entry being left. Restore either side of a transition
+            // involving one of our AJAX swaps.
+            if (leftPluginEntry || enteredPluginEntry) {
+                loadPage(window.location.href, true);
+                return;
+            }
+
             // Same ownership rule as the click: when the grid lives inside a
             // Product Collection, that block restores its own state on
             // back/forward. Re-fetching here would duplicate its work.
@@ -705,7 +736,8 @@
 
                 // Update URL.
                 if (!skipPush) {
-                    history.pushState(null, '', url);
+                    history.pushState({ shift64WooSearchCatalog: true }, '', url);
+                    ownsCurrentHistoryEntry = true;
                 }
 
                 // Scroll to top of product grid.

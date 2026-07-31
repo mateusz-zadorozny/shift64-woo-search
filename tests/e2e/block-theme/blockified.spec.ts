@@ -194,6 +194,7 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 	test('facet changes reset Product Collection paging to page one', async ({ page }) => {
 		await page.goto(`${BROAD_QUERY}&query-0-page=2`);
 		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+		const page2FirstProduct = await productCards(page).first().innerText();
 
 		const amber = page
 			.locator(`${SEL.filterCheckbox}[data-taxonomy="pa_color"][data-slug="amber-musk"]`)
@@ -207,6 +208,19 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 
 		await expect(page).toHaveURL(/filter_pa_color=amber-musk/);
 		await expect(page).not.toHaveURL(/[?&](?:page|paged|query-page|query-\d+-page)=/);
+		await expect(productCards(page)).toHaveCount(1);
+		await expect(page.locator('.page-numbers.current')).toHaveCount(0);
+		await expect(page.locator('.woocommerce-breadcrumb').first()).not.toContainText('Page 2');
+
+		await page.goBack();
+		await expect(page).toHaveURL(/query-0-page=2/);
+		await expect(productCards(page)).toHaveCount(10);
+		await expect(productCards(page).first()).toContainText(page2FirstProduct);
+		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
+		await expect(page.locator('.woocommerce-breadcrumb').first()).toContainText('Page 2');
+
+		await page.goForward();
+		await expect(page).toHaveURL(/filter_pa_color=amber-musk/);
 		await expect(productCards(page)).toHaveCount(1);
 		await expect(page.locator('.page-numbers.current')).toHaveCount(0);
 		await expect(page.locator('.woocommerce-breadcrumb').first()).not.toContainText('Page 2');
