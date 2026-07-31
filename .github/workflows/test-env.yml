@@ -1,0 +1,41 @@
+# Clean-room verification of the one-shot test-environment launcher
+# (bin/test-env.sh, spec .ai/specs/2026-07-31-one-shot-worktree-test-env.md).
+#
+# Deliberately NOT part of the per-PR gate: the test provisions real MySQL,
+# Redis, and WordPress servers and takes several minutes. It runs on demand
+# and weekly so drift in the launcher or the upstream ecosystem surfaces
+# without taxing every PR.
+name: test-env
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+jobs:
+  clean-room:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, redis
+          tools: composer, wp-cli
+
+      - name: System dependencies (native-first backends)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y subversion redis-server jq
+          # ubuntu-latest preinstalls Oracle MySQL (mysqld on PATH, service
+          # stopped) — the launcher's --initialize-insecure path uses it;
+          # installing mariadb-server alongside would risk mixed-binary
+          # datadir initialization. The distro redis has no FT module, which
+          # deliberately exercises the launcher's Docker redis-stack fallback.
+          sudo systemctl stop redis-server || true
+          mysqld --version
+
+      - name: Clean-room launcher test
+        run: bash tests/env/test-env-launcher.sh
