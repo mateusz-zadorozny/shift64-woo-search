@@ -9,10 +9,6 @@ The source code, comments, user-facing source strings, and maintained documentat
 ## Commands
 
 ```bash
-bin/test-env.sh up      # one-shot isolated QA + PHPUnit env for this worktree (docs/test-environments.md)
-bin/test-env.sh status  # truthful health + background-validation state
-bin/test-env.sh down    # stop exactly what `up` started
-
 composer install
 vendor/bin/phpunit
 vendor/bin/phpcs

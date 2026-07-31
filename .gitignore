@@ -20,6 +20,3 @@ blob-report/
 # Agent pipeline: generated per run, not source.
 .ai/qa/artifacts_*/
 .ai/qa/test-env.json
-.ai/qa/validation-status.json
-.ai/qa/logs/
-.ai/qa/bin/
