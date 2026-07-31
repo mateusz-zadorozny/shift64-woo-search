@@ -25,6 +25,7 @@ and PRs.
 | [Composable Search Blocks](2026-07-30-composable-search-blocks.md) | 🚧 draft | depends on Product Collection integration for result navigation |
 | [Product Filter and Filter Pill Blocks](2026-07-30-product-filter-pill-blocks.md) | 🚧 draft | depends on Product Collection integration |
 | [Block Theme-Only Legacy Surface Removal](2026-07-30-block-theme-only-legacy-removal.md) | 🚧 draft | final cleanup after all block-native specs |
+| [One-Shot Isolated Worktree Test Environments](2026-07-31-one-shot-worktree-test-env.md) | 🚧 draft | issue #53 — implementation on PR #56 |
 
 ## Recommended implementation flow
 
