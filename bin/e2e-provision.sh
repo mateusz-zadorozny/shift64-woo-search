@@ -11,6 +11,11 @@
 #   REDIS_HOST   Redis host passed to `wp shift64-woo-search setup` (default: 127.0.0.1)
 #   REDIS_PORT   Redis port (default: 6379)
 #   BASE_URL     when set, enables the final HTTP smoke-curl of the endpoint
+#   SKIP_REDIS_WIRING  when set to 1, skip the Redis setup/rebuild steps and the
+#                index/endpoint verification tail (used by bin/test-env.sh on
+#                hosts without phpredis: the site still provisions fully and
+#                search degrades to native WooCommerce search). Default: unset
+#                (full wiring, current behavior).
 #
 # Recovery note: if an aborted degraded e2e run (Ctrl-C between degrade and
 # restore) left the site pointing at a dead Redis port, re-running this script
@@ -141,11 +146,15 @@ wpc option update shift64_woo_search_taxonomy_archive_scopes '["product_cat"]' -
 # renders no filter bar at all (its scope map exposes attr_pa_* only).
 wpc option update shift64_woo_search_filter_attributes '["pa_color"]' --format=json
 
-log "Wire Redis + regenerate SHORTINIT config (PINGs first; fails loudly on dead Redis)"
-wpc shift64-woo-search setup --host="$REDIS_HOST" --port="$REDIS_PORT"
+if [ "${SKIP_REDIS_WIRING:-}" = "1" ]; then
+	log "SKIP_REDIS_WIRING=1 — skipping Redis setup/rebuild (native WooCommerce search fallback)"
+else
+	log "Wire Redis + regenerate SHORTINIT config (PINGs first; fails loudly on dead Redis)"
+	wpc shift64-woo-search setup --host="$REDIS_HOST" --port="$REDIS_PORT"
 
-log "Rebuild index + synonym/suggestion/category blobs"
-wpc shift64-woo-search rebuild
+	log "Rebuild index + synonym/suggestion/category blobs"
+	wpc shift64-woo-search rebuild
+fi
 
 log "Ensure the search-e2e page (both search blocks)"
 EXISTING_PAGE="$(wpc post list --post_type=page --name=search-e2e --field=ID --posts_per_page=1)"
@@ -156,6 +165,12 @@ if [ -z "$EXISTING_PAGE" ]; then
 	echo "Created page /search-e2e/."
 else
 	echo "Page /search-e2e/ already exists (ID $EXISTING_PAGE)."
+fi
+
+if [ "${SKIP_REDIS_WIRING:-}" = "1" ]; then
+	log "SKIP_REDIS_WIRING=1 — skipping index/endpoint verification tail."
+	log "Provisioning complete (degraded: no Redis wiring)."
+	exit 0
 fi
 
 log "Verification tail (fails loudly so tests never inherit a broken environment)"
