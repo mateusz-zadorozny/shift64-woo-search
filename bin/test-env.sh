@@ -2,7 +2,7 @@
 #
 # One-shot isolated test environment for this worktree.
 #
-#   bin/test-env.sh up [--validate|--no-validate] [--force] [--fresh]
+#   bin/test-env.sh up [--validate|--no-validate] [--force] [--fresh] [--allow-degraded]
 #   bin/test-env.sh status [--json]
 #   bin/test-env.sh down [--keep-logs]
 #
@@ -78,6 +78,15 @@ select_php() {
 		return
 	fi
 	local candidate
+	# First pass: prefer a PHP that already carries phpredis — it saves the
+	# automatic pecl install entirely.
+	for candidate in php php8.5 php8.4 php8.3; do
+		command -v "$candidate" >/dev/null 2>&1 || continue
+		if "$candidate" -r 'exit(PHP_VERSION_ID >= 80300 && extension_loaded("mysqli") && extension_loaded("redis") ? 0 : 1);' 2>/dev/null; then
+			PHP_BIN="$(command -v "$candidate")"
+			return
+		fi
+	done
 	for candidate in php php8.5 php8.4 php8.3; do
 		command -v "$candidate" >/dev/null 2>&1 || continue
 		if "$candidate" -r 'exit(PHP_VERSION_ID >= 80300 && extension_loaded("mysqli") ? 0 : 1);' 2>/dev/null; then
@@ -88,15 +97,76 @@ select_php() {
 	PHP_BIN=""
 }
 
+# pecl may enable the extension in php.ini a beat after install; if both its
+# entry and the conf.d file this script owns end up active, PHP warns "Module
+# redis is already loaded" on every startup (and stray startup output corrupts
+# captured values). Remove the file we own and keep pecl's php.ini line.
+dedupe_redis_ini() {
+	# Capture, don't pipe into grep -q: under pipefail a -q match SIGPIPEs
+	# the writer and fails the pipeline exactly when it should succeed.
+	local startup_output
+	startup_output="$("$PHP_BIN" -r 'exit(0);' 2>&1)" || true
+	case "$startup_output" in
+		*"already loaded"*) ;;
+		*) return 0 ;;
+	esac
+	local ini_main ini_dir
+	ini_main="$("$PHP_BIN" -i 2>/dev/null | sed -n 's/^Loaded Configuration File => //p')"
+	ini_dir="$("$PHP_BIN" -i 2>/dev/null | sed -n 's/^Scan this dir for additional .ini files => //p')"
+	if [ -f "$ini_main" ] && grep -q '^extension="\{0,1\}redis' "$ini_main" \
+		&& [ -n "$ini_dir" ] && [ -f "$ini_dir/ext-redis.ini" ]; then
+		rm -f "$ini_dir/ext-redis.ini"
+		info "removed duplicate ext-redis.ini (extension already enabled in php.ini)"
+	fi
+	return 0
+}
+
+# Full plugin search needs phpredis in the PHP that serves the site. When it
+# is missing, install it automatically (non-interactive pecl) — the "one
+# command, live environment" contract beats keeping the host pristine here.
+# Returns non-zero only when the extension still cannot be loaded afterwards.
+ensure_phpredis() {
+	dedupe_redis_ini
+	[ "$HAVE_PHPREDIS" = "1" ] && return 0
+	if command -v pecl >/dev/null 2>&1; then
+		log "phpredis missing in $PHP_BIN — installing automatically (pecl install redis)"
+		info "log: $LOG_DIR/pecl-redis-$RUN_ID.log"
+		# The four "no"s decline the optional igbinary/zstd/msgpack/lz4 hooks.
+		printf 'no\nno\nno\nno\n' | pecl install redis \
+			>>"$LOG_DIR/pecl-redis-$RUN_ID.log" 2>&1 \
+			|| warn "pecl install redis failed — see $LOG_DIR/pecl-redis-$RUN_ID.log"
+		if ! "$PHP_BIN" -r 'exit(extension_loaded("redis") ? 0 : 1);' 2>/dev/null; then
+			# Built but not enabled (pecl could not write php.ini): drop an
+			# ini file into the scan dir when the installation has one.
+			local ini_dir
+			ini_dir="$("$PHP_BIN" -i 2>/dev/null | sed -n 's/^Scan this dir for additional .ini files => //p')"
+			if [ -n "$ini_dir" ] && [ "$ini_dir" != "(none)" ] && [ -d "$ini_dir" ] && [ ! -f "$ini_dir/ext-redis.ini" ]; then
+				echo "extension=redis.so" > "$ini_dir/ext-redis.ini" 2>/dev/null || true
+			fi
+		fi
+		dedupe_redis_ini
+		if "$PHP_BIN" -r 'exit(extension_loaded("redis") ? 0 : 1);' 2>/dev/null; then
+			HAVE_PHPREDIS=1
+			info "phpredis installed and loaded"
+			return 0
+		fi
+	else
+		warn "pecl not found — cannot auto-install phpredis"
+	fi
+	return 1
+}
+
 # Known limitation: allocation-to-bind is a TOCTOU window with no
 # cross-worktree coordination. A stolen port makes the service start fail
 # loudly within its wait loop, and the next `up` self-heals with fresh ports.
+# display_errors=stderr: a PHP startup warning printed to stdout would end up
+# captured as part of the port number and corrupt the descriptor JSON.
 free_port() {
-	"$PHP_BIN" -r '$s=stream_socket_server("tcp://127.0.0.1:0",$e,$m);if(!$s){exit(1);}preg_match("/:(\d+)$/",stream_socket_get_name($s,false),$x);echo $x[1];'
+	"$PHP_BIN" -d display_errors=stderr -r '$s=stream_socket_server("tcp://127.0.0.1:0",$e,$m);if(!$s){exit(1);}preg_match("/:(\d+)$/",stream_socket_get_name($s,false),$x);echo $x[1];' 2>/dev/null
 }
 
 port_listening() {
-	"$PHP_BIN" -r '$c=@stream_socket_client("tcp://127.0.0.1:".$argv[1],$e,$m,1);exit($c?0:1);' "$1" 2>/dev/null
+	"$PHP_BIN" -d display_errors=stderr -r '$c=@stream_socket_client("tcp://127.0.0.1:".$argv[1],$e,$m,1);exit($c?0:1);' "$1" 2>/dev/null
 }
 
 # A recorded PID is only "ours" when it is alive AND its command line still
@@ -146,8 +216,11 @@ make_wp_shim() {
 	# Pin CLI ini overrides too: hosts with a small default memory_limit
 	# (128M is common on Homebrew PHP) OOM while wp-cli extracts WP core, and
 	# older wp-cli phars drown the output in deprecation noise on PHP >= 8.1.
-	# 24567 = E_ALL & ~E_DEPRECATED & ~E_NOTICE.
-	local php_args="-d memory_limit=512M -d error_reporting=24567"
+	# 24567 = E_ALL & ~E_DEPRECATED & ~E_NOTICE. display_errors=stderr is the
+	# load-bearing one: wp-cli re-raises error_reporting internally, and any
+	# startup warning printed to STDOUT poisons captured values — provisioning
+	# scripts read `wp` output via command substitution (page IDs, ports).
+	local php_args="-d memory_limit=512M -d error_reporting=24567 -d display_errors=stderr"
 	if head -c 64 "$real_wp" | grep -qi php; then
 		printf '#!/bin/sh\nexec "%s" %s "%s" "$@"\n' "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
 	else
@@ -191,10 +264,13 @@ preflight() {
 		local m; for m in "${missing[@]}"; do echo "  - $m" >&2; done
 		exit 2
 	fi
-	# NOT `probe && VAR=1` — as the function's last statement that returns 1
-	# when the extension is absent, and set -e then kills the whole script.
+	# extension_loaded() probe, never `php -m | grep -q`: under pipefail the
+	# -q early exit SIGPIPEs php mid-listing and randomly fails the pipeline
+	# even when the extension IS present. And NOT `probe && VAR=1` — as the
+	# function's last statement that returns 1 when the extension is absent,
+	# set -e then kills the whole script.
 	HAVE_PHPREDIS=0
-	if "$PHP_BIN" -m 2>/dev/null | grep -qx redis; then
+	if "$PHP_BIN" -r 'exit(extension_loaded("redis") ? 0 : 1);' 2>/dev/null; then
 		HAVE_PHPREDIS=1
 	fi
 }
@@ -763,21 +839,40 @@ report_ready() { # report_ready <reused|provisioned>
 	echo "   Descriptor:   .ai/qa/test-env.json"
 	echo "   PHPUnit:      vendor/bin/phpunit   (no exports needed)"
 	echo "============================================================"
+	if [ "$HAVE_PHPREDIS" != "1" ]; then
+		echo
+		echo "############################################################"
+		echo "# ⚠ DEGRADED: plugin search is DISABLED (no phpredis)."
+		echo "# Quick-search will not open and the search form falls back"
+		echo "# to native WooCommerce search. Fix: pecl install redis,"
+		echo "# then: bin/test-env.sh up --force"
+		echo "############################################################"
+	fi
 }
 
 cmd_up() {
-	local validate=1 force=0 fresh=0 arg
+	local validate=1 force=0 fresh=0 allow_degraded=0 arg
 	for arg in "$@"; do
 		case "$arg" in
 			--validate) validate=1 ;;
 			--no-validate) validate=0 ;;
 			--force) force=1 ;;
 			--fresh) fresh=1 ;;
+			--allow-degraded) allow_degraded=1 ;;
 			*) die "unknown flag for up: $arg" ;;
 		esac
 	done
 	preflight
 	mkdir -p "$RUN_DIR" "$QA_DIR" "$LOG_DIR"
+	# Full search is the default contract: a degraded storefront (no plugin
+	# search) must be an explicit choice, never a silent outcome.
+	if ! ensure_phpredis; then
+		if [ "$allow_degraded" = 1 ]; then
+			warn "--allow-degraded: continuing WITHOUT plugin search (native WooCommerce search fallback)"
+		else
+			die "phpredis is required for full plugin search and automatic install did not succeed (see $LOG_DIR/pecl-redis-$RUN_ID.log). Install it manually (pecl install redis) or accept a searchless storefront with: bin/test-env.sh up --allow-degraded" 2
+		fi
+	fi
 	make_wp_shim
 	acquire_lock
 	trap abort_trap EXIT INT TERM
