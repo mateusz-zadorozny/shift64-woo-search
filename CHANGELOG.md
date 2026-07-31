@@ -1,3 +1,15 @@
+# [0.14.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.13.0...v0.14.0) (2026-07-31)
+
+
+### Features
+
+* **tooling:** one-shot isolated worktree test environments ([#53](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/53)) ([#56](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/56)) ([c0f285e](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/c0f285ea98e6691f4616c1f49762b40ccf0bd643))
+
+
+### Reverts
+
+* restore "one-shot isolated worktree test environments" to PR review ([#53](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/53)) ([ba35a43](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/ba35a439259c70c7ae5e872bd4d6a334ce3f5485)), closes [#55](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/55)
+
 # [0.13.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.12.3...v0.13.0) (2026-07-31)
 
 
