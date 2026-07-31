@@ -35,25 +35,25 @@ Phases and steps mirror the spec's `## 📋 Implementation Plan` (4 phases, 13 s
 
 ### Phase 1: Isolated storefront lifecycle
 
-- [ ] 1.1 Scaffold bin/test-env.sh: args, run-id, RUN_DIR layout, lock, atomic descriptor helpers
-- [ ] 1.2 Port allocation + preflight checks with named missing-dependency exit 2
-- [ ] 1.3 MySQL backend (native mysqld datadir/port, Docker fallback, ping health)
-- [ ] 1.4 Redis Stack backend (native/Docker, PING + FT._LIST health, shared-instance degradation)
-- [ ] 1.5 WordPress bring-up via e2e-install-wp.sh + wp server + e2e-provision.sh; descriptor written running only after all probes pass
-- [ ] 1.6 Self-healing reuse: full probe set, owned-resource teardown, fresh provision on unhealthy
+- [x] 1.1 Scaffold bin/test-env.sh: args, run-id, RUN_DIR layout, lock, atomic descriptor helpers — ec1b10c
+- [x] 1.2 Port allocation + preflight checks with named missing-dependency exit 2 — ec1b10c
+- [x] 1.3 MySQL backend (native mysqld datadir/port, Docker fallback, ping health) — ec1b10c
+- [x] 1.4 Redis Stack backend (native/Docker, PING + FT._LIST health, shared-instance degradation) — ec1b10c
+- [x] 1.5 WordPress bring-up via e2e-install-wp.sh + wp server + e2e-provision.sh; descriptor written running only after all probes pass — ec1b10c
+- [x] 1.6 Self-healing reuse: full probe set, owned-resource teardown, fresh provision on unhealthy — ec1b10c
 
 ### Phase 2: PHPUnit runtime
 
-- [ ] 2.1 Provision wordpress-tests-lib + test DB on the run MySQL via install-wp-tests.sh; descriptor phpunit block
-- [ ] 2.2 Generate worktree-local phpunit.xml injecting WP_TESTS_DIR; bare vendor/bin/phpunit green
+- [x] 2.1 Provision wordpress-tests-lib + test DB on the run MySQL via install-wp-tests.sh; descriptor phpunit block — ec1b10c
+- [x] 2.2 Generate worktree-local phpunit.xml injecting WP_TESTS_DIR; bare vendor/bin/phpunit green — ec1b10c
 
 ### Phase 3: Background validation supervisor
 
-- [ ] 3.1 Supervisor: validation.commands from agentic config, sequential run, log stream, atomic validation-status.json; up --validate
-- [ ] 3.2 status integration: validation state reporting, dead-supervisor aborted detection, exit codes 0/3/4/5
+- [x] 3.1 Supervisor: validation.commands from agentic config, sequential run, log stream, atomic validation-status.json; up --validate — ec1b10c
+- [x] 3.2 status integration: validation state reporting, dead-supervisor aborted detection, exit codes 0/3/4/5 — ec1b10c
 
 ### Phase 4: Productization
 
-- [ ] 4.1 Marker-less .ai/scripts/test-env-up.sh / test-env-down.sh wrappers with flag mapping
-- [ ] 4.2 Clean-room integration test tests/env/test-env-launcher.sh + workflow_dispatch/weekly CI job
-- [ ] 4.3 docs/test-environments.md + AGENTS.md pointer
+- [x] 4.1 Marker-less .ai/scripts/test-env-up.sh / test-env-down.sh wrappers with flag mapping — 5963c58
+- [x] 4.2 Clean-room integration test tests/env/test-env-launcher.sh + workflow_dispatch/weekly CI job — 5963c58
+- [x] 4.3 docs/test-environments.md + AGENTS.md pointer — 5963c58
