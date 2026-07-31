@@ -31,6 +31,8 @@ Phases and steps mirror the spec's `## 📋 Implementation Plan` (4 phases, 13 s
 
 ## Progress
 
+PR: #55
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Isolated storefront lifecycle
