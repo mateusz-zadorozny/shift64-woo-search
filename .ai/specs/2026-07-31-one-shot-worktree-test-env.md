@@ -1,6 +1,6 @@
 # One-Shot Isolated Worktree Test Environments
 
-> **Status:** draft
+> **Status:** implemented — PR #55, 2026-07-31
 
 ## 📝 TLDR
 
