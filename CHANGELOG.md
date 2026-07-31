@@ -1,3 +1,10 @@
+# [0.15.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.14.0...v0.15.0) (2026-07-31)
+
+
+### Features
+
+* **tooling:** auto-install phpredis and gate degraded mode behind --allow-degraded ([#53](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/53)) ([#57](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/57)) ([52d8fe2](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/52d8fe2e9e2df496b03f73a99f2845f42950395c))
+
 # [0.14.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.13.0...v0.14.0) (2026-07-31)
 
 
