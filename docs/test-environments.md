@@ -75,11 +75,13 @@ bin/test-env.sh down
 ```
 
 Stops exactly the processes the descriptor records as started by this
-worktree's run, removes the run's temporary directory, keeps logs under
-`.ai/qa/logs/`, and marks the descriptor `stopped`. Safe to run twice. It
-never touches a developer's own LocalWP site, system services, or another
-worktree's environment — two worktrees run fully disjoint environments
-concurrently.
+worktree's run (each PID is verified against a run-scoped command-line
+fingerprint first, so a recycled PID is never killed), removes the run's
+temporary directory, keeps logs under `.ai/qa/logs/`, and marks the
+descriptor `stopped`. Safe to run twice; it exits non-zero only when a live
+`up` currently holds the worktree's lock. It never touches a developer's own
+LocalWP site, system services, or another worktree's environment — two
+worktrees run fully disjoint environments concurrently.
 
 ## Degradations (recorded, never silent)
 

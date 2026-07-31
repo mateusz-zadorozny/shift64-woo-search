@@ -53,11 +53,8 @@ BASE_URL="$(jq -r '.baseUrl' "$DESCRIPTOR")"
 assert "storefront serves /search-e2e/ with the search block" \
 	bash -c "curl -sf --max-time 10 '$BASE_URL/search-e2e/' | grep -q shift64-woo-search"
 
-echo "# bare phpunit (no WP_TESTS_DIR export)"
-assert "vendor/bin/phpunit passes with no exports" env -u WP_TESTS_DIR vendor/bin/phpunit
-
 echo "# status truthfulness"
-bash bin/test-env.sh status; rc=$?
+set +e; bash bin/test-env.sh status >/dev/null 2>&1; rc=$?; set -e
 [ "$rc" = 0 ] && ok "status exits 0 on a healthy env" || fail "status exits 0 on a healthy env (got $rc)"
 
 echo "# background validation reaches a terminal state"
@@ -71,6 +68,11 @@ done
 [ "$vstate" = "passed" ] && ok "validation gate passed in background" || fail "validation gate passed in background (state: $vstate)"
 assert "validation status records per-command exit codes" \
 	bash -c "jq -re '.commands | length > 0 and all(.status != \"pending\")' .ai/qa/validation-status.json"
+
+# Only after the gate is terminal: a bare phpunit racing the supervisor's
+# phpunit would reinstall the same tests DB tables under it.
+echo "# bare phpunit (no WP_TESTS_DIR export)"
+assert "vendor/bin/phpunit passes with no exports" env -u WP_TESTS_DIR vendor/bin/phpunit
 
 echo "# stale-descriptor detection and self-healing"
 APP_PID="$(jq -r '.app.pid' "$DESCRIPTOR")"

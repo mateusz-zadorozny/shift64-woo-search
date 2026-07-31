@@ -86,6 +86,9 @@ select_php() {
 	PHP_BIN=""
 }
 
+# Known limitation: allocation-to-bind is a TOCTOU window with no
+# cross-worktree coordination. A stolen port makes the service start fail
+# loudly within its wait loop, and the next `up` self-heals with fresh ports.
 free_port() {
 	"$PHP_BIN" -r '$s=stream_socket_server("tcp://127.0.0.1:0",$e,$m);if(!$s){exit(1);}preg_match("/:(\d+)$/",stream_socket_get_name($s,false),$x);echo $x[1];'
 }
@@ -258,17 +261,19 @@ probe_tests()  { [ -f "$WP_TESTS_DIR_RUN/includes/functions.php" ]; }
 probe_all() {
 	[ -f "$DESCRIPTOR" ] || { echo "no descriptor"; return 1; }
 	load_descriptor_state
-	pid_matches "$MYSQL_PID" "mysqld" || { echo "mysqld pid $MYSQL_PID gone"; return 1; }
+	# Fingerprints are run-scoped (datadir path, run port, WP_ROOT) so a PID
+	# recycled by ANOTHER worktree's identically-named process never matches.
+	pid_matches "$MYSQL_PID" "$MYSQL_DIR" || { echo "mysqld pid $MYSQL_PID gone"; return 1; }
 	probe_mysql || { echo "mysql not answering on :$MYSQL_PORT"; return 1; }
 	if [ -n "$REDIS_CONTAINER" ]; then
 		docker inspect -f '{{.State.Running}}' "$REDIS_CONTAINER" 2>/dev/null | grep -q true \
 			|| { echo "redis container $REDIS_CONTAINER not running"; return 1; }
 	elif [ "$REDIS_ISOLATION" = "dedicated" ]; then
-		pid_matches "$REDIS_PID" "redis" || { echo "redis pid $REDIS_PID gone"; return 1; }
+		pid_matches "$REDIS_PID" "127.0.0.1:$REDIS_PORT" || { echo "redis pid $REDIS_PID gone"; return 1; }
 	fi
 	probe_redis || { echo "redis not answering on :$REDIS_PORT"; return 1; }
 	probe_ft || { echo "redis on :$REDIS_PORT has no FT (RediSearch) support"; return 1; }
-	pid_matches "$APP_PID" "server" || { echo "wp server pid $APP_PID gone"; return 1; }
+	pid_matches "$APP_PID" "$WP_ROOT" || { echo "wp server pid $APP_PID gone"; return 1; }
 	probe_http || { echo "storefront not healthy at http://127.0.0.1:${HTTP_PORT}/search-e2e/"; return 1; }
 	probe_tests || { echo "wordpress-tests-lib missing at $WP_TESTS_DIR_RUN"; return 1; }
 	return 0
@@ -377,7 +382,7 @@ start_redis() {
 	local shared="${TEST_ENV_SHARED_REDIS:-127.0.0.1:6379}"
 	local shared_host="${shared%%:*}" shared_port="${shared##*:}"
 	if redis-cli -h "$shared_host" -p "$shared_port" ping 2>/dev/null | grep -q PONG \
-		&& redis-cli -h "$shared_host" -p "$shared_port" FT._LIST >/dev/null 2>&1; then
+		&& ! redis-cli -h "$shared_host" -p "$shared_port" FT._LIST 2>&1 | grep -qi '^ERR\|unknown command'; then
 		warn "Using SHARED redis at $shared with run-scoped key prefix (degraded isolation)"
 		REDIS_PORT="$shared_port"
 		REDIS_PID=0
@@ -484,29 +489,32 @@ install_repo_deps() {
 stop_owned() { # stop_owned <wipe-datadir: 0|1>
 	local wipe="${1:-1}"
 	[ -f "$DESCRIPTOR" ] && load_descriptor_state
-	if pid_matches "${APP_PID:-0}" "server"; then
+	if pid_matches "${APP_PID:-0}" "$WP_ROOT"; then
 		kill -- -"$APP_PID" 2>/dev/null || kill "$APP_PID" 2>/dev/null || true
 	fi
-	if pid_matches "${VALIDATION_PID:-0}" "test-env"; then
+	if pid_matches "${VALIDATION_PID:-0}" "$SCRIPT_DIR/test-env.sh _supervise"; then
 		kill -- -"$VALIDATION_PID" 2>/dev/null || kill "$VALIDATION_PID" 2>/dev/null || true
 	fi
 	if [ -n "${REDIS_CONTAINER:-}" ]; then
 		docker rm -f "$REDIS_CONTAINER" >/dev/null 2>&1 || true
-	elif [ "${REDIS_ISOLATION:-dedicated}" = "dedicated" ] && pid_matches "${REDIS_PID:-0}" "redis"; then
+	elif [ "${REDIS_ISOLATION:-dedicated}" = "dedicated" ] && pid_matches "${REDIS_PID:-0}" "127.0.0.1:$REDIS_PORT"; then
 		redis-cli -h 127.0.0.1 -p "$REDIS_PORT" shutdown nosave 2>/dev/null || kill "$REDIS_PID" 2>/dev/null || true
 	fi
-	if pid_matches "${MYSQL_PID:-0}" "mysqld"; then
+	if pid_matches "${MYSQL_PID:-0}" "$MYSQL_DIR"; then
 		mysqladmin --no-defaults --socket="$MYSQL_SOCK" -uroot shutdown 2>/dev/null || kill "$MYSQL_PID" 2>/dev/null || true
 		local i
 		for i in $(seq 1 15); do
-			pid_matches "$MYSQL_PID" "mysqld" || break
+			pid_matches "$MYSQL_PID" "$MYSQL_DIR" || break
 			sleep 1
 		done
 	fi
-	# Catch orphans the targeted kills miss (e.g. php -S children surviving a
-	# crashed wp-server parent): anything whose command line references this
-	# run's private directory belongs to this run, and only to it.
-	pkill -f "$RUN_DIR/" 2>/dev/null || true
+	# Catch the one orphan class the targeted kills miss: php -S children
+	# surviving a crashed wp-server parent. Match on this run's HTTP port —
+	# precise, unlike a broad run-dir sweep that could hit a developer's
+	# `tail -f <run>/mysql.log`.
+	if [ "${HTTP_PORT:-0}" -gt 0 ] 2>/dev/null; then
+		pkill -f -- "-S 127.0.0.1:$HTTP_PORT" 2>/dev/null || true
+	fi
 	if [ "$wipe" = "1" ]; then
 		rm -rf "$RUN_DIR"
 	fi
@@ -604,7 +612,7 @@ supervise() {
 		printf '\n===== [%s] %s =====\n' "$(date -u +%H:%M:%SZ)" "$cmd" >> "$logfile"
 		local code=0
 		if [ "$overall" = "failed" ]; then
-			code=-1 # skipped after earlier failure
+			# Skipped after an earlier failure: status "skipped", exitCode null.
 			COMMANDS_JSON="$(jq --argjson i "$idx" '.[$i].status = "skipped"' <<<"$COMMANDS_JSON")"
 		else
 			set +e
@@ -622,6 +630,18 @@ supervise() {
 }
 
 start_supervisor() {
+	# Never run two gates at once: concurrent phpunit runs reinstall the same
+	# tests DB tables and flake each other. A live running supervisor is reused.
+	if [ -f "$VALIDATION_STATUS" ]; then
+		local prev_status prev_pid
+		prev_status="$(jq -r '.status // ""' "$VALIDATION_STATUS" 2>/dev/null)"
+		prev_pid="$(jq -r '.pid // 0' "$VALIDATION_STATUS" 2>/dev/null)"
+		if [ "$prev_status" = "running" ] && pid_matches "$prev_pid" "$SCRIPT_DIR/test-env.sh _supervise"; then
+			VALIDATION_PID="$prev_pid"
+			info "validation already running (pid $prev_pid) — not starting a second gate"
+			return 0
+		fi
+	fi
 	log "Starting background validation gate (logs: .ai/qa/logs/validation-$RUN_ID.log)"
 	# Invoke via bash: exec bits on repo files cannot be relied on here.
 	setsid nohup bash "$SCRIPT_DIR/test-env.sh" _supervise >>"$LOG_DIR/supervisor-$RUN_ID.log" 2>&1 &
@@ -634,7 +654,7 @@ validation_state() { # echoes the supervisor status, repairing a dead-pid lie
 	local st pid
 	st="$(jq -r '.status // "none"' "$VALIDATION_STATUS" 2>/dev/null)"
 	pid="$(jq -r '.pid // 0' "$VALIDATION_STATUS" 2>/dev/null)"
-	if [ "$st" = "running" ] && ! pid_matches "$pid" "test-env"; then
+	if [ "$st" = "running" ] && ! pid_matches "$pid" "$SCRIPT_DIR/test-env.sh _supervise"; then
 		jq '.status = "aborted"' "$VALIDATION_STATUS" | atomic_write "$VALIDATION_STATUS" || true
 		st="aborted"
 	fi
@@ -750,6 +770,13 @@ cmd_status() {
 		[ "$as_json" = 1 ] && cat "$DESCRIPTOR" || echo "Environment stopped (descriptor says so)."
 		exit 4
 	fi
+	# A live `up` is mid-provision: report that truthfully instead of probing
+	# a half-built environment and clobbering its descriptor state.
+	if [ "$desc_status" = "provisioning" ] && [ -d "$LOCK_DIR" ] \
+		&& pid_matches "$(cat "$LOCK_DIR/pid" 2>/dev/null)" "test-env.sh"; then
+		[ "$as_json" = 1 ] && cat "$DESCRIPTOR" || echo "Environment provisioning (an up run is in progress)."
+		exit 3
+	fi
 	if ! failure="$(probe_all)"; then
 		healthy=0
 		jq '.status = "unhealthy"' "$DESCRIPTOR" | atomic_write "$DESCRIPTOR"
@@ -782,7 +809,10 @@ cmd_down() {
 	done
 	select_php
 	[ -f "$DESCRIPTOR" ] || { echo "Nothing to stop (no descriptor)."; exit 0; }
-	acquire_lock 2>/dev/null || true
+	# acquire_lock dies loudly when a LIVE up/down holds the lock — tearing an
+	# environment down mid-provision would leave half-started resources
+	# untracked. A stale lock (dead holder) is recovered inside acquire_lock.
+	acquire_lock
 	log "Stopping environment $RUN_ID"
 	stop_owned 1
 	jq '.status = "stopped" | .app.pid = 0 | (.services[] | select(has("pid"))).pid = 0 | .validation.pid = 0' \

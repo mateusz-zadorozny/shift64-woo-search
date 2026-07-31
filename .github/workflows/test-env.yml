@@ -28,11 +28,14 @@ jobs:
       - name: System dependencies (native-first backends)
         run: |
           sudo apt-get update
-          sudo apt-get install -y subversion mariadb-server redis-server jq
-          # The launcher owns its own instances on run-scoped ports; the
-          # distro services must not squat the default ports.
-          sudo systemctl stop mariadb || true
+          sudo apt-get install -y subversion redis-server jq
+          # ubuntu-latest preinstalls Oracle MySQL (mysqld on PATH, service
+          # stopped) — the launcher's --initialize-insecure path uses it;
+          # installing mariadb-server alongside would risk mixed-binary
+          # datadir initialization. The distro redis has no FT module, which
+          # deliberately exercises the launcher's Docker redis-stack fallback.
           sudo systemctl stop redis-server || true
+          mysqld --version
 
       - name: Clean-room launcher test
         run: bash tests/env/test-env-launcher.sh
