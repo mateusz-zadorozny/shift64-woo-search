@@ -38,8 +38,11 @@ class Facets_Test extends WP_UnitTestCase {
 				// Contract: NULL $terms is converted to empty array inside compute().
 				// Asserting equalTo(array()) protects the null-to-[] conversion.
 				$this->equalTo( array() ),
-				$this->equalTo( array( 'category' => array( 'Shift64 Stella' ) ) ),
-				$this->equalTo( 'attr_pa_kolor' )
+				$this->equalTo( array() ),
+				$this->equalTo( 'attr_pa_kolor' ),
+				$this->equalTo( null ),
+				$this->equalTo( array() ),
+				$this->equalTo( array( 'category' => array( 'Shift64 Stella' ) ) )
 			)
 			->willReturn( '@categories:{Shift64\\ Stella}' );
 
@@ -187,17 +190,18 @@ class Facets_Test extends WP_UnitTestCase {
 	public function test_compute_forwards_active_user_filters() {
 		$mock = $this->createMock( Shift64_Woo_Search_Query::class );
 
-		$expected_filters = array(
-			'category'      => array( 'Shift64 Stella' ),
-			'attr_pa_kolor' => array( 'bialy' ),
-		);
+		$expected_filters = array( 'attr_pa_kolor' => array( 'bialy' ) );
+		$expected_scope   = array( 'category' => array( 'Shift64 Stella' ) );
 
 		$mock->expects( $this->once() )
 			->method( 'build_facet_query' )
 			->with(
 				$this->anything(),
 				$this->equalTo( $expected_filters ),
-				$this->anything()
+				$this->anything(),
+				$this->equalTo( null ),
+				$this->equalTo( array() ),
+				$this->equalTo( $expected_scope )
 			)
 			->willReturn( 'dummy' );
 		$mock->method( 'execute_ft_aggregate' )->willReturn( array() );

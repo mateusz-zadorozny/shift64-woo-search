@@ -1,6 +1,6 @@
 # Block Theme Product Collection Integration
 
-> **Status:** draft
+> **Status:** implemented — PR #51, 2026-07-30
 
 ## 📝 TLDR
 

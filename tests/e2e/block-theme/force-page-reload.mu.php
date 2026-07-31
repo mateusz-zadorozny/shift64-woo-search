@@ -30,3 +30,14 @@ add_filter(
 		return $parsed_block;
 	}
 );
+
+// WooCommerce captures pagination directives before render_block_data runs.
+// Remove those stale navigate/prefetch directives after WooCommerce's
+// block-specific priority-10 filter so the browser follows ordinary links.
+add_filter(
+	'render_block_core/query-pagination',
+	static function ( $block_content ) {
+		return preg_replace( '/\\sdata-wp-(?:on--(?:click|mouseenter)|watch|key)="[^"]*"/', '', $block_content );
+	},
+	99
+);

@@ -50,6 +50,13 @@ require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-stats.
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-indexer.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-rebuild.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-query.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-product-collection-context.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-catalog-state.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-product-collection-result.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-product-collection-results.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-product-collection-query-service.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-product-collection-query.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-catalog-navigation.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-category-suggest.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-brand-suggest.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-synonyms.php';
@@ -338,11 +345,13 @@ class Shift64_Woo_Search_Plugin {
 		// Shared shortcode renderers and dynamic blocks must also exist in the editor.
 		$frontend = new Shift64_Woo_Search_Frontend();
 		new Shift64_Woo_Search_Blocks( $frontend );
+		new Shift64_Woo_Search_Catalog_Navigation();
 
 		// Frontend autocomplete and search integrations.
 		if ( ! is_admin() ) {
 			new Shift64_Woo_Search_Archive();
 			new Shift64_Woo_Search_Taxonomy_Archive();
+			new Shift64_Woo_Search_Product_Collection_Query();
 			new Shift64_Woo_Search_Filters();
 		}
 

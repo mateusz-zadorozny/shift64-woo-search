@@ -243,6 +243,10 @@ class Shift64_Woo_Search_Taxonomy_Archive implements Shift64_Woo_Search_Facet_Co
 	 * @return array Clauses, possibly with an extra AND posts.ID IN (...) in `where`.
 	 */
 	public function inject_post_in( $clauses, $query ) {
+		if ( $query->get( Shift64_Woo_Search_Product_Collection_Query::QUERY_MARKER ) ) {
+			return $clauses;
+		}
+
 		// Skip main query — pre_get_posts already handled it.
 		if ( $query->is_main_query() ) {
 			return $clauses;

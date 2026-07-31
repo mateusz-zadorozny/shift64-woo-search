@@ -229,4 +229,25 @@ class Taxonomy_Archive_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $input, $out );
 	}
+
+	/**
+	 * Classic taxonomy scope remains in facets when exclude-self removes a URL filter.
+	 */
+	public function test_classic_taxonomy_facet_keeps_archive_scope() {
+		update_option( 'shift64_woo_search_filter_attributes', array( 'pa_kolor' ) );
+		$redis = $this->createMock( Shift64_Woo_Search_Redis::class );
+		$query = new Shift64_Woo_Search_Query( $redis );
+
+		$facet_query = $query->build_facet_query(
+			array(),
+			array( 'attr_pa_kolor' => array( 'Biały' ) ),
+			'attr_pa_kolor',
+			null,
+			array(),
+			array( 'category' => array( 'Shift64 Stella' ) )
+		);
+
+		$this->assertStringContainsString( '@categories:{Shift64\\ Stella}', $facet_query );
+		$this->assertStringNotContainsString( '@attr_pa_kolor:', $facet_query );
+	}
 }

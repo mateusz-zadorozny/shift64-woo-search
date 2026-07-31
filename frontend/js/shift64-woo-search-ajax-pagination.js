@@ -23,6 +23,7 @@
         ordering:       '.woocommerce-ordering',
         filters:        '.shift64-woo-search-filters',
         filterCheckbox: '.shift64-woo-search-filter__checkbox',
+        breadcrumbs:    '.woocommerce-breadcrumb, .shift64-woo-search-header__breadcrumbs',
         // WooCommerce's standard Product Collection block. Pagination rendered
         // inside it is NOT ours — see ownsPagination() below.
         productCollection: '.wp-block-woocommerce-product-collection'
@@ -32,8 +33,25 @@
     // emits, and is only ever used when a filter change has to rebuild a bar the
     // initial page render did not produce.
     var DEBUG_BAR_TITLE = 'Shift64 Archive Debug';
+    var HISTORY_STATE_KEY = 'shift64WooSearchCatalog';
 
     var isLoading = false;
+    var ownsCurrentHistoryEntry = isPluginHistoryState(window.history.state);
+
+    /**
+     * Whether a browser-history entry was created by this script's AJAX swap.
+     *
+     * Product Collection pagination writes its own router entries. Facet,
+     * ordering, and classic-pagination swaps are written here instead, so
+     * popstate must restore them here even when the visible grid lives inside
+     * a Product Collection.
+     *
+     * @param {*} state Browser history state.
+     * @return {boolean} True for a plugin-owned catalog entry.
+     */
+    function isPluginHistoryState(state) {
+        return Boolean(state && state[HISTORY_STATE_KEY] === true);
+    }
 
     /**
      * Pagination ownership (issue #20).
@@ -161,7 +179,6 @@
             if (!form) return;
 
             var params = new URLSearchParams(new FormData(form));
-            params.set('paged', '1');
 
             // Preserve filter params from current URL.
             var currentUrl = new URL(window.location.href);
@@ -171,8 +188,10 @@
                 }
             });
 
-            var base = window.location.pathname.replace(/\/page\/\d+\/?/, '/');
-            loadPage(base + '?' + params.toString());
+            var url = new URL(window.location.href);
+            url.search = params.toString();
+            stripPagingState(url);
+            loadPage(url.toString());
         }, true); // true = capture phase
 
         // Filter checkboxes — delegated to document for dynamically replaced content.
@@ -266,17 +285,30 @@
 
             var url = new URL(window.location.href);
             url.searchParams.set('orderby', value);
-            url.searchParams.delete('paged');
-            url.pathname = url.pathname.replace(/\/page\/\d+\/?/, '/');
+            stripPagingState(url);
 
             // Preserve filter params.
             loadPage(url.toString());
         });
 
         // Handle browser back/forward — only for search pages.
-        window.addEventListener('popstate', function () {
+        window.addEventListener('popstate', function (event) {
             var wrap = document.querySelector(SELECTORS.productWrap);
             if (!wrap) return;
+
+            var leftPluginEntry = ownsCurrentHistoryEntry;
+            var enteredPluginEntry = isPluginHistoryState(event.state);
+            ownsCurrentHistoryEntry = enteredPluginEntry;
+
+            // The destination state alone is insufficient on Back: the browser
+            // reports the entry being entered, while the stale DOM belongs to
+            // the plugin entry being left. Restore either side of a transition
+            // involving one of our AJAX swaps.
+            if (leftPluginEntry || enteredPluginEntry) {
+                loadPage(window.location.href, true);
+                return;
+            }
+
             // Same ownership rule as the click: when the grid lives inside a
             // Product Collection, that block restores its own state on
             // back/forward. Re-fetching here would duplicate its work.
@@ -286,7 +318,23 @@
     }
 
     /**
-     * Remove all filter_* params, paged param, and /page/N/ from a URL object.
+     * Remove every paging form recognized by WordPress and Product Collection.
+     */
+    function stripPagingState(url) {
+        var keysToRemove = [];
+        url.searchParams.forEach(function (val, key) {
+            if (key === 'page' || key === 'paged' || key === 'query-page' || /^query-\d+-page$/.test(key)) {
+                keysToRemove.push(key);
+            }
+        });
+        keysToRemove.forEach(function (key) {
+            url.searchParams.delete(key);
+        });
+        url.pathname = url.pathname.replace(/\/page\/\d+\/?$/, '/');
+    }
+
+    /**
+     * Remove all filter_* params and reset pagination from a URL object.
      */
     function stripFilterParams(url) {
         var keysToRemove = [];
@@ -298,8 +346,7 @@
         keysToRemove.forEach(function (key) {
             url.searchParams.delete(key);
         });
-        url.searchParams.delete('paged');
-        url.pathname = url.pathname.replace(/\/page\/\d+\/?/, '/');
+        stripPagingState(url);
     }
 
     /**
@@ -665,6 +712,15 @@
                     }
                 }
 
+                // Breadcrumbs live outside both swap wrappers. Refresh them
+                // separately so a state change from page 2 to a one-page result
+                // cannot leave a stale "Page 2" trail above the updated grid.
+                var curBreadcrumbs = document.querySelector(SELECTORS.breadcrumbs);
+                var newBreadcrumbs = doc.querySelector(SELECTORS.breadcrumbs);
+                if (curBreadcrumbs && newBreadcrumbs) {
+                    curBreadcrumbs.outerHTML = newBreadcrumbs.outerHTML;
+                }
+
                 // The debug bar sits outside every wrapper swapped above, so
                 // without this it would keep showing the timings of the query
                 // that first loaded the page while the grid below it shows
@@ -680,7 +736,8 @@
 
                 // Update URL.
                 if (!skipPush) {
-                    history.pushState(null, '', url);
+                    history.pushState({ shift64WooSearchCatalog: true }, '', url);
+                    ownsCurrentHistoryEntry = true;
                 }
 
                 // Scroll to top of product grid.

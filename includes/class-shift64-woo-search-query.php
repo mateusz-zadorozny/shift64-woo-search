@@ -746,9 +746,10 @@ class Shift64_Woo_Search_Query {
 	 * @param array                $filters           Additional filters.
 	 * @param string|null          $logic_override    Force 'AND'/'OR' logic for this query.
 	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
+	 * @param array                $filter_operators   Per-filter `and`/`or` operators.
 	 * @return string
 	 */
-	public function build_strict_query( $terms, $filters = array(), $logic_override = null, $visibility_policy = null ) {
+	public function build_strict_query( $terms, $filters = array(), $logic_override = null, $visibility_policy = null, $filter_operators = array() ) {
 		$logic    = null !== $logic_override ? strtoupper( $logic_override ) : strtoupper( $this->config['logic'] );
 		$operator = ( 'AND' === $logic ) ? ' ' : '|';
 		$expanded = $this->expand_terms( $terms );
@@ -793,7 +794,7 @@ class Shift64_Woo_Search_Query {
 			}
 		}
 
-		$parts = array_merge( $parts, $this->build_filter_parts( $filters, $visibility_policy ) );
+		$parts = array_merge( $parts, $this->build_filter_parts( $filters, $visibility_policy, $filter_operators ) );
 
 		return implode( ' ', $parts );
 	}
@@ -805,9 +806,10 @@ class Shift64_Woo_Search_Query {
 	 * @param array                $filters           Additional filters.
 	 * @param int|null             $level             Fuzzy level override.
 	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
+	 * @param array                $filter_operators   Per-filter `and`/`or` operators.
 	 * @return string
 	 */
-	public function build_fuzzy_query( $terms, $filters = array(), $level = null, $visibility_policy = null ) {
+	public function build_fuzzy_query( $terms, $filters = array(), $level = null, $visibility_policy = null, $filter_operators = array() ) {
 		if ( null === $level ) {
 			$level = max( 1, min( 3, (int) ( $this->config['fallback_fuzzy_level'] ?? $this->config['fuzzy_level'] ?? 1 ) ) );
 		}
@@ -855,7 +857,7 @@ class Shift64_Woo_Search_Query {
 			}
 		}
 
-		$parts = array_merge( $parts, $this->build_filter_parts( $filters, $visibility_policy ) );
+		$parts = array_merge( $parts, $this->build_filter_parts( $filters, $visibility_policy, $filter_operators ) );
 
 		return implode( ' ', $parts );
 	}
@@ -971,9 +973,10 @@ class Shift64_Woo_Search_Query {
 	 *                                                'brand' (string|array), 'attr_{taxonomy}' (array of
 	 *                                                term names).
 	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
+	 * @param array                $filter_operators   Per-filter `and`/`or` operators.
 	 * @return array
 	 */
-	public function build_filter_parts( $filters = array(), $visibility_policy = null ) {
+	public function build_filter_parts( $filters = array(), $visibility_policy = null, $filter_operators = array() ) {
 		$parts = array();
 
 		// Always exclude excluded products.
@@ -995,8 +998,10 @@ class Shift64_Woo_Search_Query {
 		// Filter: category (supports single string or array of names).
 		if ( ! empty( $filters['category'] ) ) {
 			$cat_values = (array) $filters['category'];
-			$escaped    = array_map( array( __CLASS__, 'escape_tag_value' ), $cat_values );
-			$parts[]    = '@categories:{' . implode( '|', $escaped ) . '}';
+			$parts      = array_merge(
+				$parts,
+				$this->build_tag_filter_parts( 'categories', $cat_values, $filter_operators['category'] ?? 'or' )
+			);
 		}
 
 		// Filter: brand (supports single string or array of names). The indexed
@@ -1004,8 +1009,10 @@ class Shift64_Woo_Search_Query {
 		// also matches products assigned only to one of its sub-brands.
 		if ( ! empty( $filters['brand'] ) ) {
 			$brand_values = (array) $filters['brand'];
-			$escaped      = array_map( array( __CLASS__, 'escape_tag_value' ), $brand_values );
-			$parts[]      = '@brands:{' . implode( '|', $escaped ) . '}';
+			$parts        = array_merge(
+				$parts,
+				$this->build_tag_filter_parts( 'brands', $brand_values, $filter_operators['brand'] ?? 'or' )
+			);
 		}
 
 		// Filter: dynamic per-attribute TAG fields.
@@ -1017,12 +1024,39 @@ class Shift64_Woo_Search_Query {
 			if ( ! empty( $filters[ $filter_key ] ) ) {
 				// Escape hyphens in field name — DIALECT 2 treats '-' as negation.
 				$escaped_field = str_replace( '-', '\\-', $filter_key );
-				$values        = array_map( array( __CLASS__, 'escape_tag_value' ), (array) $filters[ $filter_key ] );
-				$parts[]       = '@' . $escaped_field . ':{' . implode( '|', $values ) . '}';
+				$parts         = array_merge(
+					$parts,
+					$this->build_tag_filter_parts(
+						$escaped_field,
+						(array) $filters[ $filter_key ],
+						$filter_operators[ $filter_key ] ?? 'or'
+					)
+				);
 			}
 		}
 
 		return $parts;
+	}
+
+	/**
+	 * Build one OR clause or repeated AND clauses for a TAG field.
+	 *
+	 * @param string $field    Escaped Redis field name.
+	 * @param array  $values   Validated term names.
+	 * @param string $operator Canonical `and` or `or`.
+	 * @return string[]
+	 */
+	private function build_tag_filter_parts( $field, array $values, $operator ) {
+		$escaped = array_values( array_map( array( __CLASS__, 'escape_tag_value' ), $values ) );
+		if ( 'and' === $operator ) {
+			return array_map(
+				static function ( $value ) use ( $field ) {
+					return '@' . $field . ':{' . $value . '}';
+				},
+				$escaped
+			);
+		}
+		return array( '@' . $field . ':{' . implode( '|', $escaped ) . '}' );
 	}
 
 	/**
@@ -1043,11 +1077,15 @@ class Shift64_Woo_Search_Query {
 	 * @param int                  $paged             1-based page number.
 	 * @param string               $sort_by           Optional SORTBY clause, e.g. 'price ASC'. Null = natural order.
 	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
-	 * @return array ['ids' => int[], 'total' => int]. Empty/zero on Redis failure.
+	 * @param array                $filter_operators   Per-filter `and`/`or` operators.
+	 * @return array{ids:int[],total:int,ok:bool} Result and command status.
 	 */
-	public function search_by_filters( $scope_filters, $user_filters, $per_page, $paged, $sort_by = null, $visibility_policy = null ) {
-		$all_filters = array_merge( (array) $scope_filters, (array) $user_filters );
-		$parts       = $this->build_filter_parts( $all_filters, $visibility_policy );
+	public function search_by_filters( $scope_filters, $user_filters, $per_page, $paged, $sort_by = null, $visibility_policy = null, $filter_operators = array() ) {
+		$parts = array_merge(
+			$this->build_filter_parts( (array) $scope_filters, $visibility_policy ),
+			$this->build_filter_parts( (array) $user_filters, $visibility_policy, $filter_operators )
+		);
+		$parts = array_values( array_unique( $parts ) );
 
 		// FT.SEARCH needs at least one positive matcher — exclusions alone are invalid.
 		// When all parts are negations (no scope, no attr filters), prepend `*`.
@@ -1093,6 +1131,7 @@ class Shift64_Woo_Search_Query {
 			return array(
 				'ids'   => array(),
 				'total' => 0,
+				'ok'    => false,
 			);
 		}
 
@@ -1111,6 +1150,123 @@ class Shift64_Woo_Search_Query {
 		return array(
 			'ids'   => $ids,
 			'total' => $total,
+			'ok'    => true,
+		);
+	}
+
+	/**
+	 * Execute a paginated text query for a Product Collection.
+	 *
+	 * This is the rendering-neutral counterpart to the legacy archive
+	 * interceptor. It returns only membership and total count, leaving
+	 * WooCommerce to load and render products.
+	 *
+	 * @param string               $query Search text.
+	 * @param array                $filters Validated Redis filters.
+	 * @param int                  $per_page Products per page.
+	 * @param int                  $paged Current page.
+	 * @param string|null          $sort_by Optional Redis sort clause.
+	 * @param string|string[]|null $visibility_policy Visibility context.
+	 * @param array                $filter_operators Per-filter `and`/`or` operators.
+	 * @return array{ids:int[],total:int,ok:bool}
+	 */
+	public function search_catalog( $query, array $filters, $per_page, $paged, $sort_by = null, $visibility_policy = 'search', $filter_operators = array() ) {
+		$sanitized = $this->sanitize_query( $query );
+		$terms     = $this->get_search_terms( $sanitized );
+		if ( empty( $terms ) || mb_strlen( $sanitized ) < $this->config['min_query_length'] ) {
+			return array(
+				'ids'   => array(),
+				'total' => 0,
+				'ok'    => true,
+			);
+		}
+
+		$per_page = max( 1, (int) $per_page );
+		$paged    = max( 1, (int) $paged );
+		$offset   = ( $paged - 1 ) * $per_page;
+		$queries  = array( $this->build_strict_query( $terms, $filters, null, $visibility_policy, $filter_operators ) );
+
+		if ( ! empty( $this->config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
+			$reduced = $this->reduce_tokens( $terms );
+			if ( ! empty( $reduced ) && count( $reduced ) < count( $terms ) ) {
+				$queries[] = $this->build_strict_query( $reduced, $filters, null, $visibility_policy, $filter_operators );
+			}
+		}
+		if ( 'AND' === strtoupper( $this->config['logic'] ) ) {
+			$queries[] = $this->build_strict_query( $terms, $filters, 'OR', $visibility_policy, $filter_operators );
+		}
+		if ( 'strict_first' === ( $this->config['strategy'] ?? 'strict_first' ) ) {
+			$queries[] = $this->build_fuzzy_query( $terms, $filters, null, $visibility_policy, $filter_operators );
+		}
+
+		foreach ( $queries as $ft_query ) {
+			$result = $this->execute_catalog_query( $ft_query, $offset, $per_page, $sort_by );
+			if ( empty( $result['ok'] ) ) {
+				return $result;
+			}
+			if ( $result['total'] > 0 ) {
+				return $result;
+			}
+		}
+
+		return array(
+			'ids'   => array(),
+			'total' => 0,
+			'ok'    => true,
+		);
+	}
+
+	/**
+	 * Execute one lightweight FT.SEARCH catalog pass.
+	 *
+	 * @param string      $ft_query RediSearch query.
+	 * @param int         $offset Offset.
+	 * @param int         $limit Page size.
+	 * @param string|null $sort_by Sort clause.
+	 * @return array{ids:int[],total:int,ok:bool}
+	 */
+	private function execute_catalog_query( $ft_query, $offset, $limit, $sort_by ) {
+		$args = array( 'FT.SEARCH', $this->redis->get_index_name(), $ft_query );
+		if ( is_string( $sort_by ) && preg_match( '/^(price) (ASC|DESC)$/', $sort_by, $matches ) ) {
+			$args[] = 'SORTBY';
+			$args[] = $matches[1];
+			$args[] = $matches[2];
+		}
+		$args[] = 'LIMIT';
+		$args[] = (string) $offset;
+		$args[] = (string) $limit;
+		$args[] = 'RETURN';
+		$args[] = '1';
+		$args[] = 'post_id';
+		$args[] = 'DIALECT';
+		$args[] = '2';
+
+		$raw = $this->redis->raw_command( ...$args );
+		if ( false === $raw || ! is_array( $raw ) || empty( $raw ) ) {
+			return array(
+				'ids'   => array(),
+				'total' => 0,
+				'ok'    => false,
+			);
+		}
+
+		$total = max( 0, (int) array_shift( $raw ) );
+		$ids   = array();
+		$count = count( $raw );
+		for ( $i = 0; $i < $count; $i += 2 ) {
+			$fields = $raw[ $i + 1 ] ?? array();
+			if ( is_array( $fields ) && isset( $fields[1] ) ) {
+				$id = absint( $fields[1] );
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
+			}
+		}
+
+		return array(
+			'ids'   => $ids,
+			'total' => $total,
+			'ok'    => true,
 		);
 	}
 
@@ -2227,9 +2383,11 @@ class Shift64_Woo_Search_Query {
 	 * @param array                $filters           All active filters.
 	 * @param string               $exclude_filter    Filter key to exclude (e.g. 'category', 'attr_pa_kolor').
 	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
+	 * @param array                $filter_operators   Per-filter `and`/`or` operators.
+	 * @param array                $scope_filters      Archive scope that is never excluded.
 	 * @return string FT query string.
 	 */
-	public function build_facet_query( $terms, $filters, $exclude_filter, $visibility_policy = null ) {
+	public function build_facet_query( $terms, $filters, $exclude_filter, $visibility_policy = null, $filter_operators = array(), $scope_filters = array() ) {
 		$expanded = $this->expand_terms( $terms );
 		$logic    = strtoupper( $this->config['logic'] );
 		$operator = ( 'AND' === $logic ) ? ' ' : '|';
@@ -2266,7 +2424,13 @@ class Shift64_Woo_Search_Query {
 		// Build filter parts excluding the target dimension.
 		$filtered = $filters;
 		unset( $filtered[ $exclude_filter ] );
-		$parts = array_merge( $parts, $this->build_filter_parts( $filtered, $visibility_policy ) );
+		unset( $filter_operators[ $exclude_filter ] );
+		$parts = array_merge(
+			$parts,
+			$this->build_filter_parts( $scope_filters, $visibility_policy ),
+			$this->build_filter_parts( $filtered, $visibility_policy, $filter_operators )
+		);
+		$parts = array_values( array_unique( $parts ) );
 
 		return implode( ' ', $parts );
 	}
