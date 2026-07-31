@@ -32,19 +32,12 @@ add_filter(
 );
 
 // WooCommerce captures pagination directives before render_block_data runs.
-// Remove those stale navigate/prefetch directives from the final pagination
-// links so this fixture represents the saved forcePageReload contract and the
-// browser follows the links as ordinary document navigation.
+// Remove those stale navigate/prefetch directives after WooCommerce's
+// block-specific priority-10 filter so the browser follows ordinary links.
 add_filter(
-	'render_block',
-	static function ( $block_content, $parsed_block ) {
-		$block_name = $parsed_block['blockName'] ?? '';
-		if ( 0 !== strpos( $block_name, 'core/query-pagination' ) ) {
-			return $block_content;
-		}
-
-		return preg_replace( '/\\sdata-wp-(?:on--(?:click|mouseenter)|watch)="[^"]*"/', '', $block_content );
+	'render_block_core/query-pagination',
+	static function ( $block_content ) {
+		return preg_replace( '/\\sdata-wp-(?:on--(?:click|mouseenter)|watch|key)="[^"]*"/', '', $block_content );
 	},
-	10,
-	2
+	99
 );
