@@ -52,8 +52,10 @@ DB_PASS="wp"
 WP_DB_NAME="wp_e2e_${WORKTREE_HASH}"
 TESTS_DB_NAME="wp_tests_${WORKTREE_HASH}"
 
-# PIDs started by THIS invocation (for the abort trap only).
-STARTED_PIDS=()
+# PIDs started by THIS invocation (for the abort trap only). A plain
+# space-separated string, not an array: empty-array expansion under `set -u`
+# is fatal on bash 3.2 (macOS's default /bin/bash).
+STARTED_PIDS=""
 
 # wp-cli refuses to run as root unless told; CI containers and dev servers
 # commonly are root.
@@ -102,10 +104,21 @@ port_listening() {
 # unrelated process.
 pid_matches() {
 	local pid="$1" fingerprint="$2"
-	[ -n "$pid" ] && [ "$pid" != "null" ] || return 1
-	[ -r "/proc/$pid/cmdline" ] || return 1
-	tr '\0' ' ' < "/proc/$pid/cmdline" | grep -qF "$fingerprint"
+	[ -n "$pid" ] && [ "$pid" != "null" ] && [ "$pid" != "0" ] || return 1
+	if [ -d /proc ]; then
+		[ -r "/proc/$pid/cmdline" ] || return 1
+		tr '\0' ' ' < "/proc/$pid/cmdline" | grep -qF "$fingerprint"
+	else
+		# macOS/BSD: no /proc — read the command line from ps instead.
+		ps -p "$pid" -o command= 2>/dev/null | grep -qF "$fingerprint"
+	fi
 }
+
+# setsid detaches services into their own process group so group-kills work;
+# macOS ships no setsid, so degrade to a plain prefix-less spawn there (the
+# per-PID kills and the port-scoped pkill sweep still stop everything owned).
+SETSID="env"
+command -v setsid >/dev/null 2>&1 && SETSID="setsid"
 
 atomic_write() { # atomic_write <path> ; body on stdin
 	local path="$1" tmp
@@ -130,10 +143,15 @@ make_wp_shim() {
 	local real_wp shim_dir="$QA_DIR/bin"
 	real_wp="$(command -v wp)" || die "wp not found"
 	mkdir -p "$shim_dir"
+	# Pin CLI ini overrides too: hosts with a small default memory_limit
+	# (128M is common on Homebrew PHP) OOM while wp-cli extracts WP core, and
+	# older wp-cli phars drown the output in deprecation noise on PHP >= 8.1.
+	# 24567 = E_ALL & ~E_DEPRECATED & ~E_NOTICE.
+	local php_args="-d memory_limit=512M -d error_reporting=24567"
 	if head -c 64 "$real_wp" | grep -qi php; then
-		printf '#!/bin/sh\nexec "%s" "%s" "$@"\n' "$PHP_BIN" "$real_wp" > "$shim_dir/wp"
+		printf '#!/bin/sh\nexec "%s" %s "%s" "$@"\n' "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
 	else
-		printf '#!/bin/sh\nWP_CLI_PHP="%s" exec "%s" "$@"\n' "$PHP_BIN" "$real_wp" > "$shim_dir/wp"
+		printf '#!/bin/sh\nWP_CLI_PHP="%s" WP_CLI_PHP_ARGS="%s" exec "%s" "$@"\n' "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
 	fi
 	chmod +x "$shim_dir/wp"
 	export PATH="$shim_dir:$PATH"
@@ -161,6 +179,7 @@ preflight() {
 	command -v curl >/dev/null || missing+=("curl")
 	command -v svn >/dev/null || missing+=("svn (needed by bin/install-wp-tests.sh)")
 	command -v mysql >/dev/null || missing+=("mysql client")
+	command -v mysqladmin >/dev/null || missing+=("mysqladmin (ships with the mysql/mariadb client tools)")
 	if ! command -v mysqld >/dev/null && ! command -v docker >/dev/null; then
 		missing+=("mysqld (MariaDB/MySQL server) or docker (fallback chain: native mysqld -> docker)")
 	fi
@@ -172,8 +191,12 @@ preflight() {
 		local m; for m in "${missing[@]}"; do echo "  - $m" >&2; done
 		exit 2
 	fi
+	# NOT `probe && VAR=1` — as the function's last statement that returns 1
+	# when the extension is absent, and set -e then kills the whole script.
 	HAVE_PHPREDIS=0
-	"$PHP_BIN" -m 2>/dev/null | grep -qx redis && HAVE_PHPREDIS=1
+	if "$PHP_BIN" -m 2>/dev/null | grep -qx redis; then
+		HAVE_PHPREDIS=1
+	fi
 }
 
 # --------------------------------------------------------------------------
@@ -189,7 +212,7 @@ write_descriptor() { # write_descriptor <status> <notes>
 		--arg wpRoot "$WP_ROOT" \
 		--argjson httpPort "${HTTP_PORT:-0}" --argjson appPid "${APP_PID:-0}" \
 		--argjson mysqlPort "${MYSQL_PORT:-0}" --argjson mysqlPid "${MYSQL_PID:-0}" \
-		--arg mysqlDatadir "$MYSQL_DIR" \
+		--arg mysqlContainer "${MYSQL_CONTAINER:-}" --arg mysqlDatadir "$MYSQL_DIR" \
 		--argjson redisPort "${REDIS_PORT:-0}" --argjson redisPid "${REDIS_PID:-0}" \
 		--arg redisContainer "${REDIS_CONTAINER:-}" --arg redisIsolation "${REDIS_ISOLATION:-dedicated}" \
 		--arg wpTestsDir "$WP_TESTS_DIR_RUN" --arg wpCoreDir "$WP_CORE_DIR_RUN" \
@@ -205,7 +228,8 @@ write_descriptor() { # write_descriptor <status> <notes>
 			startScript: ".ai/scripts/test-env-up.sh", stopScript: ".ai/scripts/test-env-down.sh",
 			app: { startCommand: "wp server", port: $httpPort, healthPath: "/search-e2e/", pid: $appPid, wpRoot: $wpRoot },
 			services: [
-				{ type: "mysql", host: "127.0.0.1", port: $mysqlPort, pid: $mysqlPid, container: null, datadir: $mysqlDatadir },
+				{ type: "mysql", host: "127.0.0.1", port: $mysqlPort, pid: $mysqlPid,
+				  container: (if $mysqlContainer == "" then null else $mysqlContainer end), datadir: $mysqlDatadir },
 				{ type: "redis", host: "127.0.0.1", port: $redisPort, pid: $redisPid,
 				  container: (if $redisContainer == "" then null else $redisContainer end), isolation: $redisIsolation }
 			],
@@ -224,6 +248,8 @@ load_descriptor_state() {
 	APP_PID="$(descriptor_get '.app.pid // 0')"
 	MYSQL_PORT="$(descriptor_get '.services[] | select(.type == "mysql") | .port // 0')"
 	MYSQL_PID="$(descriptor_get '.services[] | select(.type == "mysql") | .pid // 0')"
+	MYSQL_CONTAINER="$(descriptor_get '.services[] | select(.type == "mysql") | .container // ""')"
+	[ "$MYSQL_CONTAINER" = "null" ] && MYSQL_CONTAINER=""
 	REDIS_PORT="$(descriptor_get '.services[] | select(.type == "redis") | .port // 0')"
 	REDIS_PID="$(descriptor_get '.services[] | select(.type == "redis") | .pid // 0')"
 	REDIS_CONTAINER="$(descriptor_get '.services[] | select(.type == "redis") | .container // ""')"
@@ -237,10 +263,22 @@ load_descriptor_state() {
 # --------------------------------------------------------------------------
 
 probe_mysql()  { mysqladmin --no-defaults -h127.0.0.1 -P"$MYSQL_PORT" -u"$DB_USER" -p"$DB_PASS" ping >/dev/null 2>&1; }
-probe_redis()  { redis-cli -h 127.0.0.1 -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; }
+# Talk to the run's Redis: a host redis-cli when present, else docker exec
+# into the run's container (hosts running the Docker fallback often have no
+# redis-cli at all — inside the container the server always listens on 6379).
+redis_exec() {
+	if command -v redis-cli >/dev/null 2>&1; then
+		redis-cli -h 127.0.0.1 -p "$REDIS_PORT" "$@"
+	elif [ -n "${REDIS_CONTAINER:-}" ]; then
+		docker exec "$REDIS_CONTAINER" redis-cli "$@"
+	else
+		return 1
+	fi
+}
+probe_redis()  { redis_exec ping 2>/dev/null | grep -q PONG; }
 # redis-cli exits 0 even when the server answers "ERR unknown command", so FT
 # capability must be judged from the reply text, never the exit code.
-probe_ft()     { ! redis-cli -h 127.0.0.1 -p "$REDIS_PORT" FT._LIST 2>&1 | grep -qi '^ERR\|unknown command'; }
+probe_ft()     { ! redis_exec FT._LIST 2>&1 | grep -qi '^ERR\|unknown command'; }
 # First hit after provisioning can exceed 10s (cold opcache, WooCommerce boot
 # on the single-threaded built-in server) — probe generously, with one retry.
 # Capture the body instead of piping into grep -q: under pipefail, grep's
@@ -263,7 +301,12 @@ probe_all() {
 	load_descriptor_state
 	# Fingerprints are run-scoped (datadir path, run port, WP_ROOT) so a PID
 	# recycled by ANOTHER worktree's identically-named process never matches.
-	pid_matches "$MYSQL_PID" "$MYSQL_DIR" || { echo "mysqld pid $MYSQL_PID gone"; return 1; }
+	if [ -n "$MYSQL_CONTAINER" ]; then
+		docker inspect -f '{{.State.Running}}' "$MYSQL_CONTAINER" 2>/dev/null | grep -q true \
+			|| { echo "mysql container $MYSQL_CONTAINER not running"; return 1; }
+	else
+		pid_matches "$MYSQL_PID" "$MYSQL_DIR" || { echo "mysqld pid $MYSQL_PID gone"; return 1; }
+	fi
 	probe_mysql || { echo "mysql not answering on :$MYSQL_PORT"; return 1; }
 	if [ -n "$REDIS_CONTAINER" ]; then
 		docker inspect -f '{{.State.Running}}' "$REDIS_CONTAINER" 2>/dev/null | grep -q true \
@@ -284,30 +327,35 @@ probe_all() {
 # --------------------------------------------------------------------------
 
 start_mysql() {
+	MYSQL_CONTAINER=""
+	if ! command -v mysqld >/dev/null && ! command -v mariadb-install-db >/dev/null; then
+		start_mysql_docker
+		return
+	fi
 	mkdir -p "$MYSQL_DIR"
-	local user_flag=()
-	[ "$(id -u)" = "0" ] && user_flag=(--user=root)
+	local user_flag=""
+	[ "$(id -u)" = "0" ] && user_flag="--user=root"
 	if [ ! -d "$MYSQL_DIR/mysql" ]; then
 		log "Initializing MySQL datadir ($MYSQL_DIR)"
 		if command -v mariadb-install-db >/dev/null; then
 			mariadb-install-db --no-defaults --datadir="$MYSQL_DIR" \
 				--auth-root-authentication-method=normal --skip-test-db \
-				"${user_flag[@]}" >"$LOG_DIR/mysql-init-$RUN_ID.log" 2>&1 \
+				${user_flag:+"$user_flag"} >"$LOG_DIR/mysql-init-$RUN_ID.log" 2>&1 \
 				|| die "mariadb-install-db failed — see $LOG_DIR/mysql-init-$RUN_ID.log"
 		else
 			mysqld --no-defaults --initialize-insecure --datadir="$MYSQL_DIR" \
-				"${user_flag[@]}" >"$LOG_DIR/mysql-init-$RUN_ID.log" 2>&1 \
+				${user_flag:+"$user_flag"} >"$LOG_DIR/mysql-init-$RUN_ID.log" 2>&1 \
 				|| die "mysqld --initialize-insecure failed — see $LOG_DIR/mysql-init-$RUN_ID.log"
 		fi
 	fi
 	log "Starting MySQL on 127.0.0.1:$MYSQL_PORT"
-	setsid nohup mysqld --no-defaults --datadir="$MYSQL_DIR" \
+	$SETSID nohup mysqld --no-defaults --datadir="$MYSQL_DIR" \
 		--port="$MYSQL_PORT" --bind-address=127.0.0.1 \
 		--socket="$MYSQL_SOCK" --pid-file="$MYSQL_DIR/mysqld.pid" \
-		--skip-name-resolve "${user_flag[@]}" \
+		--skip-name-resolve ${user_flag:+"$user_flag"} \
 		>>"$LOG_DIR/mysql-$RUN_ID.log" 2>&1 &
 	MYSQL_PID=$!
-	STARTED_PIDS+=("$MYSQL_PID")
+	STARTED_PIDS="$STARTED_PIDS $MYSQL_PID"
 	local i
 	for i in $(seq 1 60); do
 		mysqladmin --no-defaults --socket="$MYSQL_SOCK" -uroot ping >/dev/null 2>&1 && break
@@ -319,6 +367,31 @@ start_mysql() {
 	probe_mysql || die "MySQL TCP probe failed after user setup"
 }
 
+# Docker fallback of the preflight chain "native mysqld -> docker": hosts
+# (macOS dev machines in particular) with Docker but no server binary.
+start_mysql_docker() {
+	log "Starting Docker MariaDB on 127.0.0.1:$MYSQL_PORT"
+	MYSQL_CONTAINER="s64-mysql-$RUN_ID"
+	MYSQL_PID=0
+	docker image inspect mariadb:lts >/dev/null 2>&1 || {
+		info "pulling mariadb:lts (first run only)"
+		docker pull mariadb:lts >>"$LOG_DIR/mysql-$RUN_ID.log" 2>&1 || die "docker pull mariadb:lts failed"
+	}
+	docker rm -f "$MYSQL_CONTAINER" >/dev/null 2>&1 || true
+	docker run -d --name "$MYSQL_CONTAINER" -p "127.0.0.1:$MYSQL_PORT:3306" \
+		-e MARIADB_ROOT_PASSWORD=root -e MARIADB_ROOT_HOST=% \
+		mariadb:lts >/dev/null
+	local i
+	for i in $(seq 1 90); do
+		mysqladmin --no-defaults -h127.0.0.1 -P"$MYSQL_PORT" -uroot -proot ping >/dev/null 2>&1 && break
+		[ "$i" = 90 ] && die "Docker MariaDB did not come up in 90s — docker logs $MYSQL_CONTAINER"
+		sleep 1
+	done
+	docker exec "$MYSQL_CONTAINER" mariadb -uroot -proot \
+		-e "CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS'; GRANT ALL PRIVILEGES ON *.* TO '$DB_USER'@'%'; FLUSH PRIVILEGES;"
+	probe_mysql || die "MySQL TCP probe failed after user setup (docker)"
+}
+
 # Distro redis-server 8.x ships the query engine as a loadable module wired
 # in via the system config — a bare spawned instance lacks FT.* until the
 # module is passed explicitly. Official Redis 8 builds have it built in.
@@ -328,7 +401,12 @@ find_redisearch_module() {
 		/opt/redis-stack/lib/redisearch.so /usr/local/lib/redis/modules/redisearch.so; do
 		[ -f "$p" ] && { echo "$p"; return 0; }
 	done
-	redis-cli -p 6379 MODULE LIST 2>/dev/null | grep -m1 'redisearch\.so' || true
+	# The MODULE LIST reply line carries redis-cli quoting — reduce it to the
+	# bare path or --loadmodule receives a garbled argument.
+	if command -v redis-cli >/dev/null 2>&1; then
+		redis-cli -p 6379 MODULE LIST 2>/dev/null | grep -m1 'redisearch\.so' \
+			| tr -d '"' | awk '{print $NF}' || true
+	fi
 }
 
 start_redis() {
@@ -339,18 +417,17 @@ start_redis() {
 	command -v redis-stack-server >/dev/null && binary="redis-stack-server"
 	[ -z "$binary" ] && command -v redis-server >/dev/null && binary="redis-server"
 	if [ -n "$binary" ]; then
-		local module_args=()
+		local module=""
 		if [ "$binary" = "redis-server" ]; then
-			local module
 			module="$(find_redisearch_module)"
-			[ -n "$module" ] && module_args=(--loadmodule "$module")
 		fi
-		log "Starting $binary on 127.0.0.1:$REDIS_PORT${module_args:+ (with $module)}"
-		setsid nohup "$binary" --port "$REDIS_PORT" --bind 127.0.0.1 \
-			--dir "$REDIS_DIR" --save '' --appendonly no "${module_args[@]}" \
+		log "Starting $binary on 127.0.0.1:$REDIS_PORT${module:+ (with $module)}"
+		$SETSID nohup "$binary" --port "$REDIS_PORT" --bind 127.0.0.1 \
+			--dir "$REDIS_DIR" --save '' --appendonly no \
+			${module:+--loadmodule "$module"} \
 			>>"$LOG_DIR/redis-$RUN_ID.log" 2>&1 &
 		REDIS_PID=$!
-		STARTED_PIDS+=("$REDIS_PID")
+		STARTED_PIDS="$STARTED_PIDS $REDIS_PID"
 		local i
 		for i in $(seq 1 30); do
 			probe_redis && break
@@ -381,7 +458,8 @@ start_redis() {
 	# isolated by a run-scoped key prefix (recorded truthfully).
 	local shared="${TEST_ENV_SHARED_REDIS:-127.0.0.1:6379}"
 	local shared_host="${shared%%:*}" shared_port="${shared##*:}"
-	if redis-cli -h "$shared_host" -p "$shared_port" ping 2>/dev/null | grep -q PONG \
+	if command -v redis-cli >/dev/null 2>&1 \
+		&& redis-cli -h "$shared_host" -p "$shared_port" ping 2>/dev/null | grep -q PONG \
 		&& ! redis-cli -h "$shared_host" -p "$shared_port" FT._LIST 2>&1 | grep -qi '^ERR\|unknown command'; then
 		warn "Using SHARED redis at $shared with run-scoped key prefix (degraded isolation)"
 		REDIS_PORT="$shared_port"
@@ -412,10 +490,10 @@ start_wordpress() {
 	wpc option update home "http://127.0.0.1:$HTTP_PORT" >/dev/null
 
 	log "Starting wp server on 127.0.0.1:$HTTP_PORT"
-	setsid nohup wp server --host=127.0.0.1 --port="$HTTP_PORT" --path="$WP_ROOT" \
+	$SETSID nohup wp server --host=127.0.0.1 --port="$HTTP_PORT" --path="$WP_ROOT" \
 		>>"$LOG_DIR/wp-server-$RUN_ID.log" 2>&1 &
 	APP_PID=$!
-	STARTED_PIDS+=("$APP_PID")
+	STARTED_PIDS="$STARTED_PIDS $APP_PID"
 	local i
 	for i in $(seq 1 30); do
 		curl -sf --max-time 5 "http://127.0.0.1:$HTTP_PORT/" >/dev/null 2>&1 && break
@@ -456,8 +534,11 @@ provision_phpunit() {
 	# Same port-drift concern as wp-config.php: a reused tests-lib must point
 	# at the CURRENT run's MySQL port.
 	if [ -f "$WP_TESTS_DIR_RUN/wp-tests-config.php" ]; then
-		sed -i "s|define( *'DB_HOST'.*|define( 'DB_HOST', '127.0.0.1:$MYSQL_PORT' );|" \
-			"$WP_TESTS_DIR_RUN/wp-tests-config.php"
+		# In-place via temp file + mv: `sed -i` needs a suffix argument on
+		# BSD/macOS sed and none on GNU sed — there is no portable spelling.
+		sed "s|define( *'DB_HOST'.*|define( 'DB_HOST', '127.0.0.1:$MYSQL_PORT' );|" \
+			"$WP_TESTS_DIR_RUN/wp-tests-config.php" > "$WP_TESTS_DIR_RUN/wp-tests-config.php.tmp"
+		mv -f "$WP_TESTS_DIR_RUN/wp-tests-config.php.tmp" "$WP_TESTS_DIR_RUN/wp-tests-config.php"
 	fi
 
 	log "Generating worktree-local phpunit.xml (injects WP_TESTS_DIR)"
@@ -498,7 +579,10 @@ stop_owned() { # stop_owned <wipe-datadir: 0|1>
 	if [ -n "${REDIS_CONTAINER:-}" ]; then
 		docker rm -f "$REDIS_CONTAINER" >/dev/null 2>&1 || true
 	elif [ "${REDIS_ISOLATION:-dedicated}" = "dedicated" ] && pid_matches "${REDIS_PID:-0}" "127.0.0.1:$REDIS_PORT"; then
-		redis-cli -h 127.0.0.1 -p "$REDIS_PORT" shutdown nosave 2>/dev/null || kill "$REDIS_PID" 2>/dev/null || true
+		redis_exec shutdown nosave 2>/dev/null || kill "$REDIS_PID" 2>/dev/null || true
+	fi
+	if [ -n "${MYSQL_CONTAINER:-}" ]; then
+		docker rm -f "$MYSQL_CONTAINER" >/dev/null 2>&1 || true
 	fi
 	if pid_matches "${MYSQL_PID:-0}" "$MYSQL_DIR"; then
 		mysqladmin --no-defaults --socket="$MYSQL_SOCK" -uroot shutdown 2>/dev/null || kill "$MYSQL_PID" 2>/dev/null || true
@@ -526,8 +610,8 @@ abort_trap() {
 	if [ "$exit_code" -ne 0 ]; then
 		warn "up aborted (exit $exit_code) — stopping processes started this run"
 		local pid
-		for pid in "${STARTED_PIDS[@]:-}"; do
-			[ -n "$pid" ] && kill -- -"$pid" 2>/dev/null || kill "$pid" 2>/dev/null || true
+		for pid in $STARTED_PIDS; do
+			kill -- -"$pid" 2>/dev/null || kill "$pid" 2>/dev/null || true
 		done
 		if [ -f "$DESCRIPTOR" ]; then
 			jq --arg note "up aborted at $(date -u +%Y-%m-%dT%H:%M:%SZ) (exit $exit_code)" \
@@ -644,7 +728,7 @@ start_supervisor() {
 	fi
 	log "Starting background validation gate (logs: .ai/qa/logs/validation-$RUN_ID.log)"
 	# Invoke via bash: exec bits on repo files cannot be relied on here.
-	setsid nohup bash "$SCRIPT_DIR/test-env.sh" _supervise >>"$LOG_DIR/supervisor-$RUN_ID.log" 2>&1 &
+	$SETSID nohup bash "$SCRIPT_DIR/test-env.sh" _supervise >>"$LOG_DIR/supervisor-$RUN_ID.log" 2>&1 &
 	VALIDATION_PID=$!
 	info "validation supervisor pid $VALIDATION_PID — poll .ai/qa/validation-status.json"
 }
@@ -728,7 +812,7 @@ cmd_up() {
 	{ [ "${HTTP_PORT:-0}" -gt 0 ] && ! port_listening "$HTTP_PORT"; } || HTTP_PORT="$(free_port)"
 	{ [ "${MYSQL_PORT:-0}" -gt 0 ] && ! port_listening "$MYSQL_PORT"; } || MYSQL_PORT="$(free_port)"
 	{ [ "${REDIS_PORT:-0}" -gt 0 ] && ! port_listening "$REDIS_PORT"; } || REDIS_PORT="$(free_port)"
-	APP_PID=0; MYSQL_PID=0; REDIS_PID=0; VALIDATION_PID=0; REDIS_CONTAINER=""; REDIS_ISOLATION="dedicated"
+	APP_PID=0; MYSQL_PID=0; REDIS_PID=0; VALIDATION_PID=0; MYSQL_CONTAINER=""; REDIS_CONTAINER=""; REDIS_ISOLATION="dedicated"
 	write_descriptor "provisioning" "up started"
 
 	start_mysql

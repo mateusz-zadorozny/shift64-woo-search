@@ -16,8 +16,9 @@ bin/test-env.sh up
 That is the whole setup. When it returns, the launcher has:
 
 - installed Composer dependencies (when `vendor/` is missing);
-- started an isolated MariaDB/MySQL and a RediSearch-capable Redis on
-  run-scoped `127.0.0.1` ports;
+- started an isolated MariaDB/MySQL (native `mysqld` when the host has one,
+  otherwise a Docker `mariadb:lts` container) and a RediSearch-capable Redis
+  on run-scoped `127.0.0.1` ports;
 - installed WordPress + WooCommerce + Storefront via `bin/e2e-install-wp.sh`
   and provisioned the plugin state (demo catalog, options, index) via
   `bin/e2e-provision.sh`;
@@ -96,6 +97,18 @@ worktrees run fully disjoint environments concurrently.
 - **Distro redis-server without built-in FT** — the launcher auto-discovers
   `redisearch.so` (e.g. `/usr/lib/redis/modules/`) and passes
   `--loadmodule`; FT capability is verified from reply text, not exit codes.
+
+## Platform support
+
+Linux and macOS are both first-class. On macOS the launcher runs on the stock
+`/bin/bash` 3.2 (no arrays-under-`set -u` tricks, no `setsid`, no `/proc`, no
+GNU `sed -i` — PID ownership is verified via `ps -o command=` there), services
+without a native binary fall back to Docker (`mariadb:lts`,
+`redis/redis-stack-server`), and a host without `redis-cli` is fine: probes go
+through `docker exec` into the run's container. The wp-cli shim also pins
+`memory_limit=512M` and mutes deprecation noise, so a Homebrew PHP with a
+128M default extracts WordPress without OOMing. Native Windows remains out of
+scope (`om-prepare-test-env` owns that path).
 
 ## Environment variables
 
