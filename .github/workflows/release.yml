@@ -14,8 +14,67 @@ permissions:
   pull-requests: write
 
 jobs:
+  changes:
+    name: Determine change scope
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.scope.outputs.docs_only }}
+    steps:
+      - name: Checkout history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed files
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -eu
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            base="$BASE_SHA"
+            head="$HEAD_SHA"
+          else
+            base="$BEFORE_SHA"
+            head="$SHA"
+          fi
+
+          # An initial push has no meaningful parent to compare with; run the
+          # full suite rather than risk classifying an incomplete diff as docs.
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          docs_only=true
+          changed=false
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            changed=true
+            case "$file" in
+              *.md|*.txt|docs/*|.ai/*) ;;
+              *) docs_only=false ;;
+            esac
+          done <<EOF
+          $(git diff --name-only "$base" "$head")
+          EOF
+
+          # An empty diff should not skip validation.
+          if [ "$changed" != true ]; then
+            docs_only=false
+          fi
+
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+
   test:
     name: Tests (PHP ${{ matrix.php-version }})
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -94,6 +153,8 @@ jobs:
 
   e2e:
     name: E2E (Playwright)
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -198,8 +259,15 @@ jobs:
 
   release:
     name: Release
-    needs: [test, e2e]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [changes, test, e2e]
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      (
+        needs.changes.outputs.docs_only == 'true' ||
+        (needs.test.result == 'success' && needs.e2e.result == 'success')
+      )
     runs-on: ubuntu-latest
     env:
       # Git hooks are a local development aid. This job installs Node dependencies
