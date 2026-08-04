@@ -28,7 +28,6 @@
   "supports": {
     "border": { "color": true, "radius": true, "style": true, "width": true },
     "color": { "background": true, "gradients": true, "text": true },
-    "dimensions": { "minHeight": true },
     "html": false,
     "inserter": false,
     "spacing": { "margin": true, "padding": true },

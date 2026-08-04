@@ -205,7 +205,7 @@ msgstr ""
 #: build/blocks/search-panel/index.js:1
 #: src/blocks/search-control/index.js:16
 #: src/blocks/search-control/index.js:71
-#: src/blocks/search-panel/index.js:22
+#: src/blocks/search-panel/index.js:98
 msgid "Search"
 msgstr ""
 
@@ -1170,8 +1170,8 @@ msgstr ""
 #: build/blocks/search-control/index.js:1
 #: build/blocks/search-panel/index.js:1
 #: src/blocks/search-control/index.js:11
-#: src/blocks/search-panel/index.js:14
-#: src/blocks/search-panel/index.js:17
+#: src/blocks/search-panel/index.js:90
+#: src/blocks/search-panel/index.js:93
 msgid "Search products"
 msgstr ""
 
@@ -1187,7 +1187,7 @@ msgstr ""
 #: includes/class-shift64-woo-search-blocks.php:295
 #: includes/class-shift64-woo-search-blocks.php:699
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:24
+#: src/blocks/search-panel/index.js:100
 msgid "Close search"
 msgstr ""
 
@@ -1195,7 +1195,7 @@ msgstr ""
 #: includes/class-shift64-woo-search-blocks.php:296
 #: includes/class-shift64-woo-search-blocks.php:704
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:26
+#: src/blocks/search-panel/index.js:102
 msgid "Clear search"
 msgstr ""
 
@@ -1204,7 +1204,7 @@ msgstr ""
 #: build/blocks/modal-search/index.js:1
 #: build/blocks/search-panel/index.js:1
 #: build/blocks/search/index.js:1
-#: src/blocks/search-panel/index.js:29
+#: src/blocks/search-panel/index.js:105
 #: src/blocks/shared/parent.js:156
 msgid "No products found"
 msgstr ""
@@ -1290,7 +1290,7 @@ msgstr ""
 #: build/blocks/search-control/index.js:1
 #: build/blocks/search-panel/index.js:1
 #: src/blocks/search-control/index.js:36
-#: src/blocks/search-panel/index.js:49
+#: src/blocks/search-panel/index.js:125
 msgid "Placeholder"
 msgstr ""
 
@@ -1423,38 +1423,50 @@ msgstr ""
 
 #: build/blocks/modal-search/index.js:1
 #: build/blocks/search/index.js:1
-#: src/blocks/shared/parent.js:247
+#: src/blocks/shared/parent.js:250
 msgid "Legacy appearance was mapped to the nearest native child styles. Review Control and Panel before saving."
 msgstr ""
 
 #: build/blocks/modal-search/index.js:1
 #: build/blocks/search/index.js:1
-#: src/blocks/shared/parent.js:256
+#: src/blocks/shared/parent.js:260
 msgid "Modal preview"
 msgstr ""
 
 #: build/blocks/modal-search/index.js:1
 #: build/blocks/search/index.js:1
-#: src/blocks/shared/parent.js:259
+#: src/blocks/shared/parent.js:261
+msgid "Suggestions preview"
+msgstr ""
+
+#: build/blocks/modal-search/index.js:1
+#: build/blocks/search/index.js:1
+#: src/blocks/shared/parent.js:267
 msgid "Show open dialog in the editor"
 msgstr ""
 
 #: build/blocks/modal-search/index.js:1
 #: build/blocks/search/index.js:1
-#: src/blocks/shared/parent.js:274
+#: src/blocks/shared/parent.js:271
+msgid "Show suggestion tray in the editor"
+msgstr ""
+
+#: build/blocks/modal-search/index.js:1
+#: build/blocks/search/index.js:1
+#: src/blocks/shared/parent.js:286
 msgid "This search block has an unsupported child structure."
 msgstr ""
 
 #: build/blocks/modal-search/index.js:1
 #: build/blocks/search/index.js:1
-#: src/blocks/shared/parent.js:289
+#: src/blocks/shared/parent.js:301
 msgid "Repair search parts"
 msgstr ""
 
 #: build/blocks/search-control/index.js:1
 #: build/blocks/search-panel/index.js:1
 #: src/blocks/search-control/index.js:14
-#: src/blocks/search-panel/index.js:20
+#: src/blocks/search-panel/index.js:96
 msgid "Search products…"
 msgstr ""
 
@@ -1471,7 +1483,7 @@ msgstr ""
 #: build/blocks/search-control/index.js:1
 #: build/blocks/search-panel/index.js:1
 #: src/blocks/search-control/index.js:43
-#: src/blocks/search-panel/index.js:56
+#: src/blocks/search-panel/index.js:132
 msgid "Submit label"
 msgstr ""
 
@@ -1491,53 +1503,53 @@ msgid "None"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:40
+#: src/blocks/search-panel/index.js:17
+msgid "Products"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:22
+msgid "Example product"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:35
+msgid "Example category"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:116
 msgid "Panel copy"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:42
+#: src/blocks/search-panel/index.js:118
 msgid "Input label"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:63
+#: src/blocks/search-panel/index.js:139
 msgid "Dialog label"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:70
+#: src/blocks/search-panel/index.js:146
 msgid "Close label"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:77
+#: src/blocks/search-panel/index.js:153
 msgid "Clear label"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:84
+#: src/blocks/search-panel/index.js:160
 msgid "No results label"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:108
-msgid "Search suggestions"
-msgstr ""
-
-#: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:115
-msgid "Sample product"
-msgstr ""
-
-#: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:118
-msgid "Sample category"
-msgstr ""
-
-#: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:95
-msgid "Enable the modal preview from the parent block settings."
+#: src/blocks/search-panel/index.js:171
+msgid "Suggestions are closed. Enable the preview from the parent block settings."
 msgstr ""
 
 #: build/blocks/modal-search/block.json

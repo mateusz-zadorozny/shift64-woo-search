@@ -61,6 +61,7 @@
     "spacing": { "margin": true, "padding": true }
   },
   "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
   "style": ["shift64-woo-search", "file:./style-index.css"],
   "viewScriptModule": "file:./view.js"
 }

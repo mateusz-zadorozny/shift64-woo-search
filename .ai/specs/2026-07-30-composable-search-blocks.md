@@ -182,7 +182,7 @@ without JavaScript.
 | Block | Attribute | Type/default | Contract |
 | --- | --- | --- | --- |
 | both | `instanceId` | string/generated | Stable within saved content; sanitized HTML-safe ID stem |
-| modal only | `previewOpen` | boolean/false | Editor-only preview; never opens the frontend |
+| both | `previewOpen` | boolean/false | Editor-only preview; never opens the frontend |
 
 The parent stores structure and identity, not appearance or visible labels.
 
@@ -259,9 +259,12 @@ documented and covered by serialized fixture tests. Parent names never change.
 - List View shows **Search Control** and **Search Panel**, both selectable.
 - Selecting Control exposes its labels and normal block design tools.
 - Selecting Panel exposes open-surface labels and its own colors, typography,
-  spacing, border, dimensions, and background.
-- The Panel displays a deterministic sample-results preview. Modal Search has
-  an editor-only open/closed preview toggle.
+  spacing, border, and background. Panel intentionally does not expose minimum
+  height because its closed state must not reserve empty space below Control.
+- Both parents default to the storefront-faithful closed state and expose an
+  editor-only preview toggle. An opened preview uses the storefront result
+  structure; the modal preview stays in the editor flow and never creates a
+  native dialog or backdrop.
 - No control links to Shift64 admin appearance settings.
 
 ### Storefront

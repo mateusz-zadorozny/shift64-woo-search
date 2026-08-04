@@ -5,7 +5,83 @@ import { __ } from '@wordpress/i18n';
 import metadata from './block.json';
 import './style.scss';
 
-function Edit( { attributes, context, setAttributes } ) {
+function ResultsPreview() {
+	return (
+		<div
+			className="shift64-woo-search-results shift64-woo-search-results--visible shift64-woo-search-panel__editor-results"
+			role="presentation"
+		>
+			<div className="shift64-woo-search-results__scroll">
+				<div className="shift64-woo-search-section shift64-woo-search-section--products">
+					<div className="shift64-woo-search-section__header">
+						{ __( 'Products', 'shift64-woo-search' ) }
+					</div>
+					<div className="shift64-woo-search-result shift64-woo-search-result--product">
+						<div className="shift64-woo-search-result__content">
+							<span className="shift64-woo-search-result__title">
+								{ __(
+									'Example product',
+									'shift64-woo-search'
+								) }
+							</span>
+							<div className="shift64-woo-search-result__meta">
+								<span className="shift64-woo-search-result__sku">
+									DEMO-001
+								</span>
+								<span className="shift64-woo-search-result__meta-sep">
+									|
+								</span>
+								<span className="shift64-woo-search-result__category">
+									{ __(
+										'Example category',
+										'shift64-woo-search'
+									) }
+								</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function EditorPreview( { copy, variant } ) {
+	if ( variant === 'inline' ) {
+		return <ResultsPreview />;
+	}
+
+	return (
+		<div
+			className="shift64-woo-search-panel__editor-dialog"
+			role="presentation"
+		>
+			<button
+				type="button"
+				className="shift64-woo-search-modal__close"
+				aria-label={ copy.closeLabel }
+				disabled
+			>
+				×
+			</button>
+			<div className="shift64-woo-search-field">
+				<span className="screen-reader-text">{ copy.inputLabel }</span>
+				<input
+					type="search"
+					aria-label={ copy.inputLabel }
+					placeholder={ copy.placeholder }
+					disabled
+				/>
+				<button type="button" disabled>
+					{ copy.submitLabel }
+				</button>
+			</div>
+			<ResultsPreview />
+		</div>
+	);
+}
+
+function Edit( { attributes, context, isSelected, setAttributes } ) {
 	const variant = context[ 'shift64WooSearch/variant' ] || 'inline';
 	const previewOpen = Boolean( context[ 'shift64WooSearch/previewOpen' ] );
 	const copy = {
@@ -29,8 +105,8 @@ function Edit( { attributes, context, setAttributes } ) {
 			__( 'No products found', 'shift64-woo-search' ),
 	};
 	const blockProps = useBlockProps( {
-		className: `shift64-woo-search-panel is-${ variant }${
-			variant === 'modal' && previewOpen ? ' is-preview-open' : ''
+		className: `shift64-woo-search-panel is-${ variant } ${
+			previewOpen ? 'is-preview-open' : 'is-preview-closed'
 		}`,
 	} );
 
@@ -90,38 +166,16 @@ function Edit( { attributes, context, setAttributes } ) {
 				</PanelBody>
 			</InspectorControls>
 			<div { ...blockProps }>
-				{ variant === 'modal' && ! previewOpen ? (
-					<p>
+				{ ! previewOpen && isSelected && (
+					<p className="shift64-woo-search-panel__editor-closed">
 						{ __(
-							'Enable the modal preview from the parent block settings.',
+							'Suggestions are closed. Enable the preview from the parent block settings.',
 							'shift64-woo-search'
 						) }
 					</p>
-				) : (
-					<div
-						className="shift64-woo-search-panel__preview"
-						role="presentation"
-					>
-						<strong>
-							{ variant === 'modal'
-								? copy.dialogLabel
-								: __(
-										'Search suggestions',
-										'shift64-woo-search'
-								  ) }
-						</strong>
-						<ul>
-							<li>
-								{ __( 'Sample product', 'shift64-woo-search' ) }
-							</li>
-							<li>
-								{ __(
-									'Sample category',
-									'shift64-woo-search'
-								) }
-							</li>
-						</ul>
-					</div>
+				) }
+				{ previewOpen && (
+					<EditorPreview copy={ copy } variant={ variant } />
 				) }
 			</div>
 		</>

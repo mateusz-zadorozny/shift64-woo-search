@@ -178,6 +178,7 @@ export function ParentEdit( { attributes, clientId, setAttributes }, variant ) {
 		[ clientId ]
 	);
 	const instanceId = attributes.instanceId;
+	const previewOpen = Boolean( attributes.previewOpen );
 
 	useEffect( () => {
 		if ( ! instanceId ) {
@@ -194,7 +195,9 @@ export function ParentEdit( { attributes, clientId, setAttributes }, variant ) {
 		[]
 	);
 	const blockProps = useBlockProps( {
-		className: `shift64-woo-search-editor-parent is-${ variant }`,
+		className: `shift64-woo-search-editor-parent is-${ variant } ${
+			previewOpen ? 'is-preview-open' : 'is-preview-closed'
+		}`,
 	} );
 	const innerBlocksProps = useInnerBlocksProps( blockProps, {
 		allowedBlocks: CHILDREN,
@@ -250,24 +253,33 @@ export function ParentEdit( { attributes, clientId, setAttributes }, variant ) {
 					) }
 				</Notice>
 			) }
-			{ variant === 'modal' && (
-				<InspectorControls>
-					<PanelBody
-						title={ __( 'Modal preview', 'shift64-woo-search' ) }
-					>
-						<ToggleControl
-							label={ __(
-								'Show open dialog in the editor',
-								'shift64-woo-search'
-							) }
-							checked={ Boolean( attributes.previewOpen ) }
-							onChange={ ( previewOpen ) =>
-								setAttributes( { previewOpen } )
-							}
-						/>
-					</PanelBody>
-				</InspectorControls>
-			) }
+			<InspectorControls>
+				<PanelBody
+					title={
+						variant === 'modal'
+							? __( 'Modal preview', 'shift64-woo-search' )
+							: __( 'Suggestions preview', 'shift64-woo-search' )
+					}
+				>
+					<ToggleControl
+						label={
+							variant === 'modal'
+								? __(
+										'Show open dialog in the editor',
+										'shift64-woo-search'
+								  )
+								: __(
+										'Show suggestion tray in the editor',
+										'shift64-woo-search'
+								  )
+						}
+						checked={ previewOpen }
+						onChange={ ( nextPreviewOpen ) =>
+							setAttributes( { previewOpen: nextPreviewOpen } )
+						}
+					/>
+				</PanelBody>
+			</InspectorControls>
 			{ ! validStructure && blocks.length > 0 && (
 				<Notice status="warning" isDismissible={ false }>
 					<p>

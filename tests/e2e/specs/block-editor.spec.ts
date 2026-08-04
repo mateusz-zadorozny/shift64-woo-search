@@ -112,6 +112,10 @@ test.describe( 'composable search block editor', () => {
 				return {
 					parentClientId: parent.clientId,
 					childClientIds: [ control.clientId, panel.clientId ],
+					modalParentClientId: modalParent.clientId,
+					modalChildClientIds: modalParent.innerBlocks.map(
+						( block: any ) => block.clientId
+					),
 					templateLock: select.getTemplateLock( parent.clientId ),
 					modalTemplateLock: select.getTemplateLock(
 						modalParent.clientId
@@ -161,6 +165,140 @@ test.describe( 'composable search block editor', () => {
 			expect( supports.spacing.padding ).toBe( true );
 			expect( supports.typography.fontSize ).toBe( true );
 		}
+		expect( editorContract.supports[ 0 ].dimensions.minHeight ).toBe(
+			true
+		);
+		expect( editorContract.supports[ 1 ].dimensions ).toBeUndefined();
+
+		await page.evaluate( ( parentClientId ) => {
+			( window as any ).wp.data
+				.dispatch( 'core/block-editor' )
+				.selectBlock( parentClientId );
+		}, editorContract.parentClientId );
+
+		await expect
+			.poll( () =>
+				page.evaluate( ( panelClientId ) => {
+					const iframe = document.querySelector< HTMLIFrameElement >(
+						'iframe[name="editor-canvas"]'
+					);
+					const editorDocument = iframe?.contentDocument || document;
+					const panel = editorDocument.querySelector< HTMLElement >(
+						`[data-block="${ panelClientId }"]`
+					);
+					return panel ? getComputedStyle( panel ).display : null;
+				}, editorContract.childClientIds[ 1 ] )
+			)
+			.toBe( 'none' );
+
+		await page.evaluate(
+			( parentClientIds ) => {
+				const dispatch = ( window as any ).wp.data.dispatch(
+					'core/block-editor'
+				);
+				for ( const clientId of parentClientIds ) {
+					dispatch.updateBlockAttributes( clientId, {
+						previewOpen: true,
+					} );
+				}
+			},
+			[
+				editorContract.parentClientId,
+				editorContract.modalParentClientId,
+			]
+		);
+
+		await expect
+			.poll( () =>
+				page.evaluate( ( contract ) => {
+					const iframe = document.querySelector< HTMLIFrameElement >(
+						'iframe[name="editor-canvas"]'
+					);
+					const editorDocument = iframe?.contentDocument || document;
+					const getBlock = ( clientId: string ) =>
+						editorDocument.querySelector< HTMLElement >(
+								`[data-block="${ clientId }"]`
+							);
+					const inlinePanel = getBlock(
+						contract.childClientIds[ 1 ]
+					);
+					const modalParent = getBlock(
+						contract.modalParentClientId
+					);
+					const modalControl = getBlock(
+						contract.modalChildClientIds[ 0 ]
+					);
+					const modalPanel = getBlock(
+						contract.modalChildClientIds[ 1 ]
+					);
+
+					if (
+						! inlinePanel ||
+						! modalParent ||
+						! modalControl ||
+						! modalPanel
+					) {
+						return null;
+					}
+
+					const controlBox = modalControl.getBoundingClientRect();
+					const parentBox = modalParent.getBoundingClientRect();
+					const panelBox = modalPanel.getBoundingClientRect();
+					const modalTrigger = modalControl.querySelector< HTMLElement >(
+						'.shift64-woo-search-modal__trigger'
+					);
+					const triggerParts = modalTrigger
+						? [ ...modalTrigger.querySelectorAll< HTMLElement >( 'span' ) ]
+						: [];
+					const triggerPartBoxes = triggerParts.map( ( part ) =>
+						part.getBoundingClientRect()
+					);
+
+					return {
+						inlineHasList: Boolean(
+							inlinePanel.querySelector( 'ul, ol' )
+						),
+						inlineHasStorefrontResult: Boolean(
+							inlinePanel.querySelector(
+								'.shift64-woo-search-results .shift64-woo-search-result'
+							)
+						),
+						modalDisplay: getComputedStyle( modalParent ).display,
+						modalHasEditorSurface: Boolean(
+							modalPanel.querySelector(
+								'.shift64-woo-search-panel__editor-dialog'
+							)
+						),
+						modalHasNativeDialog: Boolean(
+							modalPanel.querySelector( 'dialog' )
+						),
+						modalTriggerPartsDoNotOverlap:
+							triggerPartBoxes.length < 2 ||
+							triggerPartBoxes[ 0 ].right <=
+								triggerPartBoxes[ 1 ].left + 0.5,
+						modalPanelFillsParent:
+							panelBox.width >= parentBox.width - 1,
+						modalPartsDoNotOverlap:
+							controlBox.bottom <= panelBox.top + 0.5,
+					};
+				}, editorContract )
+			)
+			.toEqual( {
+				inlineHasList: false,
+				inlineHasStorefrontResult: true,
+				modalDisplay: 'grid',
+				modalHasEditorSurface: true,
+				modalHasNativeDialog: false,
+				modalTriggerPartsDoNotOverlap: true,
+				modalPanelFillsParent: true,
+				modalPartsDoNotOverlap: true,
+			} );
+
+		await page.evaluate( ( panelClientId ) => {
+			( window as any ).wp.data
+				.dispatch( 'core/block-editor' )
+				.selectBlock( panelClientId );
+		}, editorContract.childClientIds[ 1 ] );
 
 		const overviewToggle = page
 			.getByRole( 'button', { name: /Document Overview|List View/i } )
@@ -169,14 +307,6 @@ test.describe( 'composable search block editor', () => {
 		const listView = page.locator( '.block-editor-list-view-tree' );
 		await expect( listView ).toBeVisible();
 
-		const parentRow = listView.locator( '.block-editor-list-view-leaf', {
-			hasText: 'Shift64 Product Search',
-		} );
-		if ( ( await parentRow.getAttribute( 'data-expanded' ) ) === 'false' ) {
-			await parentRow
-				.locator( '.block-editor-list-view__expander' )
-				.click();
-		}
 		await expect(
 			listView.getByText( 'Search Control', { exact: true } )
 		).toBeVisible();

@@ -29,6 +29,10 @@
       ],
       "default": "inline"
     },
+    "previewOpen": {
+      "type": "boolean",
+      "default": false
+    },
     "placeholder": {
       "type": "string"
     },
@@ -42,7 +46,8 @@
   "providesContext": {
     "shift64WooSearch/instanceId": "instanceId",
     "shift64WooSearch/runtimeId": "runtimeId",
-    "shift64WooSearch/variant": "variant"
+    "shift64WooSearch/variant": "variant",
+    "shift64WooSearch/previewOpen": "previewOpen"
   },
   "supports": {
     "align": [
@@ -58,6 +63,7 @@
     }
   },
   "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
   "style": [
     "shift64-woo-search",
     "file:./style-index.css"

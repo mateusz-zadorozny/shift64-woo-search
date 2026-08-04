@@ -57,9 +57,6 @@
       "gradients": true,
       "text": true
     },
-    "dimensions": {
-      "minHeight": true
-    },
     "html": false,
     "inserter": false,
     "spacing": {
