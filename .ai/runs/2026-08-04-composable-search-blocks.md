@@ -80,19 +80,19 @@ legacy shortcode behavior.
 
 ### Phase 1: Metadata blocks, composition, and migration
 
-- [ ] 1.1 Add block tooling and committed distributable assets
-- [ ] 1.2 Register metadata parents and constrained child blocks
-- [ ] 1.3 Add server renderers, previews, IDs, and wrapper coverage
-- [ ] 1.4 Preserve legacy parent rendering and editor migrations
+- [x] 1.1 Add block tooling and committed distributable assets — f2292d2
+- [x] 1.2 Register metadata parents and constrained child blocks — f2292d2
+- [x] 1.3 Add server renderers, previews, IDs, and wrapper coverage — f2292d2
+- [x] 1.4 Preserve legacy parent rendering and editor migrations — f2292d2
 
 ### Phase 2: Interactivity API search and modal behavior
 
-- [ ] 2.1 Implement scoped autocomplete state and actions
-- [ ] 2.2 Implement native dialog, focus, and Panel-owned presentation
-- [ ] 2.3 Add JavaScript and browser interaction coverage
+- [x] 2.1 Implement scoped autocomplete state and actions — f2292d2
+- [x] 2.2 Implement native dialog, focus, and Panel-owned presentation — f2292d2
+- [x] 2.3 Add JavaScript and browser interaction coverage — 77f025a
 
 ### Phase 3: Catalog navigation and compatibility cleanup
 
-- [ ] 3.1 Integrate canonical Product Collection navigation
-- [ ] 3.2 Remove superseded block-only imperative initialization
-- [ ] 3.3 Update docs and spec lifecycle, then complete verification
+- [x] 3.1 Integrate canonical Product Collection navigation — f2292d2
+- [x] 3.2 Remove superseded block-only imperative initialization — 77f025a
+- [x] 3.3 Update docs and spec lifecycle, then complete verification — e162bd4
