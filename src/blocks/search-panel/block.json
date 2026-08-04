@@ -17,13 +17,13 @@
     "shift64WooSearch/previewOpen"
   ],
   "attributes": {
-    "dialogLabel": { "type": "string", "default": "Search products" },
-    "inputLabel": { "type": "string", "default": "Search products" },
-    "placeholder": { "type": "string", "default": "Search products..." },
-    "submitLabel": { "type": "string", "default": "Search" },
-    "closeLabel": { "type": "string", "default": "Close search" },
-    "clearLabel": { "type": "string", "default": "Clear search" },
-    "noResultsLabel": { "type": "string", "default": "No products found" }
+    "dialogLabel": { "type": "string" },
+    "inputLabel": { "type": "string" },
+    "placeholder": { "type": "string" },
+    "submitLabel": { "type": "string" },
+    "closeLabel": { "type": "string" },
+    "clearLabel": { "type": "string" },
+    "noResultsLabel": { "type": "string" }
   },
   "supports": {
     "border": { "color": true, "radius": true, "style": true, "width": true },

@@ -24,32 +24,25 @@
   ],
   "attributes": {
     "dialogLabel": {
-      "type": "string",
-      "default": "Search products"
+      "type": "string"
     },
     "inputLabel": {
-      "type": "string",
-      "default": "Search products"
+      "type": "string"
     },
     "placeholder": {
-      "type": "string",
-      "default": "Search products..."
+      "type": "string"
     },
     "submitLabel": {
-      "type": "string",
-      "default": "Search"
+      "type": "string"
     },
     "closeLabel": {
-      "type": "string",
-      "default": "Close search"
+      "type": "string"
     },
     "clearLabel": {
-      "type": "string",
-      "default": "Clear search"
+      "type": "string"
     },
     "noResultsLabel": {
-      "type": "string",
-      "default": "No products found"
+      "type": "string"
     }
   },
   "supports": {

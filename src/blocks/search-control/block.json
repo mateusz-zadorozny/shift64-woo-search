@@ -16,10 +16,10 @@
     "shift64WooSearch/variant"
   ],
   "attributes": {
-    "label": { "type": "string", "default": "Search products" },
-    "placeholder": { "type": "string", "default": "Search products..." },
-    "submitLabel": { "type": "string", "default": "Search" },
-    "triggerLabel": { "type": "string", "default": "Open product search" },
+    "label": { "type": "string" },
+    "placeholder": { "type": "string" },
+    "submitLabel": { "type": "string" },
+    "triggerLabel": { "type": "string" },
     "triggerIcon": {
       "type": "string",
       "enum": ["none", "search"],

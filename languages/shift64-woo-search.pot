@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-04T11:33:15+00:00\n"
+"POT-Creation-Date: 2026-08-04T12:26:50+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: shift64-woo-search\n"
@@ -202,7 +202,10 @@ msgstr ""
 #: includes/class-shift64-woo-search-blocks.php:299
 #: includes/class-shift64-woo-search-blocks.php:672
 #: build/blocks/search-control/index.js:1
-#: src/blocks/search-control/index.js:57
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:16
+#: src/blocks/search-control/index.js:71
+#: src/blocks/search-panel/index.js:22
 msgid "Search"
 msgstr ""
 
@@ -1164,31 +1167,44 @@ msgstr ""
 #: includes/class-shift64-woo-search-blocks.php:294
 #: includes/class-shift64-woo-search-blocks.php:297
 #: includes/class-shift64-woo-search-blocks.php:677
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:11
+#: src/blocks/search-panel/index.js:14
+#: src/blocks/search-panel/index.js:17
 msgid "Search products"
 msgstr ""
 
 #: frontend/class-shift64-woo-search-frontend.php:125
 #: includes/class-shift64-woo-search-blocks.php:263
 #: includes/class-shift64-woo-search-blocks.php:694
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:19
 msgid "Open product search"
 msgstr ""
 
 #: frontend/class-shift64-woo-search-frontend.php:126
 #: includes/class-shift64-woo-search-blocks.php:295
 #: includes/class-shift64-woo-search-blocks.php:699
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:24
 msgid "Close search"
 msgstr ""
 
 #: frontend/class-shift64-woo-search-frontend.php:127
 #: includes/class-shift64-woo-search-blocks.php:296
 #: includes/class-shift64-woo-search-blocks.php:704
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:26
 msgid "Clear search"
 msgstr ""
 
 #: frontend/class-shift64-woo-search-frontend.php:272
 #: includes/class-shift64-woo-search-blocks.php:217
 #: build/blocks/modal-search/index.js:1
+#: build/blocks/search-panel/index.js:1
 #: build/blocks/search/index.js:1
+#: src/blocks/search-panel/index.js:29
 #: src/blocks/shared/parent.js:156
 msgid "No products found"
 msgstr ""
@@ -1273,8 +1289,8 @@ msgstr ""
 #: includes/class-shift64-woo-search-blocks.php:665
 #: build/blocks/search-control/index.js:1
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-control/index.js:24
-#: src/blocks/search-panel/index.js:29
+#: src/blocks/search-control/index.js:36
+#: src/blocks/search-panel/index.js:49
 msgid "Placeholder"
 msgstr ""
 
@@ -1436,84 +1452,91 @@ msgid "Repair search parts"
 msgstr ""
 
 #: build/blocks/search-control/index.js:1
-#: src/blocks/search-control/index.js:17
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:14
+#: src/blocks/search-panel/index.js:20
+msgid "Search products…"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:27
 msgid "Search copy"
 msgstr ""
 
 #: build/blocks/search-control/index.js:1
-#: src/blocks/search-control/index.js:19
+#: src/blocks/search-control/index.js:29
 msgid "Accessible label"
 msgstr ""
 
 #: build/blocks/search-control/index.js:1
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-control/index.js:31
-#: src/blocks/search-panel/index.js:36
+#: src/blocks/search-control/index.js:43
+#: src/blocks/search-panel/index.js:56
 msgid "Submit label"
 msgstr ""
 
 #: build/blocks/search-control/index.js:1
-#: src/blocks/search-control/index.js:40
+#: src/blocks/search-control/index.js:52
 msgid "Trigger label"
 msgstr ""
 
 #: build/blocks/search-control/index.js:1
-#: src/blocks/search-control/index.js:50
+#: src/blocks/search-control/index.js:64
 msgid "Trigger icon"
 msgstr ""
 
 #: build/blocks/search-control/index.js:1
-#: src/blocks/search-control/index.js:64
+#: src/blocks/search-control/index.js:78
 msgid "None"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:20
+#: src/blocks/search-panel/index.js:40
 msgid "Panel copy"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:22
+#: src/blocks/search-panel/index.js:42
 msgid "Input label"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:43
+#: src/blocks/search-panel/index.js:63
 msgid "Dialog label"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:50
+#: src/blocks/search-panel/index.js:70
 msgid "Close label"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:57
+#: src/blocks/search-panel/index.js:77
 msgid "Clear label"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:64
+#: src/blocks/search-panel/index.js:84
 msgid "No results label"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:88
+#: src/blocks/search-panel/index.js:108
 msgid "Search suggestions"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:95
+#: src/blocks/search-panel/index.js:115
 msgid "Sample product"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:98
+#: src/blocks/search-panel/index.js:118
 msgid "Sample category"
 msgstr ""
 
 #: build/blocks/search-panel/index.js:1
-#: src/blocks/search-panel/index.js:75
+#: src/blocks/search-panel/index.js:95
 msgid "Enable the modal preview from the parent block settings."
 msgstr ""
 

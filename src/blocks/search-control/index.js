@@ -7,6 +7,16 @@ import './style.scss';
 
 function Edit( { attributes, context, setAttributes } ) {
 	const variant = context[ 'shift64WooSearch/variant' ] || 'inline';
+	const label =
+		attributes.label || __( 'Search products', 'shift64-woo-search' );
+	const placeholder =
+		attributes.placeholder ||
+		__( 'Search products…', 'shift64-woo-search' );
+	const submitLabel =
+		attributes.submitLabel || __( 'Search', 'shift64-woo-search' );
+	const triggerLabel =
+		attributes.triggerLabel ||
+		__( 'Open product search', 'shift64-woo-search' );
 	const blockProps = useBlockProps( {
 		className: `shift64-woo-search-control is-${ variant }`,
 	} );
@@ -17,21 +27,23 @@ function Edit( { attributes, context, setAttributes } ) {
 				<PanelBody title={ __( 'Search copy', 'shift64-woo-search' ) }>
 					<TextControl
 						label={ __( 'Accessible label', 'shift64-woo-search' ) }
-						value={ attributes.label }
-						onChange={ ( label ) => setAttributes( { label } ) }
+						value={ label }
+						onChange={ ( nextLabel ) =>
+							setAttributes( { label: nextLabel } )
+						}
 					/>
 					<TextControl
 						label={ __( 'Placeholder', 'shift64-woo-search' ) }
-						value={ attributes.placeholder }
-						onChange={ ( placeholder ) =>
-							setAttributes( { placeholder } )
+						value={ placeholder }
+						onChange={ ( nextPlaceholder ) =>
+							setAttributes( { placeholder: nextPlaceholder } )
 						}
 					/>
 					<TextControl
 						label={ __( 'Submit label', 'shift64-woo-search' ) }
-						value={ attributes.submitLabel }
-						onChange={ ( submitLabel ) =>
-							setAttributes( { submitLabel } )
+						value={ submitLabel }
+						onChange={ ( nextSubmitLabel ) =>
+							setAttributes( { submitLabel: nextSubmitLabel } )
 						}
 					/>
 					{ variant === 'modal' && (
@@ -41,9 +53,11 @@ function Edit( { attributes, context, setAttributes } ) {
 									'Trigger label',
 									'shift64-woo-search'
 								) }
-								value={ attributes.triggerLabel }
-								onChange={ ( triggerLabel ) =>
-									setAttributes( { triggerLabel } )
+								value={ triggerLabel }
+								onChange={ ( nextTriggerLabel ) =>
+									setAttributes( {
+										triggerLabel: nextTriggerLabel,
+									} )
 								}
 							/>
 							<SelectControl
@@ -85,21 +99,19 @@ function Edit( { attributes, context, setAttributes } ) {
 						{ attributes.triggerIcon === 'search' && (
 							<span aria-hidden="true">⌕</span>
 						) }
-						<span>{ attributes.triggerLabel }</span>
+						<span>{ triggerLabel }</span>
 					</button>
 				) : (
 					<div className="shift64-woo-search-field">
-						<span className="screen-reader-text">
-							{ attributes.label }
-						</span>
+						<span className="screen-reader-text">{ label }</span>
 						<input
 							type="search"
-							aria-label={ attributes.label }
-							placeholder={ attributes.placeholder }
+							aria-label={ label }
+							placeholder={ placeholder }
 							disabled
 						/>
 						<button type="button" disabled>
-							{ attributes.submitLabel }
+							{ submitLabel }
 						</button>
 					</div>
 				) }

@@ -23,20 +23,16 @@
   ],
   "attributes": {
     "label": {
-      "type": "string",
-      "default": "Search products"
+      "type": "string"
     },
     "placeholder": {
-      "type": "string",
-      "default": "Search products..."
+      "type": "string"
     },
     "submitLabel": {
-      "type": "string",
-      "default": "Search"
+      "type": "string"
     },
     "triggerLabel": {
-      "type": "string",
-      "default": "Open product search"
+      "type": "string"
     },
     "triggerIcon": {
       "type": "string",

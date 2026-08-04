@@ -8,6 +8,26 @@ import './style.scss';
 function Edit( { attributes, context, setAttributes } ) {
 	const variant = context[ 'shift64WooSearch/variant' ] || 'inline';
 	const previewOpen = Boolean( context[ 'shift64WooSearch/previewOpen' ] );
+	const copy = {
+		dialogLabel:
+			attributes.dialogLabel ||
+			__( 'Search products', 'shift64-woo-search' ),
+		inputLabel:
+			attributes.inputLabel ||
+			__( 'Search products', 'shift64-woo-search' ),
+		placeholder:
+			attributes.placeholder ||
+			__( 'Search products…', 'shift64-woo-search' ),
+		submitLabel:
+			attributes.submitLabel || __( 'Search', 'shift64-woo-search' ),
+		closeLabel:
+			attributes.closeLabel || __( 'Close search', 'shift64-woo-search' ),
+		clearLabel:
+			attributes.clearLabel || __( 'Clear search', 'shift64-woo-search' ),
+		noResultsLabel:
+			attributes.noResultsLabel ||
+			__( 'No products found', 'shift64-woo-search' ),
+	};
 	const blockProps = useBlockProps( {
 		className: `shift64-woo-search-panel is-${ variant }${
 			variant === 'modal' && previewOpen ? ' is-preview-open' : ''
@@ -20,49 +40,49 @@ function Edit( { attributes, context, setAttributes } ) {
 				<PanelBody title={ __( 'Panel copy', 'shift64-woo-search' ) }>
 					<TextControl
 						label={ __( 'Input label', 'shift64-woo-search' ) }
-						value={ attributes.inputLabel }
+						value={ copy.inputLabel }
 						onChange={ ( inputLabel ) =>
 							setAttributes( { inputLabel } )
 						}
 					/>
 					<TextControl
 						label={ __( 'Placeholder', 'shift64-woo-search' ) }
-						value={ attributes.placeholder }
+						value={ copy.placeholder }
 						onChange={ ( placeholder ) =>
 							setAttributes( { placeholder } )
 						}
 					/>
 					<TextControl
 						label={ __( 'Submit label', 'shift64-woo-search' ) }
-						value={ attributes.submitLabel }
+						value={ copy.submitLabel }
 						onChange={ ( submitLabel ) =>
 							setAttributes( { submitLabel } )
 						}
 					/>
 					<TextControl
 						label={ __( 'Dialog label', 'shift64-woo-search' ) }
-						value={ attributes.dialogLabel }
+						value={ copy.dialogLabel }
 						onChange={ ( dialogLabel ) =>
 							setAttributes( { dialogLabel } )
 						}
 					/>
 					<TextControl
 						label={ __( 'Close label', 'shift64-woo-search' ) }
-						value={ attributes.closeLabel }
+						value={ copy.closeLabel }
 						onChange={ ( closeLabel ) =>
 							setAttributes( { closeLabel } )
 						}
 					/>
 					<TextControl
 						label={ __( 'Clear label', 'shift64-woo-search' ) }
-						value={ attributes.clearLabel }
+						value={ copy.clearLabel }
 						onChange={ ( clearLabel ) =>
 							setAttributes( { clearLabel } )
 						}
 					/>
 					<TextControl
 						label={ __( 'No results label', 'shift64-woo-search' ) }
-						value={ attributes.noResultsLabel }
+						value={ copy.noResultsLabel }
 						onChange={ ( noResultsLabel ) =>
 							setAttributes( { noResultsLabel } )
 						}
@@ -84,7 +104,7 @@ function Edit( { attributes, context, setAttributes } ) {
 					>
 						<strong>
 							{ variant === 'modal'
-								? attributes.dialogLabel
+								? copy.dialogLabel
 								: __(
 										'Search suggestions',
 										'shift64-woo-search'
