@@ -42,5 +42,9 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.6",
     "semantic-release": "^25.0.0"
+  },
+  "overrides": {
+    "file-entry-cache@11.1.6": "11.1.5",
+    "flat-cache@6.1.24": "6.1.23"
   }
 }
