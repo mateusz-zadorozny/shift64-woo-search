@@ -1,6 +1,6 @@
 # Composable Search Blocks
 
-> **Status:** draft
+> **Status:** implemented — PR #60, 2026-08-04
 
 ## 📝 TLDR
 
