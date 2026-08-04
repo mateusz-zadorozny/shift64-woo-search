@@ -158,13 +158,15 @@ fi
 
 log "Ensure the search-e2e page (both search blocks)"
 EXISTING_PAGE="$(wpc post list --post_type=page --name=search-e2e --field=ID --posts_per_page=1)"
+SEARCH_E2E_CONTENT='<!-- wp:shift64-woo-search/search {"instanceId":"search-e2e-inline"} --><!-- wp:shift64-woo-search/search-control /--><!-- wp:shift64-woo-search/search-panel /--><!-- /wp:shift64-woo-search/search --><!-- wp:shift64-woo-search/modal-search {"instanceId":"search-e2e-modal"} --><!-- wp:shift64-woo-search/search-control /--><!-- wp:shift64-woo-search/search-panel /--><!-- /wp:shift64-woo-search/modal-search -->'
 if [ -z "$EXISTING_PAGE" ]; then
 	wpc post create --post_type=page --post_status=publish \
 		--post_title='Search E2E' --post_name=search-e2e \
-		--post_content='<!-- wp:shift64-woo-search/search /--><!-- wp:shift64-woo-search/modal-search /-->' >/dev/null
+		--post_content="$SEARCH_E2E_CONTENT" >/dev/null
 	echo "Created page /search-e2e/."
 else
-	echo "Page /search-e2e/ already exists (ID $EXISTING_PAGE)."
+	wpc post update "$EXISTING_PAGE" --post_content="$SEARCH_E2E_CONTENT" >/dev/null
+	echo "Updated page /search-e2e/ (ID $EXISTING_PAGE)."
 fi
 
 if [ "${SKIP_REDIS_WIRING:-}" = "1" ]; then

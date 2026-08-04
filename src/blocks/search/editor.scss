@@ -1,0 +1,18 @@
+.wp-block-shift64-woo-search-search.shift64-woo-search-editor-parent,
+.wp-block-shift64-woo-search-modal-search.shift64-woo-search-editor-parent {
+	display: grid;
+	gap: 0.75rem;
+	width: 100%;
+
+	> .wp-block-shift64-woo-search-search-control,
+	> .wp-block-shift64-woo-search-search-panel {
+		max-width: none;
+		width: 100%;
+	}
+}
+
+.shift64-woo-search-editor-parent.is-preview-closed {
+	.wp-block-shift64-woo-search-search-panel:not(.is-selected) {
+		display: none;
+	}
+}

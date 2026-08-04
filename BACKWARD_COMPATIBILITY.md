@@ -194,11 +194,20 @@ Registered dynamic block names:
 
 - `shift64-woo-search/search`
 - `shift64-woo-search/modal-search`
+- `shift64-woo-search/search-control` (structural child)
+- `shift64-woo-search/search-panel` (structural child)
 
-Block names and attribute keys are persistent content APIs. The blocks share their PHP
-renderers with the shortcodes, so neither interface may be removed when the other changes.
-WordPress 7.0+ automatically exposes them in the editor through `autoRegister`; WordPress
-6.x keeps server-side rendering and shortcode compatibility.
+The two parent names and their legacy attribute keys are persistent content APIs. New content
+saves a locked Control/Panel pair under either parent. Existing self-closing parent comments
+remain valid: the PHP fallback renders their old attributes until the content is migrated in
+the editor. Custom legacy modal appearance fields are migration-only; standard child block
+supports are the forward styling contract, so exact visual parity is not guaranteed.
+
+The shortcodes remain permanent and keep the `shift64-woo-search` classic runtime. That
+runtime deliberately skips roots marked `data-shift64-search-root`; metadata blocks use the
+public `shift64-woo-search/search` Interactivity API namespace instead. Neither interface may
+be removed when the other changes. See `docs/composable-search-blocks.md` for the migration
+matrix and rollback behavior.
 
 ## 9. Frontend assets
 

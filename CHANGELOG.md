@@ -44,6 +44,7 @@
 ### Features
 
 * **blocks:** integrate inherited WooCommerce Product Collections with Redis membership, marker-scoped totals, canonical URL state, and public Interactivity Router navigation while retaining WooCommerce rendering ownership ([#51](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/51))
+* **blocks:** replace PHP-only search blocks with composable Control/Panel children, progressive forms, scoped Interactivity API autocomplete, and native dialog behavior while preserving legacy parent content ([#60](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/60))
 
 ### Bug Fixes
 
