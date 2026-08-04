@@ -1,0 +1,1 @@
+import '../../interactivity/search/view';

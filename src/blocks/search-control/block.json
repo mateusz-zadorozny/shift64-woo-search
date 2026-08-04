@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "shift64-woo-search/search-control",
+  "version": "0.1.0",
+  "title": "Search Control",
+  "category": "widgets",
+  "icon": "search",
+  "description": "The closed search control or modal trigger.",
+  "textdomain": "shift64-woo-search",
+  "parent": ["shift64-woo-search/search", "shift64-woo-search/modal-search"],
+  "ancestor": ["shift64-woo-search/search", "shift64-woo-search/modal-search"],
+  "usesContext": [
+    "shift64WooSearch/instanceId",
+    "shift64WooSearch/runtimeId",
+    "shift64WooSearch/variant"
+  ],
+  "attributes": {
+    "label": { "type": "string", "default": "Search products" },
+    "placeholder": { "type": "string", "default": "Search products..." },
+    "submitLabel": { "type": "string", "default": "Search" },
+    "triggerLabel": { "type": "string", "default": "Open product search" },
+    "triggerIcon": {
+      "type": "string",
+      "enum": ["none", "search"],
+      "default": "search"
+    }
+  },
+  "supports": {
+    "border": { "color": true, "radius": true, "style": true, "width": true },
+    "color": {
+      "background": true,
+      "button": true,
+      "gradients": true,
+      "text": true
+    },
+    "dimensions": { "minHeight": true },
+    "html": false,
+    "inserter": false,
+    "spacing": { "margin": true, "padding": true },
+    "typography": { "fontSize": true, "fontWeight": true, "lineHeight": true }
+  },
+  "editorScript": "file:./index.js",
+  "style": "file:./style-index.css"
+}

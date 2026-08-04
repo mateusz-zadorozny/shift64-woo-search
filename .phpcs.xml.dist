@@ -7,6 +7,8 @@
 	<exclude-pattern>/vendor/</exclude-pattern>
 	<exclude-pattern>/node_modules/</exclude-pattern>
 	<exclude-pattern>/mu-plugins/</exclude-pattern>
+	<!-- Generated dependency manifests intentionally follow wp-scripts naming and formatting. -->
+	<exclude-pattern>/build/</exclude-pattern>
 
 	<!-- How to scan -->
 	<arg value="sp"/>

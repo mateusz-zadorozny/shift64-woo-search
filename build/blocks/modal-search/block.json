@@ -1,0 +1,154 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "shift64-woo-search/modal-search",
+  "version": "0.1.0",
+  "title": "Shift64 Modal Product Search",
+  "category": "widgets",
+  "icon": "search",
+  "description": "A composable trigger and native product search dialog.",
+  "keywords": [
+    "Shift64",
+    "products",
+    "modal"
+  ],
+  "textdomain": "shift64-woo-search",
+  "attributes": {
+    "instanceId": {
+      "type": "string",
+      "default": ""
+    },
+    "runtimeId": {
+      "type": "string",
+      "default": ""
+    },
+    "variant": {
+      "type": "string",
+      "enum": [
+        "modal"
+      ],
+      "default": "modal"
+    },
+    "previewOpen": {
+      "type": "boolean",
+      "default": false
+    },
+    "placeholder": {
+      "type": "string"
+    },
+    "button": {
+      "type": "string"
+    },
+    "label": {
+      "type": "string"
+    },
+    "trigger_label": {
+      "type": "string"
+    },
+    "close_label": {
+      "type": "string"
+    },
+    "clear_label": {
+      "type": "string"
+    },
+    "icon": {
+      "type": "string",
+      "enum": [
+        "default",
+        "alternative"
+      ]
+    },
+    "trigger_style": {
+      "type": "string",
+      "enum": [
+        "icon",
+        "background",
+        "outline"
+      ]
+    },
+    "trigger_icon_color": {
+      "type": "string"
+    },
+    "trigger_icon_hover_color": {
+      "type": "string"
+    },
+    "trigger_surface_color": {
+      "type": "string"
+    },
+    "trigger_surface_hover_color": {
+      "type": "string"
+    },
+    "trigger_border_radius": {
+      "type": "integer"
+    },
+    "trigger_icon_size": {
+      "type": "integer"
+    },
+    "trigger_padding": {
+      "type": "integer"
+    },
+    "trigger_outline_width": {
+      "type": "integer"
+    },
+    "modal_search_style": {
+      "type": "string",
+      "enum": [
+        "default",
+        "pill",
+        "minimal"
+      ]
+    },
+    "modal_background_color": {
+      "type": "string"
+    },
+    "modal_background_transparency": {
+      "type": "integer"
+    },
+    "search_input_text_color": {
+      "type": "string"
+    },
+    "search_input_background_color": {
+      "type": "string"
+    },
+    "search_button_color": {
+      "type": "string"
+    },
+    "search_button_background_color": {
+      "type": "string"
+    },
+    "search_button_hover_color": {
+      "type": "string"
+    },
+    "search_button_background_hover_color": {
+      "type": "string"
+    },
+    "preview": {
+      "type": "boolean"
+    }
+  },
+  "providesContext": {
+    "shift64WooSearch/instanceId": "instanceId",
+    "shift64WooSearch/runtimeId": "runtimeId",
+    "shift64WooSearch/variant": "variant",
+    "shift64WooSearch/previewOpen": "previewOpen"
+  },
+  "supports": {
+    "align": [
+      "wide",
+      "full"
+    ],
+    "anchor": true,
+    "html": false,
+    "interactivity": true,
+    "spacing": {
+      "margin": true,
+      "padding": true
+    }
+  },
+  "editorScript": "file:./index.js",
+  "style": [
+    "shift64-woo-search",
+    "file:./style-index.css"
+  ],
+  "viewScriptModule": "file:./view.js"
+}
