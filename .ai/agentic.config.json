@@ -2,7 +2,9 @@
   "version": 1,
   "baseBranch": "auto",
   "tracker": "github",
+  "closeKeywords": [],
   "browser": { "provider": "agent-browser" },
+  "ci": { "maxWaitMinutes": 40 },
   "engine": {
     "stepReview": "final",
     "executorTier": "standard",
@@ -19,7 +21,7 @@
     "enabled": true,
     "pipeline": ["review", "changes-requested", "qa", "qa-failed", "merge-queue", "blocked", "do-not-merge"],
     "category": ["bug", "feature", "refactor", "security", "dependencies", "documentation"],
-    "meta": ["needs-qa", "skip-qa", "qa-approved", "qa-self-verified", "in-progress"],
+    "meta": ["needs-qa", "skip-qa", "qa-approved", "qa-self-verified", "in-progress", "ci-monitoring"],
     "priority": ["priority-low", "priority-medium", "priority-high", "priority-extreme"],
     "risk": ["risk-low", "risk-medium", "risk-high"]
   },

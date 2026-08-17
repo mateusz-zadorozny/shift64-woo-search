@@ -24,6 +24,33 @@ DRY-RUN: would skip #1260 — already closed
 Summary: would-close 1, would-comment 2, would-skip 2.
 ```
 
+## Unmatched-mentions section (non-English repository, no `closeKeywords` yet)
+
+The shape a run prints when every PR in the window references issues in a
+language the built-in keywords do not cover. Nothing was mutated; the section
+is what turns an apparently quiet run into an actionable one:
+
+```markdown
+### ⚠️ Issue mentions without a recognized closing keyword
+
+| PR | Mentions | Why it was skipped |
+|----|----------|--------------------|
+| #91 | #88 | The PR body says `Zamyka #88.`, which is not a recognized close keyword, and the tracker returned no `closingIssuesReferences`, so this run had no authority to close the issue. |
+| #90 | #62 | The PR body says `Naprawia #62.`, which is not a recognized close keyword, so the issue stays open. |
+
+The close-keyword vocabulary in effect for this run was the built-in English
+list, with no `closeKeywords` configured in `.ai/agentic.config.json`. Both
+the tracker's own parser and the built-in list recognize English only, so a
+repository whose PR bodies are written in another language reports every PR
+here until the local phrasing is added — for example
+`"closeKeywords": ["zamyka", "naprawia"]`. Add the terms your team actually
+writes, then re-run; nothing in this section was mutated.
+```
+
+With `"closeKeywords": ["zamyka", "naprawia"]` set, the same window produces
+two ordinary `✅ closed` rows in the per-pair table and no unmatched-mentions
+section at all.
+
 ## Close comment template (merged)
 
 ```markdown

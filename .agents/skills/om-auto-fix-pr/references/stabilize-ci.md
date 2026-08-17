@@ -8,14 +8,23 @@ exit criteria and the CI-fixing detail.
 
 ## The outer stabilization loop (full PR mode)
 
-Run in this order each cycle (later stages depend on earlier ones landing):
+Run in this order each cycle. The order is mandatory, not a convenience: a stage
+depends on every earlier one having landed, and reaching CI on a branch that is
+still conflicted or still carries review findings measures a diff that will never
+merge.
 
-1. **Review + autofix — `om-auto-review-pr {prNumber}`** (autofix mode, verbatim).
-   It reviews via `om-code-review`, applies fixes as new commits, resolves
-   conflicts, and for a fork head runs the carry-forward supersede/credit flow
-   (if it opens a replacement PR, switch `{prNumber}` to it for all later stages).
-   Record its verdict and, crucially, the findings it did **not** fix (nits,
-   low-severity, out-of-scope) — step 5 files those as follow-ups.
+1. **Conflicts, then review findings — `om-auto-review-pr {prNumber} --autofix`**
+   (verbatim; one engine, invoked in the right order — this skill never
+   re-implements conflict resolution or fixing). Inside that skill the autofix pass
+   resolves **merge conflicts against the latest base first, always**, and only then
+   works the code-review findings — blockers, majors, mediums, missing tests. For a
+   fork head it runs the carry-forward supersede/credit flow (if it opens a
+   replacement PR, switch `{prNumber}` to it for all later stages). Record its
+   verdict and, crucially, the findings it did **not** fix (nits, low-severity,
+   out-of-scope) — step 5 files those as follow-ups.
+
+   **Do not proceed to stage 2 while the branch is conflicted or actionable findings
+   remain.** CI stabilization is reached only once both are clear.
 2. **Stabilize CI — the CI procedure below.** Pull check status through the
    tracker, classify each failure (real bug / test bug / flake / infra), fix the
    real ones with tests, push, re-check. Never go green by weakening a test or
@@ -46,8 +55,8 @@ disabling checks to pass is forbidden, and a repo-local override cannot relax th
   newest run per workflow; **get-run** for the per-job breakdown.
 
 Classify every check as passing, pending, or failing. Nothing failing and nothing
-pending → report "already green". Checks pending → **watch-run** (or poll) until
-they settle before diagnosing.
+pending → report "already green". Checks pending → **watch-run** (or poll) until they
+settle before diagnosing, under the wait budget below.
 
 ### The fix → push → re-check loop (up to `--max-iterations`, default 5)
 
@@ -85,10 +94,28 @@ Per iteration:
 6. **Commit and push**: one commit per logical fix, conventional subject
    (`fix(ci): …`, `fix(test): …`, `fix(<area>): …`). Never rewrite published
    history, never `--no-verify`, never force-push.
-7. **Wait for CI**: **watch-run** on the new runs (or poll **get-pr-checks**) until
-   they settle. Green → done. Still failing → next iteration with the new evidence.
-   A check that fails the same way twice after a targeted fix means the diagnosis is
-   wrong — re-diagnose from scratch instead of stacking guesses.
+7. **Wait for CI — bounded**: **watch-run** on the new runs (or poll
+   **get-pr-checks**) until they settle, for at most `CI_MAX_WAIT_MINUTES`
+   (`ci.maxWaitMinutes`, default 40). Green → done. Still failing → next iteration
+   with the new evidence. A check that fails the same way twice after a targeted fix
+   means the diagnosis is wrong — re-diagnose from scratch instead of stacking
+   guesses. Budget exhausted with checks still running → take the bail-out path in
+   `references/ci-followup.md`: stop waiting, run `validation.commands` locally as
+   this run's evidence, post it with the still-pending check names and the explicit
+   statement that no further follow-up will come from this agent, drop
+   `ci-monitoring`, and close the run out. Bailing out is **not** permission to merge
+   without CI — the hand-off to `om-approve-merge-pr` still requires genuinely green
+   required checks.
+
+### The wait budget, and reporting before it
+
+Everything this skill owes the PR — normalized labels, the draft→ready promotion, the
+run summary comment, the lock — lands **before** any CI wait, never after it (step 6,
+and `references/ci-followup.md` for why). A monitoring process that dies mid-wait must
+leave a fully reported PR behind, not a stranded draft. Once reporting is done, the
+outer lock is swapped from `in-progress` to the `ci-monitoring` meta label so the PR
+is honestly described — work complete, CI follow-up still owed — and no other agent
+treats it as claimed.
 
 ### CI exit conditions
 
@@ -97,6 +124,10 @@ Per iteration:
 - **Blocked**: remaining failures are all infra/out-of-scope, or `--max-iterations`
   is exhausted. Report `Status: blocked` with the per-check analysis — never leave
   it at "CI is still red".
+- **Unverified**: the wait budget ran out with checks still running. Report the local
+  validation gate as this run's evidence, name the pending checks, and state that no
+  further follow-up will come from this agent. Never report this as green, and never
+  hand it on as merge-ready.
 
 For each confirmed flake (failed, passed on rerun, unrelated to the diff), file a
 tracked follow-up (via `om-followup-issue-from-pr` or **create-issue**): test name,
@@ -106,8 +137,9 @@ failure signature, run link, rerun evidence.
 
 Stop the loop and go to step 5 when **all** hold:
 
-- `om-auto-review-pr` returns approvable (no actionable blockers remain).
-- Every **required** check is green (**get-required-checks** / **get-pr-checks**).
+- `om-auto-review-pr` returns approvable — no conflicts and no actionable blockers.
+- Every **required** check is green (**get-required-checks** / **get-pr-checks**), or
+  the wait budget expired and the run reports `Unverified` rather than merge-ready.
 - UI verification passed, or is not applicable / was skipped by `--no-ui`.
 - No unmerged base advance is pending.
 
