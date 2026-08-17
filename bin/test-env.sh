@@ -302,10 +302,14 @@ make_wp_shim() {
 	# startup warning printed to STDOUT poisons captured values — provisioning
 	# scripts read `wp` output via command substitution (page IDs, ports).
 	local php_args="-d memory_limit=512M -d error_reporting=24567 -d display_errors=stderr"
+	# The shim outlives `up` and is invoked from shells that never sourced
+	# this script (the launcher test harness, later QA sessions), so it must
+	# re-derive root allowance itself rather than inherit WP_CLI_ALLOW_ROOT.
+	local root_guard='[ "$(id -u)" = "0" ] && export WP_CLI_ALLOW_ROOT=1'
 	if head -c 64 "$real_wp" | grep -qi php; then
-		printf '#!/bin/sh\nexec "%s" %s "%s" "$@"\n' "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
+		printf '#!/bin/sh\n%s\nexec "%s" %s "%s" "$@"\n' "$root_guard" "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
 	else
-		printf '#!/bin/sh\nWP_CLI_PHP="%s" WP_CLI_PHP_ARGS="%s" exec "%s" "$@"\n' "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
+		printf '#!/bin/sh\n%s\nWP_CLI_PHP="%s" WP_CLI_PHP_ARGS="%s" exec "%s" "$@"\n' "$root_guard" "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
 	fi
 	chmod +x "$shim_dir/wp"
 	export PATH="$shim_dir:$PATH"
