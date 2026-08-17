@@ -45,7 +45,10 @@ MYSQL_DIR="$RUN_DIR/mysql"
 REDIS_DIR="$RUN_DIR/redis"
 WP_TESTS_DIR_RUN="$RUN_DIR/wordpress-tests-lib"
 WP_CORE_DIR_RUN="$RUN_DIR/wordpress-develop"
-MYSQL_SOCK="$MYSQL_DIR/mysql.sock"
+# UNIX socket paths are capped at ~103 chars on macOS; $RUN_DIR under a
+# macOS $TMPDIR (/var/folders/…) can exceed that on its own, so the socket
+# lives in /tmp keyed by the worktree hash instead of inside $MYSQL_DIR.
+MYSQL_SOCK="/tmp/s64-mysql-${WORKTREE_HASH}.sock"
 
 DB_USER="wp"
 DB_PASS="wp"
@@ -211,13 +214,20 @@ start_detached() { # start_detached <role> <logfile> <command...>
 		pid_file="$RUN_DIR/.${role}-launchd.pid"
 		rm -f "$pid_file"
 		launchctl remove "$label" >/dev/null 2>&1 || true
-		# launchd jobs do not inherit the interactive shell's PATH. Carry the
-		# already-vetted command path explicitly so validation finds Composer
-		# and other lockfile tools after the launching shell exits. The wrapper
-		# removes its own launchd job after the child exits; `launchctl submit`
-		# otherwise restarts even successful one-shot validation processes.
+		# launchd jobs do not inherit the interactive shell's environment. Carry
+		# the already-vetted command path explicitly so validation finds Composer
+		# and other lockfile tools after the launching shell exits — and carry
+		# PHPRC / PHP_INI_SCAN_DIR too: hosts whose PHP has no compiled-in ini
+		# (Local by Flywheel shells, for one) load every extension, phpredis
+		# included, through those variables, so dropping them hands `wp server`
+		# a PHP with no configuration at all. The wrapper removes its own
+		# launchd job after the child exits; `launchctl submit` otherwise
+		# restarts even successful one-shot validation processes.
 		launchctl submit -l "$label" -o "$logfile" -e "$logfile" -- \
-			/usr/bin/env "PATH=$PATH" bash "$SCRIPT_DIR/test-env.sh" \
+			/usr/bin/env "PATH=$PATH" \
+			${PHPRC:+"PHPRC=$PHPRC"} \
+			${PHP_INI_SCAN_DIR:+"PHP_INI_SCAN_DIR=$PHP_INI_SCAN_DIR"} \
+			bash "$SCRIPT_DIR/test-env.sh" \
 			_launchd_wrapper "$label" "$pid_file" "$@" \
 			|| die "launchd could not start $role — see $logfile"
 		STARTED_LAUNCH_LABELS="$STARTED_LAUNCH_LABELS $label"
