@@ -1,4 +1,4 @@
-# Report templates — user-facing output (step 13)
+# Report templates — user-facing output (step 14)
 
 How `om-auto-review-pr` reports back to the user. Reporting style contract:
 `references/rules.md` (Reporting style) — full sentences, explain the why,
@@ -14,6 +14,7 @@ never compress; emojis structure the sections, the text carries the meaning.
 **Autofix:** {ran — {n} findings fixed in {m} commits | skipped (not my PR — re-run with --autofix to fix it here) | n/a — nothing to fix}
 **Labels:** {🚀 `merge-queue` + 🧪 `needs-qa` | ❌ `changes-requested` | labels disabled in config} — {why, one sentence}
 **Draft state:** {promoted to ready via mark-pr-ready | left draft ({reason}) | already ready}
+**CI:** {✅ green — all {n} required checks passed | ❌ {check} was already red at review time — reviewed anyway and reported as a blocker alongside the code findings | ❌ {check} failed during the follow-up, verdict moved to `changes-requested` | ⏱️ still pending at report time ({names}) — disclosed in the review body, follow-up owed | ⏱️ bail-out after {CI_MAX_WAIT_MINUTES} min — local validation gate stands in as evidence and no further follow-up will come from this run | n/a — no required checks}
 
 ### 🔍 Findings ({X} blocker · {Y} major · {Z} minor · {W} nit)
 - ⛔ {file:line} — {what is wrong and why it matters, full sentence} → {fixed in {sha} | handed back to author}
@@ -37,6 +38,18 @@ shape (the one part never decorated or reworded):
 PR: #<number> (link: <full PR URL>)
 Issue: #<number> (link: <full issue URL>)   <- only when the run has a subject issue
 ```
+
+## CI-result comment (step 13)
+
+The bounded CI follow-up posts one idempotent `` 🤖 `om-auto-review-pr` — CI
+result `` comment (rewritten in place via **update-comment** on a re-run, never
+duplicated). It states, in full sentences, either the settled outcome — which
+required checks passed or failed, with links, and whether that changes the verdict
+— or, when the `ci.maxWaitMinutes` budget ran out first, the local
+`validation.commands` results command by command, the checks still pending with
+their links, and the explicit sentence that **no further follow-up will come from
+this agent**. Either way it ends the `ci-monitoring` state. Procedure and the guard
+that this never authorizes a merge without CI: `references/ci-followup.md`.
 
 ## Completion comment (step 12)
 

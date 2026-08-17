@@ -34,7 +34,8 @@ That is the whole setup. When it returns, the launcher has:
   while you QA in the browser.
 
 Expected time-to-ready: ~2–4 minutes cold (network downloads dominate),
-seconds on a healthy reuse.
+seconds on a healthy reuse. The ready environment is owned independently of
+the shell or agent command that launched it; no terminal needs to stay open.
 
 Flags: `--allow-degraded` (accept a searchless storefront when phpredis
 cannot be installed), `--no-validate` (skip the background gate), `--force` (restart even if
@@ -56,16 +57,27 @@ Machine-readable validation state lives in `.ai/qa/validation-status.json`
 (per-command status, exit codes, timestamps); full output streams to
 `.ai/qa/logs/validation-<runId>.log`.
 
+`runId` remains stable for a worktree, while the additive `generationId`
+changes whenever the environment is rebuilt. The descriptor's
+`recoveryMode` is one of `reused`, `restarted-app`, or `rebuilt`. Validation
+results also carry `generationId`; `status --json` returns
+`validationStatus: null` for a missing or mismatched result. Running `up
+--no-validate` stops any owned validation supervisor and clears its status,
+so an earlier `passed` result is never presented as part of the current run.
+
 `status` never echoes a stale descriptor: every recorded PID, port, database,
 Redis instance, and the storefront HTTP endpoint is re-probed, and a
 `running` claim that fails any probe is rewritten to `unhealthy`.
 
 ## Recovery
 
-- **Dead or half-provisioned environment** — just run `bin/test-env.sh up`
-  again. It health-probes the recorded state, tears down only the resources
-  it owns (PIDs are verified against their recorded command lines before any
-  kill), and rebuilds what is missing.
+- **Dead application server** — just run `bin/test-env.sh up` again. When
+  MySQL, Redis, WordPress files, and the PHPUnit runtime are still healthy,
+  it restarts only `wp server`, keeps the same URL and catalog, and records
+  `recoveryMode: restarted-app`.
+- **Dead service or corrupt provisioning state** — `up` tears down only the
+  resources it owns (PIDs are verified against their recorded command lines
+  before any kill) and rebuilds the environment with a new `generationId`.
 - **Aborted degraded e2e run left Redis config broken** — `up` re-runs the
   idempotent provisioning, which restores a healthy config.
 - **Everything weird** — `bin/test-env.sh down && bin/test-env.sh up --fresh`.
@@ -108,13 +120,21 @@ worktrees run fully disjoint environments concurrently.
 
 Linux and macOS are both first-class. On macOS the launcher runs on the stock
 `/bin/bash` 3.2 (no arrays-under-`set -u` tricks, no `setsid`, no `/proc`, no
-GNU `sed -i` — PID ownership is verified via `ps -o command=` there), services
+GNU `sed -i` — PID ownership is verified via `ps -o command=` there), hands
+the app and validation supervisor to `launchd`, and uses `setsid` on Linux so
+both survive the launching shell. Services
 without a native binary fall back to Docker (`mariadb:lts`,
 `redis/redis-stack-server`), and a host without `redis-cli` is fine: probes go
 through `docker exec` into the run's container. The wp-cli shim also pins
 `memory_limit=512M` and mutes deprecation noise, so a Homebrew PHP with a
 128M default extracts WordPress without OOMing. Native Windows remains out of
 scope (`om-prepare-test-env` owns that path).
+
+When a Docker fallback is required, preflight verifies the daemon rather than
+only the CLI. On macOS with `/Applications/Docker.app`, it starts Docker
+Desktop and waits up to 90 seconds. Other hosts fail before provisioning with
+an actionable `docker info` diagnosis. Image pulls retry three times and keep
+their stderr in the run log named by the failure.
 
 ## Environment variables
 

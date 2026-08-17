@@ -45,7 +45,10 @@ MYSQL_DIR="$RUN_DIR/mysql"
 REDIS_DIR="$RUN_DIR/redis"
 WP_TESTS_DIR_RUN="$RUN_DIR/wordpress-tests-lib"
 WP_CORE_DIR_RUN="$RUN_DIR/wordpress-develop"
-MYSQL_SOCK="$MYSQL_DIR/mysql.sock"
+# UNIX socket paths are capped at ~103 chars on macOS; $RUN_DIR under a
+# macOS $TMPDIR (/var/folders/…) can exceed that on its own, so the socket
+# lives in /tmp keyed by the worktree hash instead of inside $MYSQL_DIR.
+MYSQL_SOCK="/tmp/s64-mysql-${WORKTREE_HASH}.sock"
 
 DB_USER="wp"
 DB_PASS="wp"
@@ -56,6 +59,16 @@ TESTS_DB_NAME="wp_tests_${WORKTREE_HASH}"
 # space-separated string, not an array: empty-array expansion under `set -u`
 # is fatal on bash 3.2 (macOS's default /bin/bash).
 STARTED_PIDS=""
+STARTED_LAUNCH_LABELS=""
+
+# RUN_ID is stable for the worktree. GENERATION_ID changes only when the
+# environment is rebuilt, so status can reject validation results left by an
+# older generation while warm reuse and app-only recovery retain identity.
+GENERATION_ID=""
+GENERATION_STARTED_AT=""
+RECOVERY_MODE=""
+APP_LAUNCH_LABEL=""
+VALIDATION_LAUNCH_LABEL=""
 
 # wp-cli refuses to run as root unless told; CI containers and dev servers
 # commonly are root.
@@ -184,9 +197,77 @@ pid_matches() {
 	fi
 }
 
-# setsid detaches services into their own process group so group-kills work;
-# macOS ships no setsid, so degrade to a plain prefix-less spawn there (the
-# per-PID kills and the port-scoped pkill sweep still stop everything owned).
+platform_name() {
+	printf '%s' "${TEST_ENV_PLATFORM_OVERRIDE:-$(uname -s)}"
+}
+
+# Linux uses setsid; macOS hands the process to launchd. Both mechanisms make
+# the service independent of the shell (and agent command session) that ran
+# `up`. DETACHED_PID and DETACHED_LABEL are output variables.
+start_detached() { # start_detached <role> <logfile> <command...>
+	local role="$1" logfile="$2" label pid pid_file i
+	shift 2
+	DETACHED_PID=0
+	DETACHED_LABEL=""
+	if [ "$(platform_name)" = "Darwin" ]; then
+		label="com.shift64.test-env.${RUN_ID}.${role}"
+		pid_file="$RUN_DIR/.${role}-launchd.pid"
+		rm -f "$pid_file"
+		launchctl remove "$label" >/dev/null 2>&1 || true
+		# launchd jobs do not inherit the interactive shell's environment. Carry
+		# the already-vetted command path explicitly so validation finds Composer
+		# and other lockfile tools after the launching shell exits — and carry
+		# PHPRC / PHP_INI_SCAN_DIR too: hosts whose PHP has no compiled-in ini
+		# (Local by Flywheel shells, for one) load every extension, phpredis
+		# included, through those variables, so dropping them hands `wp server`
+		# a PHP with no configuration at all. The wrapper removes its own
+		# launchd job after the child exits; `launchctl submit` otherwise
+		# restarts even successful one-shot validation processes.
+		launchctl submit -l "$label" -o "$logfile" -e "$logfile" -- \
+			/usr/bin/env "PATH=$PATH" \
+			${PHPRC:+"PHPRC=$PHPRC"} \
+			${PHP_INI_SCAN_DIR:+"PHP_INI_SCAN_DIR=$PHP_INI_SCAN_DIR"} \
+			bash "$SCRIPT_DIR/test-env.sh" \
+			_launchd_wrapper "$label" "$pid_file" "$@" \
+			|| die "launchd could not start $role — see $logfile"
+		STARTED_LAUNCH_LABELS="$STARTED_LAUNCH_LABELS $label"
+		for i in $(seq 1 30); do
+			pid="$(cat "$pid_file" 2>/dev/null || true)"
+			case "$pid" in ''|*[!0-9]*) pid="" ;; esac
+			[ -n "$pid" ] && break
+			sleep 1
+		done
+		[ -n "${pid:-}" ] || die "launchd started $role without a live PID — see $logfile"
+		rm -f "$pid_file"
+		DETACHED_PID="$pid"
+		DETACHED_LABEL="$label"
+	else
+		setsid nohup "$@" >>"$logfile" 2>&1 &
+		DETACHED_PID=$!
+	fi
+	STARTED_PIDS="$STARTED_PIDS $DETACHED_PID"
+}
+
+launchd_wrapper() { # launchd_wrapper <label> <pid-file> <command...>
+	local label="$1" pid_file="$2" child exit_code
+	shift 2
+	"$@" &
+	child=$!
+	printf '%s\n' "$child" > "$pid_file"
+	trap 'kill "$child" 2>/dev/null || true' INT TERM HUP
+	set +e
+	wait "$child"
+	exit_code=$?
+	set -e
+	# `launchctl submit` jobs restart after normal exit unless explicitly
+	# removed. The child has finished and written any terminal status first.
+	launchctl remove "$label" >/dev/null 2>&1 || true
+	exit "$exit_code"
+}
+
+# Native MySQL/Redis use the existing process-group behavior. The app and
+# validation supervisor use start_detached(), which is the durable lifecycle
+# boundary needed after the launching shell exits.
 SETSID="env"
 command -v setsid >/dev/null 2>&1 && SETSID="setsid"
 
@@ -221,10 +302,14 @@ make_wp_shim() {
 	# startup warning printed to STDOUT poisons captured values — provisioning
 	# scripts read `wp` output via command substitution (page IDs, ports).
 	local php_args="-d memory_limit=512M -d error_reporting=24567 -d display_errors=stderr"
+	# The shim outlives `up` and is invoked from shells that never sourced
+	# this script (the launcher test harness, later QA sessions), so it must
+	# re-derive root allowance itself rather than inherit WP_CLI_ALLOW_ROOT.
+	local root_guard='[ "$(id -u)" = "0" ] && export WP_CLI_ALLOW_ROOT=1'
 	if head -c 64 "$real_wp" | grep -qi php; then
-		printf '#!/bin/sh\nexec "%s" %s "%s" "$@"\n' "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
+		printf '#!/bin/sh\n%s\nexec "%s" %s "%s" "$@"\n' "$root_guard" "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
 	else
-		printf '#!/bin/sh\nWP_CLI_PHP="%s" WP_CLI_PHP_ARGS="%s" exec "%s" "$@"\n' "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
+		printf '#!/bin/sh\n%s\nWP_CLI_PHP="%s" WP_CLI_PHP_ARGS="%s" exec "%s" "$@"\n' "$root_guard" "$PHP_BIN" "$php_args" "$real_wp" > "$shim_dir/wp"
 	fi
 	chmod +x "$shim_dir/wp"
 	export PATH="$shim_dir:$PATH"
@@ -242,8 +327,43 @@ mysql_admin() { # socket-scoped admin client (root works only via socket)
 # Preflight
 # --------------------------------------------------------------------------
 
+docker_ready() {
+	docker info >/dev/null 2>&1
+}
+
+ensure_docker_ready() {
+	docker_ready && return 0
+	local platform docker_app wait_seconds i
+	platform="$(platform_name)"
+	docker_app="${TEST_ENV_DOCKER_APP:-/Applications/Docker.app}"
+	wait_seconds="${TEST_ENV_DOCKER_WAIT_SECONDS:-90}"
+	if [ "$platform" = "Darwin" ] && [ -d "$docker_app" ] && command -v open >/dev/null 2>&1; then
+		log "Docker daemon is stopped — starting Docker Desktop"
+		open -gja "$docker_app" >/dev/null 2>&1 \
+			|| die "Docker Desktop could not be started. Open $docker_app, wait for it to become ready, then retry." 2
+		for i in $(seq 1 "$wait_seconds"); do
+			docker_ready && { info "Docker daemon is ready"; return 0; }
+			sleep 1
+		done
+		die "Docker Desktop did not become ready within ${wait_seconds}s. Open $docker_app, resolve its reported error, then retry." 2
+	fi
+	die "Docker CLI is installed but the daemon is unavailable. Start Docker Desktop or the Docker service, verify 'docker info' succeeds, then retry." 2
+}
+
+docker_pull_with_retry() { # docker_pull_with_retry <image> <logfile>
+	local image="$1" logfile="$2" attempt
+	for attempt in 1 2 3; do
+		info "pulling $image (attempt $attempt/3; log: $logfile)"
+		if docker pull "$image" >>"$logfile" 2>&1; then
+			return 0
+		fi
+		[ "$attempt" = 3 ] || sleep $((attempt * 2))
+	done
+	die "docker pull $image failed after 3 attempts — see $logfile"
+}
+
 preflight() {
-	local missing=()
+	local missing=() docker_required=0
 	select_php
 	[ -n "$PHP_BIN" ] || missing+=("php >= 8.3 with mysqli (install php8.3-cli + php8.3-mysql, or set TEST_ENV_PHP)")
 	command -v wp >/dev/null || missing+=("wp (wp-cli: https://wp-cli.org)")
@@ -264,6 +384,18 @@ preflight() {
 		local m; for m in "${missing[@]}"; do echo "  - $m" >&2; done
 		exit 2
 	fi
+	if ! command -v mysqld >/dev/null; then
+		docker_required=1
+	fi
+	if ! command -v redis-stack-server >/dev/null && ! command -v redis-server >/dev/null; then
+		docker_required=1
+	fi
+	[ "$docker_required" = 0 ] || ensure_docker_ready
+	if [ "$(platform_name)" = "Darwin" ]; then
+		command -v launchctl >/dev/null || die "launchctl is required to keep the test environment alive after this shell exits" 2
+	else
+		command -v setsid >/dev/null || die "setsid is required to keep the test environment alive after this shell exits" 2
+	fi
 	# extension_loaded() probe, never `php -m | grep -q`: under pipefail the
 	# -q early exit SIGPIPEs php mid-listing and randomly fails the pipeline
 	# even when the extension IS present. And NOT `probe && VAR=1` — as the
@@ -283,10 +415,11 @@ write_descriptor() { # write_descriptor <status> <notes>
 	local status="$1" notes="$2"
 	mkdir -p "$QA_DIR"
 	jq -n \
-		--arg runId "$RUN_ID" --arg status "$status" \
+		--arg runId "$RUN_ID" --arg generationId "$GENERATION_ID" --arg status "$status" \
+		--arg recoveryMode "$RECOVERY_MODE" --arg generationStartedAt "$GENERATION_STARTED_AT" \
 		--arg baseUrl "http://127.0.0.1:${HTTP_PORT:-0}" \
 		--arg wpRoot "$WP_ROOT" \
-		--argjson httpPort "${HTTP_PORT:-0}" --argjson appPid "${APP_PID:-0}" \
+		--argjson httpPort "${HTTP_PORT:-0}" --argjson appPid "${APP_PID:-0}" --arg appLaunchLabel "${APP_LAUNCH_LABEL:-}" \
 		--argjson mysqlPort "${MYSQL_PORT:-0}" --argjson mysqlPid "${MYSQL_PID:-0}" \
 		--arg mysqlContainer "${MYSQL_CONTAINER:-}" --arg mysqlDatadir "$MYSQL_DIR" \
 		--argjson redisPort "${REDIS_PORT:-0}" --argjson redisPid "${REDIS_PID:-0}" \
@@ -294,15 +427,16 @@ write_descriptor() { # write_descriptor <status> <notes>
 		--arg wpTestsDir "$WP_TESTS_DIR_RUN" --arg wpCoreDir "$WP_CORE_DIR_RUN" \
 		--arg testDb "$TESTS_DB_NAME" \
 		--arg validationStatusFile ".ai/qa/validation-status.json" \
-		--argjson validationPid "${VALIDATION_PID:-0}" \
-		--arg platform "$(uname -s | tr '[:upper:]' '[:lower:]')" \
-		--arg startedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+		--argjson validationPid "${VALIDATION_PID:-0}" --arg validationLaunchLabel "${VALIDATION_LAUNCH_LABEL:-}" \
+		--arg platform "$(platform_name | tr '[:upper:]' '[:lower:]')" \
 		--arg notes "$notes" \
 		'{
-			version: 1, runId: $runId, status: $status, mode: "ephemeral",
+			version: 1, runId: $runId, generationId: $generationId, recoveryMode: $recoveryMode,
+			status: $status, mode: "ephemeral",
 			baseUrl: $baseUrl, startedByThisRepo: true,
 			startScript: ".ai/scripts/test-env-up.sh", stopScript: ".ai/scripts/test-env-down.sh",
-			app: { startCommand: "wp server", port: $httpPort, healthPath: "/search-e2e/", pid: $appPid, wpRoot: $wpRoot },
+			app: { startCommand: "wp server", port: $httpPort, healthPath: "/search-e2e/", pid: $appPid,
+			       launchLabel: (if $appLaunchLabel == "" then null else $appLaunchLabel end), wpRoot: $wpRoot },
 			services: [
 				{ type: "mysql", host: "127.0.0.1", port: $mysqlPort, pid: $mysqlPid,
 				  container: (if $mysqlContainer == "" then null else $mysqlContainer end), datadir: $mysqlDatadir },
@@ -311,10 +445,11 @@ write_descriptor() { # write_descriptor <status> <notes>
 			],
 			credentials: [ { role: "admin", username: "admin", password: "admin" } ],
 			phpunit: { wpTestsDir: $wpTestsDir, wpCoreDir: $wpCoreDir, testDb: $testDb, phpunitXml: "./phpunit.xml" },
-			validation: { statusFile: $validationStatusFile, pid: $validationPid },
+			validation: { statusFile: $validationStatusFile, pid: $validationPid,
+			              launchLabel: (if $validationLaunchLabel == "" then null else $validationLaunchLabel end) },
 			browser: { provider: "agent-browser", installed: false, command: "", version: "", descriptor: ".ai/browsers/agent-browser.md", notes: "provisioned separately by om-prepare-test-env" },
 			testRunner: { name: "playwright", config: "playwright.config.ts" },
-			platform: $platform, startedAt: $startedAt, notes: $notes
+			platform: $platform, startedAt: $generationStartedAt, notes: $notes
 		}' | atomic_write "$DESCRIPTOR"
 }
 
@@ -322,6 +457,7 @@ write_descriptor() { # write_descriptor <status> <notes>
 load_descriptor_state() {
 	HTTP_PORT="$(descriptor_get '.app.port // 0')"
 	APP_PID="$(descriptor_get '.app.pid // 0')"
+	APP_LAUNCH_LABEL="$(descriptor_get '.app.launchLabel // ""')"
 	MYSQL_PORT="$(descriptor_get '.services[] | select(.type == "mysql") | .port // 0')"
 	MYSQL_PID="$(descriptor_get '.services[] | select(.type == "mysql") | .pid // 0')"
 	MYSQL_CONTAINER="$(descriptor_get '.services[] | select(.type == "mysql") | .container // ""')"
@@ -332,6 +468,21 @@ load_descriptor_state() {
 	[ "$REDIS_CONTAINER" = "null" ] && REDIS_CONTAINER=""
 	REDIS_ISOLATION="$(descriptor_get '.services[] | select(.type == "redis") | .isolation // "dedicated"')"
 	VALIDATION_PID="$(descriptor_get '.validation.pid // 0')"
+	VALIDATION_LAUNCH_LABEL="$(descriptor_get '.validation.launchLabel // ""')"
+	GENERATION_ID="$(descriptor_get '.generationId // ""')"
+	GENERATION_STARTED_AT="$(descriptor_get '.startedAt // ""')"
+	RECOVERY_MODE="$(descriptor_get '.recoveryMode // ""')"
+}
+
+begin_generation() { # begin_generation <recovery-mode>
+	# A descriptor written before generation tracking may still own a running
+	# supervisor. Stop it before clearing the status file so generation rollout
+	# cannot start a second PHPUnit gate against the same test database.
+	stop_validation
+	GENERATION_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	GENERATION_ID="${RUN_ID}-${GENERATION_STARTED_AT//[^0-9]/}-$$"
+	RECOVERY_MODE="$1"
+	rm -f "$VALIDATION_STATUS"
 }
 
 # --------------------------------------------------------------------------
@@ -371,8 +522,9 @@ probe_http()   {
 }
 probe_tests()  { [ -f "$WP_TESTS_DIR_RUN/includes/functions.php" ]; }
 
-# Full probe set. Prints the first failure; returns non-zero when unhealthy.
-probe_all() {
+# Infrastructure/provisioning probes are separate from the app probe so a
+# dead built-in server can be restarted without reseeding the catalog.
+probe_infrastructure() {
 	[ -f "$DESCRIPTOR" ] || { echo "no descriptor"; return 1; }
 	load_descriptor_state
 	# Fingerprints are run-scoped (datadir path, run port, WP_ROOT) so a PID
@@ -392,10 +544,20 @@ probe_all() {
 	fi
 	probe_redis || { echo "redis not answering on :$REDIS_PORT"; return 1; }
 	probe_ft || { echo "redis on :$REDIS_PORT has no FT (RediSearch) support"; return 1; }
-	pid_matches "$APP_PID" "$WP_ROOT" || { echo "wp server pid $APP_PID gone"; return 1; }
-	probe_http || { echo "storefront not healthy at http://127.0.0.1:${HTTP_PORT}/search-e2e/"; return 1; }
+	[ -f "$WP_ROOT/wp-load.php" ] && [ -f "$WP_ROOT/wp-config.php" ] \
+		|| { echo "wordpress files missing at $WP_ROOT"; return 1; }
 	probe_tests || { echo "wordpress-tests-lib missing at $WP_TESTS_DIR_RUN"; return 1; }
 	return 0
+}
+
+probe_app() {
+	pid_matches "$APP_PID" "$WP_ROOT" || { echo "wp server pid $APP_PID gone"; return 1; }
+	probe_http || { echo "storefront not healthy at http://127.0.0.1:${HTTP_PORT}/search-e2e/"; return 1; }
+}
+
+# Full probe set. Prints the first failure; returns non-zero when unhealthy.
+probe_all() {
+	probe_infrastructure && probe_app
 }
 
 # --------------------------------------------------------------------------
@@ -446,17 +608,18 @@ start_mysql() {
 # Docker fallback of the preflight chain "native mysqld -> docker": hosts
 # (macOS dev machines in particular) with Docker but no server binary.
 start_mysql_docker() {
+	ensure_docker_ready
 	log "Starting Docker MariaDB on 127.0.0.1:$MYSQL_PORT"
 	MYSQL_CONTAINER="s64-mysql-$RUN_ID"
 	MYSQL_PID=0
 	docker image inspect mariadb:lts >/dev/null 2>&1 || {
-		info "pulling mariadb:lts (first run only)"
-		docker pull mariadb:lts >>"$LOG_DIR/mysql-$RUN_ID.log" 2>&1 || die "docker pull mariadb:lts failed"
+		docker_pull_with_retry mariadb:lts "$LOG_DIR/mysql-$RUN_ID.log"
 	}
 	docker rm -f "$MYSQL_CONTAINER" >/dev/null 2>&1 || true
 	docker run -d --name "$MYSQL_CONTAINER" -p "127.0.0.1:$MYSQL_PORT:3306" \
 		-e MARIADB_ROOT_PASSWORD=root -e MARIADB_ROOT_HOST=% \
-		mariadb:lts >/dev/null
+		mariadb:lts >>"$LOG_DIR/mysql-$RUN_ID.log" 2>&1 \
+		|| die "Docker MariaDB could not start — see $LOG_DIR/mysql-$RUN_ID.log"
 	local i
 	for i in $(seq 1 90); do
 		mysqladmin --no-defaults -h127.0.0.1 -P"$MYSQL_PORT" -uroot -proot ping >/dev/null 2>&1 && break
@@ -518,11 +681,15 @@ start_redis() {
 		REDIS_PID=0
 	fi
 	if command -v docker >/dev/null; then
+		ensure_docker_ready
 		log "Starting Docker redis/redis-stack-server on 127.0.0.1:$REDIS_PORT"
 		REDIS_CONTAINER="s64-redis-$RUN_ID"
+		docker image inspect redis/redis-stack-server:latest >/dev/null 2>&1 \
+			|| docker_pull_with_retry redis/redis-stack-server:latest "$LOG_DIR/redis-$RUN_ID.log"
 		docker rm -f "$REDIS_CONTAINER" >/dev/null 2>&1 || true
 		docker run -d --name "$REDIS_CONTAINER" -p "127.0.0.1:$REDIS_PORT:6379" \
-			redis/redis-stack-server:latest >/dev/null
+			redis/redis-stack-server:latest >>"$LOG_DIR/redis-$RUN_ID.log" 2>&1 \
+			|| die "Docker redis-stack could not start — see $LOG_DIR/redis-$RUN_ID.log"
 		local i
 		for i in $(seq 1 30); do
 			probe_redis && probe_ft && return 0
@@ -546,6 +713,20 @@ start_redis() {
 	die "No RediSearch-capable Redis available (tried: native binary, docker, shared $shared)"
 }
 
+start_app_server() {
+	log "Starting wp server on 127.0.0.1:$HTTP_PORT"
+	start_detached app "$LOG_DIR/wp-server-$RUN_ID.log" \
+		"$(command -v wp)" server --host=127.0.0.1 --port="$HTTP_PORT" --path="$WP_ROOT"
+	APP_PID="$DETACHED_PID"
+	APP_LAUNCH_LABEL="$DETACHED_LABEL"
+	local i
+	for i in $(seq 1 30); do
+		curl -sf --max-time 5 "http://127.0.0.1:$HTTP_PORT/" >/dev/null 2>&1 && break
+		[ "$i" = 30 ] && die "wp server did not answer in 30s — see $LOG_DIR/wp-server-$RUN_ID.log"
+		sleep 1
+	done
+}
+
 start_wordpress() {
 	log "Installing WordPress + WooCommerce (bin/e2e-install-wp.sh)"
 	mysql --no-defaults -h127.0.0.1 -P"$MYSQL_PORT" -u"$DB_USER" -p"$DB_PASS" \
@@ -565,17 +746,7 @@ start_wordpress() {
 	wpc option update siteurl "http://127.0.0.1:$HTTP_PORT" >/dev/null
 	wpc option update home "http://127.0.0.1:$HTTP_PORT" >/dev/null
 
-	log "Starting wp server on 127.0.0.1:$HTTP_PORT"
-	$SETSID nohup wp server --host=127.0.0.1 --port="$HTTP_PORT" --path="$WP_ROOT" \
-		>>"$LOG_DIR/wp-server-$RUN_ID.log" 2>&1 &
-	APP_PID=$!
-	STARTED_PIDS="$STARTED_PIDS $APP_PID"
-	local i
-	for i in $(seq 1 30); do
-		curl -sf --max-time 5 "http://127.0.0.1:$HTTP_PORT/" >/dev/null 2>&1 && break
-		[ "$i" = 30 ] && die "wp server did not answer in 30s — see $LOG_DIR/wp-server-$RUN_ID.log"
-		sleep 1
-	done
+	start_app_server
 
 	if [ "$REDIS_ISOLATION" = "shared-redis" ]; then
 		wpc option update shift64_woo_search_redis_prefix "s64_${WORKTREE_HASH}" >/dev/null
@@ -643,18 +814,45 @@ install_repo_deps() {
 # Teardown (shared by `down`, self-healing, and the abort trap)
 # --------------------------------------------------------------------------
 
-stop_owned() { # stop_owned <wipe-datadir: 0|1>
-	local wipe="${1:-1}"
-	[ -f "$DESCRIPTOR" ] && load_descriptor_state
+stop_app() {
+	if [ -n "${APP_LAUNCH_LABEL:-}" ] && command -v launchctl >/dev/null 2>&1; then
+		launchctl remove "$APP_LAUNCH_LABEL" >/dev/null 2>&1 || true
+	fi
 	if pid_matches "${APP_PID:-0}" "$WP_ROOT"; then
 		kill -- -"$APP_PID" 2>/dev/null || kill "$APP_PID" 2>/dev/null || true
+	fi
+	if [ "${HTTP_PORT:-0}" -gt 0 ] 2>/dev/null; then
+		pkill -f -- "-S 127.0.0.1:$HTTP_PORT" 2>/dev/null || true
+	fi
+	APP_PID=0
+	APP_LAUNCH_LABEL=""
+}
+
+stop_validation() {
+	if [ -n "${VALIDATION_LAUNCH_LABEL:-}" ] && command -v launchctl >/dev/null 2>&1; then
+		launchctl remove "$VALIDATION_LAUNCH_LABEL" >/dev/null 2>&1 || true
 	fi
 	if pid_matches "${VALIDATION_PID:-0}" "$SCRIPT_DIR/test-env.sh _supervise"; then
 		kill -- -"$VALIDATION_PID" 2>/dev/null || kill "$VALIDATION_PID" 2>/dev/null || true
 	fi
+	VALIDATION_PID=0
+	VALIDATION_LAUNCH_LABEL=""
+}
+
+clear_validation_state() {
+	[ -f "$DESCRIPTOR" ] && load_descriptor_state
+	stop_validation
+	rm -f "$VALIDATION_STATUS"
+}
+
+stop_owned() { # stop_owned <wipe-datadir: 0|1>
+	local wipe="${1:-1}"
+	[ -f "$DESCRIPTOR" ] && load_descriptor_state
+	stop_app
+	stop_validation
 	if [ -n "${REDIS_CONTAINER:-}" ]; then
 		docker rm -f "$REDIS_CONTAINER" >/dev/null 2>&1 || true
-	elif [ "${REDIS_ISOLATION:-dedicated}" = "dedicated" ] && pid_matches "${REDIS_PID:-0}" "127.0.0.1:$REDIS_PORT"; then
+	elif [ "${REDIS_ISOLATION:-dedicated}" = "dedicated" ] && pid_matches "${REDIS_PID:-0}" "127.0.0.1:${REDIS_PORT:-0}"; then
 		redis_exec shutdown nosave 2>/dev/null || kill "$REDIS_PID" 2>/dev/null || true
 	fi
 	if [ -n "${MYSQL_CONTAINER:-}" ]; then
@@ -668,13 +866,6 @@ stop_owned() { # stop_owned <wipe-datadir: 0|1>
 			sleep 1
 		done
 	fi
-	# Catch the one orphan class the targeted kills miss: php -S children
-	# surviving a crashed wp-server parent. Match on this run's HTTP port —
-	# precise, unlike a broad run-dir sweep that could hit a developer's
-	# `tail -f <run>/mysql.log`.
-	if [ "${HTTP_PORT:-0}" -gt 0 ] 2>/dev/null; then
-		pkill -f -- "-S 127.0.0.1:$HTTP_PORT" 2>/dev/null || true
-	fi
 	if [ "$wipe" = "1" ]; then
 		rm -rf "$RUN_DIR"
 	fi
@@ -685,9 +876,14 @@ abort_trap() {
 	trap - EXIT
 	if [ "$exit_code" -ne 0 ]; then
 		warn "up aborted (exit $exit_code) — stopping processes started this run"
+		stop_owned 0
 		local pid
 		for pid in $STARTED_PIDS; do
 			kill -- -"$pid" 2>/dev/null || kill "$pid" 2>/dev/null || true
+		done
+		local label
+		for label in $STARTED_LAUNCH_LABELS; do
+			launchctl remove "$label" >/dev/null 2>&1 || true
 		done
 		if [ -f "$DESCRIPTOR" ]; then
 			jq --arg note "up aborted at $(date -u +%Y-%m-%dT%H:%M:%SZ) (exit $exit_code)" \
@@ -737,12 +933,12 @@ validation_commands() {
 
 write_validation_status() { # write_validation_status <status> <finishedAt-or-empty>
 	jq -n \
-		--arg runId "$RUN_ID" --arg status "$1" \
+		--arg runId "$RUN_ID" --arg generationId "$GENERATION_ID" --arg status "$1" \
 		--arg startedAt "$SUPERVISOR_STARTED" --arg finishedAt "$2" \
 		--argjson pid "$$" \
 		--argjson commands "$COMMANDS_JSON" \
 		--arg log "$SUPERVISOR_LOG_REL" \
-		'{ runId: $runId, status: $status, startedAt: $startedAt,
+		'{ runId: $runId, generationId: $generationId, status: $status, startedAt: $startedAt,
 		   finishedAt: (if $finishedAt == "" then null else $finishedAt end),
 		   pid: $pid, commands: $commands, log: $log }' \
 		| atomic_write "$VALIDATION_STATUS"
@@ -804,14 +1000,18 @@ start_supervisor() {
 	fi
 	log "Starting background validation gate (logs: .ai/qa/logs/validation-$RUN_ID.log)"
 	# Invoke via bash: exec bits on repo files cannot be relied on here.
-	$SETSID nohup bash "$SCRIPT_DIR/test-env.sh" _supervise >>"$LOG_DIR/supervisor-$RUN_ID.log" 2>&1 &
-	VALIDATION_PID=$!
+	start_detached validation "$LOG_DIR/supervisor-$RUN_ID.log" bash "$SCRIPT_DIR/test-env.sh" _supervise
+	VALIDATION_PID="$DETACHED_PID"
+	VALIDATION_LAUNCH_LABEL="$DETACHED_LABEL"
 	info "validation supervisor pid $VALIDATION_PID — poll .ai/qa/validation-status.json"
 }
 
 validation_state() { # echoes the supervisor status, repairing a dead-pid lie
 	[ -f "$VALIDATION_STATUS" ] || { echo "none"; return; }
-	local st pid
+	local st pid status_generation
+	status_generation="$(jq -r '.generationId // ""' "$VALIDATION_STATUS" 2>/dev/null)"
+	[ -n "$GENERATION_ID" ] && [ "$status_generation" = "$GENERATION_ID" ] \
+		|| { echo "none"; return; }
 	st="$(jq -r '.status // "none"' "$VALIDATION_STATUS" 2>/dev/null)"
 	pid="$(jq -r '.pid // 0' "$VALIDATION_STATUS" 2>/dev/null)"
 	if [ "$st" = "running" ] && ! pid_matches "$pid" "$SCRIPT_DIR/test-env.sh _supervise"; then
@@ -825,7 +1025,7 @@ validation_state() { # echoes the supervisor status, repairing a dead-pid lie
 # Subcommands
 # --------------------------------------------------------------------------
 
-report_ready() { # report_ready <reused|provisioned>
+report_ready() { # report_ready <reused|restarted-app|rebuilt>
 	local how="$1"
 	echo
 	echo "============================================================"
@@ -876,6 +1076,7 @@ cmd_up() {
 	make_wp_shim
 	acquire_lock
 	trap abort_trap EXIT INT TERM
+	[ "$validate" = 1 ] || clear_validation_state
 
 	if [ "$fresh" = 1 ]; then
 		log "--fresh: wiping $RUN_DIR"
@@ -891,9 +1092,26 @@ cmd_up() {
 			# ports/pids into THIS shell before reporting.
 			load_descriptor_state
 			install_repo_deps
+			if [ -z "$GENERATION_ID" ]; then begin_generation "reused"; else RECOVERY_MODE="reused"; fi
 			write_descriptor "running" "reused healthy environment"
 			report_ready "reused"
 			[ "$validate" = 1 ] && { start_supervisor; write_descriptor "running" "reused healthy environment"; }
+			return 0
+		fi
+		if failure="$(probe_infrastructure)"; then
+			load_descriptor_state
+			[ -n "$GENERATION_ID" ] || begin_generation "restarted-app"
+			log "Application layer unhealthy — restarting wp server only"
+			stop_app
+			start_app_server
+			RECOVERY_MODE="restarted-app"
+			# probe_infrastructure reloads descriptor state; persist the new app
+			# PID/launch label first so it cannot restore the dead process record.
+			write_descriptor "provisioning" "application layer restarted; verifying health"
+			failure="$(probe_all)" || die "application restart completed but environment is unhealthy: $failure"
+			write_descriptor "running" "restarted application layer; services and catalog preserved"
+			report_ready "restarted-app"
+			[ "$validate" = 1 ] && { start_supervisor; write_descriptor "running" "restarted application layer; services and catalog preserved"; }
 			return 0
 		fi
 		log "Existing environment unhealthy ($failure) — rebuilding"
@@ -908,6 +1126,8 @@ cmd_up() {
 	{ [ "${MYSQL_PORT:-0}" -gt 0 ] && ! port_listening "$MYSQL_PORT"; } || MYSQL_PORT="$(free_port)"
 	{ [ "${REDIS_PORT:-0}" -gt 0 ] && ! port_listening "$REDIS_PORT"; } || REDIS_PORT="$(free_port)"
 	APP_PID=0; MYSQL_PID=0; REDIS_PID=0; VALIDATION_PID=0; MYSQL_CONTAINER=""; REDIS_CONTAINER=""; REDIS_ISOLATION="dedicated"
+	APP_LAUNCH_LABEL=""; VALIDATION_LAUNCH_LABEL=""
+	begin_generation "rebuilt"
 	write_descriptor "provisioning" "up started"
 
 	start_mysql
@@ -926,7 +1146,7 @@ cmd_up() {
 	local failure
 	failure="$(probe_all)" || die "environment provisioned but unhealthy: $failure"
 	write_descriptor "running" "$notes"
-	report_ready "provisioned"
+	report_ready "rebuilt"
 	if [ "$validate" = 1 ]; then
 		start_supervisor
 		write_descriptor "running" "$notes"
@@ -963,9 +1183,14 @@ cmd_status() {
 		jq '.status = "running"' "$DESCRIPTOR" | atomic_write "$DESCRIPTOR"
 	fi
 	local vstate
+	load_descriptor_state
 	vstate="$(validation_state)"
 	if [ "$as_json" = 1 ]; then
-		jq --slurpfile v <(cat "$VALIDATION_STATUS" 2>/dev/null || echo null) '. + {validationStatus: ($v[0] // null)}' "$DESCRIPTOR"
+		if [ "$vstate" = "none" ]; then
+			jq '. + {validationStatus: null}' "$DESCRIPTOR"
+		else
+			jq --slurpfile v "$VALIDATION_STATUS" '. + {validationStatus: ($v[0] // null)}' "$DESCRIPTOR"
+		fi
 	else
 		if [ "$healthy" = 1 ]; then
 			echo "Environment healthy: $(descriptor_get '.baseUrl') (validation: $vstate)"
@@ -994,7 +1219,9 @@ cmd_down() {
 	acquire_lock
 	log "Stopping environment $RUN_ID"
 	stop_owned 1
-	jq '.status = "stopped" | .app.pid = 0 | (.services[] | select(has("pid"))).pid = 0 | .validation.pid = 0' \
+	jq '.status = "stopped" | .app.pid = 0 | .app.launchLabel = null |
+		(.services[] | select(has("pid"))).pid = 0 |
+		.validation.pid = 0 | .validation.launchLabel = null' \
 		"$DESCRIPTOR" | atomic_write "$DESCRIPTOR"
 	release_lock
 	echo "Stopped. Logs kept under .ai/qa/logs/."
@@ -1015,6 +1242,8 @@ case "$COMMAND" in
 	up)         cmd_up "$@" ;;
 	status)     cmd_status "$@" ;;
 	down)       cmd_down "$@" ;;
-	_supervise) select_php; supervise ;;
+	_supervise) select_php; load_descriptor_state; supervise ;;
+	_launchd_wrapper) launchd_wrapper "$@" ;;
+	_preflight) preflight ;;
 	*)          usage ;;
 esac

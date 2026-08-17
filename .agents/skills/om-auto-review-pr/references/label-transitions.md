@@ -16,7 +16,7 @@ The helper:
 
 - adds `newLabel`
 - removes every other pipeline label from the list above
-- preserves category labels (`bug`, `feature`, `refactor`, `security`, `dependencies`, `documentation`), meta labels (`needs-qa`, `skip-qa`, `qa-approved`, `qa-self-verified`, `in-progress`), priority labels (`priority-low`, `priority-medium`, `priority-high`, `priority-extreme`), and risk labels (`risk-low`, `risk-medium`, `risk-high`)
+- preserves category labels (`bug`, `feature`, `refactor`, `security`, `dependencies`, `documentation`), meta labels (`needs-qa`, `skip-qa`, `qa-approved`, `qa-self-verified`, `in-progress`, `ci-monitoring`), priority labels (`priority-low`, `priority-medium`, `priority-high`, `priority-extreme`), and risk labels (`risk-low`, `risk-medium`, `risk-high`)
 
 Every label change is reflected in the **single consolidated `🏷️ label rationale` comment** (template below) — updated in place, never a new comment per change.
 
@@ -47,4 +47,4 @@ Exactly **one** marker-idempotent comment from this skill per PR describes the w
 
 Suggested per-line reasons: `review` — "this PR is ready for code review"; `changes-requested` — "review found actionable issues: {short list}"; `merge-queue` (no QA required) — "the required review gates passed and QA is not required (or `qa-approved` is already present)"; `blocked` — "progress depends on an external blocker: {which}"; `do-not-merge` — "this PR must not merge yet: {why}". Write them as full sentences with the concrete reason — never bare labels.
 
-Label emoji map (decoration only — parsers key on the backticked label text): 🔍 `review` · ❌ `changes-requested` / `qa-failed` · 🧪 `qa` / `needs-qa` · 🚀 `merge-queue` · ⛔ `blocked` / `do-not-merge` · 🐛 `bug` · ✨ `feature` · ♻️ `refactor` · 🔒 `security` · 📦 `dependencies` · 📚 `documentation` · ⏭️ `skip-qa` · ✅ `qa-approved` · 📸 `qa-self-verified` · 🔥 `priority-extreme` · 🔺 `priority-high` · 🔹 `priority-medium` · 🔽 `priority-low` · ⚠️ `risk-high` · 🟡 `risk-medium` · 🟢 `risk-low` · 🤖 `in-progress`.
+Label emoji map (decoration only — parsers key on the backticked label text): 🔍 `review` · ❌ `changes-requested` / `qa-failed` · 🧪 `qa` / `needs-qa` · 🚀 `merge-queue` · ⛔ `blocked` / `do-not-merge` · 🐛 `bug` · ✨ `feature` · ♻️ `refactor` · 🔒 `security` · 📦 `dependencies` · 📚 `documentation` · ⏭️ `skip-qa` · ✅ `qa-approved` · 📸 `qa-self-verified` · 🔥 `priority-extreme` · 🔺 `priority-high` · 🔹 `priority-medium` · 🔽 `priority-low` · ⚠️ `risk-high` · 🟡 `risk-medium` · 🟢 `risk-low` · 🤖 `in-progress` · ⏱️ `ci-monitoring`.

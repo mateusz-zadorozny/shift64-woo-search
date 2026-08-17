@@ -45,6 +45,6 @@ Thanks @{PR_AUTHOR} — review found actionable items, so I'm handing this PR ba
 
 Rules:
 
-- Do this for every `changes-requested` outcome, including early exits for conflicts, failing required checks, or duplicate/already-merged work.
+- Do this for every `changes-requested` outcome, including verdicts driven by merge conflicts or failing required checks and the duplicate/already-merged early exit.
 - If the author cannot be assigned (bot/deleted account/permission issue), keep the current assignee and leave the same handoff comment without the reassignment claim.
 - The handoff comment is separate from the short pipeline-label comment; keep both.
