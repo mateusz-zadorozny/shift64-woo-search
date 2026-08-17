@@ -43,6 +43,18 @@
     },
     "noResultsLabel": {
       "type": "string"
+    },
+    "buttonTextColor": {
+      "type": "string"
+    },
+    "buttonTextHoverColor": {
+      "type": "string"
+    },
+    "buttonBackgroundColor": {
+      "type": "string"
+    },
+    "buttonBackgroundHoverColor": {
+      "type": "string"
     }
   },
   "supports": {

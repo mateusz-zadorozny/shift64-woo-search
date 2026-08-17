@@ -257,12 +257,32 @@ class Shift64_Woo_Search_Blocks {
 		$variant    = $block->context['shift64WooSearch/variant'] ?? 'inline';
 		$runtime_id = $this->runtime_id_from_context( $block );
 		$label      = isset( $attributes['label'] ) ? $attributes['label'] : __( 'Search products', 'shift64-woo-search' );
-		$wrapper    = get_block_wrapper_attributes( array( 'class' => 'shift64-woo-search-control is-' . $variant ) );
+
+		$trigger_vars = array(
+			'--s64ws-trigger-icon-color'          => $attributes['triggerIconColor'] ?? '',
+			'--s64ws-trigger-icon-hover-color'    => $attributes['triggerIconHoverColor'] ?? '',
+			'--s64ws-trigger-surface-color'       => $attributes['triggerBackgroundColor'] ?? '',
+			'--s64ws-trigger-surface-hover-color' => $attributes['triggerBackgroundHoverColor'] ?? '',
+		);
+		$style        = '';
+		foreach ( $trigger_vars as $var => $value ) {
+			if ( '' !== $value && is_string( $value ) ) {
+				$style .= $var . ':' . $value . ';';
+			}
+		}
+		$extra   = array( 'class' => 'shift64-woo-search-control is-' . $variant );
+		if ( '' !== $style && 'modal' === $variant ) {
+			$extra['style'] = $style;
+		}
+		$wrapper = get_block_wrapper_attributes( $extra );
 
 		if ( 'modal' === $variant ) {
 			$trigger_label = isset( $attributes['triggerLabel'] ) ? $attributes['triggerLabel'] : __( 'Open product search', 'shift64-woo-search' );
 			$icon          = 'none' === ( $attributes['triggerIcon'] ?? 'search' ) ? '' : $this->render_search_icon();
-			return '<div ' . $wrapper . '><button type="button" class="shift64-woo-search-modal__trigger" aria-haspopup="dialog" aria-controls="' . esc_attr( $runtime_id . '-dialog' ) . '" aria-expanded="false" data-wp-bind--aria-expanded="state.isDialogOpen" data-wp-on--click="actions.open" data-shift64-woo-search-modal-trigger>' . $icon . '<span class="shift64-woo-search-modal__trigger-label">' . esc_html( $trigger_label ) . '</span></button></div>';
+			// With an icon the label is assistive-only; without one it is the visible button text.
+			$label_class   = '' === $icon ? 'shift64-woo-search-modal__trigger-label' : 'shift64-woo-search-modal__trigger-label screen-reader-text';
+			$trigger_class = '' === $icon ? 'shift64-woo-search-modal__trigger shift64-woo-search-modal__trigger--text' : 'shift64-woo-search-modal__trigger';
+			return '<div ' . $wrapper . '><button type="button" class="' . esc_attr( $trigger_class ) . '" aria-haspopup="dialog" aria-controls="' . esc_attr( $runtime_id . '-dialog' ) . '" aria-expanded="false" data-wp-bind--aria-expanded="state.isDialogOpen" data-wp-on--click="actions.open" data-shift64-woo-search-modal-trigger>' . $icon . '<span class="' . esc_attr( $label_class ) . '">' . esc_html( $trigger_label ) . '</span></button></div>';
 		}
 
 		$placeholder  = isset( $attributes['placeholder'] ) ? $attributes['placeholder'] : __( 'Search products...', 'shift64-woo-search' );
@@ -297,15 +317,39 @@ class Shift64_Woo_Search_Blocks {
 		$input_label  = isset( $attributes['inputLabel'] ) ? $attributes['inputLabel'] : __( 'Search products', 'shift64-woo-search' );
 		$placeholder  = isset( $attributes['placeholder'] ) ? $attributes['placeholder'] : __( 'Search products...', 'shift64-woo-search' );
 		$submit_label = isset( $attributes['submitLabel'] ) ? $attributes['submitLabel'] : __( 'Search', 'shift64-woo-search' );
+		// Button colors are gated behind has-* classes so an unset color keeps
+		// the theme's wp-element-button styling untouched.
+		$button_vars = array(
+			'--s64ws-panel-button-color'            => array( $attributes['buttonTextColor'] ?? '', 'has-panel-button-color' ),
+			'--s64ws-panel-button-hover-color'      => array( $attributes['buttonTextHoverColor'] ?? '', 'has-panel-button-hover-color' ),
+			'--s64ws-panel-button-background'       => array( $attributes['buttonBackgroundColor'] ?? '', 'has-panel-button-background' ),
+			'--s64ws-panel-button-hover-background' => array( $attributes['buttonBackgroundHoverColor'] ?? '', 'has-panel-button-hover-background' ),
+		);
+		$button_style   = '';
+		$button_classes = '';
+		foreach ( $button_vars as $var => $pair ) {
+			if ( '' !== $pair[0] && is_string( $pair[0] ) ) {
+				$button_style   .= $var . ':' . $pair[0] . ';';
+				$button_classes .= ' ' . $pair[1];
+			}
+		}
+		$wrapper_extra = array(
+			'id'                            => $runtime_id . '-dialog',
+			'class'                         => 'shift64-woo-search-dialog' . $button_classes,
+		);
+		if ( '' !== $button_style ) {
+			$wrapper_extra['style'] = $button_style;
+		}
 		$wrapper      = get_block_wrapper_attributes(
-			array(
-				'id'                            => $runtime_id . '-dialog',
-				'class'                         => 'shift64-woo-search-dialog',
-				'aria-label'                    => $dialog_label,
-				'aria-modal'                    => 'true',
-				'data-shift64-woo-search-modal' => '',
-				'data-wp-on--click'             => 'actions.onDialogClick',
-				'data-wp-on--cancel'            => 'actions.onDialogCancel',
+			array_merge(
+				$wrapper_extra,
+				array(
+					'aria-label'                    => $dialog_label,
+					'aria-modal'                    => 'true',
+					'data-shift64-woo-search-modal' => '',
+					'data-wp-on--click'             => 'actions.onDialogClick',
+					'data-wp-on--cancel'            => 'actions.onDialogCancel',
+				)
 			)
 		);
 

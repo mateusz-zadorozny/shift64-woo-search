@@ -23,7 +23,11 @@
     "submitLabel": { "type": "string" },
     "closeLabel": { "type": "string" },
     "clearLabel": { "type": "string" },
-    "noResultsLabel": { "type": "string" }
+    "noResultsLabel": { "type": "string" },
+    "buttonTextColor": { "type": "string" },
+    "buttonTextHoverColor": { "type": "string" },
+    "buttonBackgroundColor": { "type": "string" },
+    "buttonBackgroundHoverColor": { "type": "string" }
   },
   "supports": {
     "border": { "color": true, "radius": true, "style": true, "width": true },

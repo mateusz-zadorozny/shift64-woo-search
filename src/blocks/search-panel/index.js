@@ -1,4 +1,8 @@
-import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
+import {
+	InspectorControls,
+	PanelColorSettings,
+	useBlockProps,
+} from '@wordpress/block-editor';
 import { PanelBody, TextControl } from '@wordpress/components';
 import { registerBlockType } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
@@ -72,7 +76,11 @@ function EditorPreview( { copy, variant } ) {
 					placeholder={ copy.placeholder }
 					disabled
 				/>
-				<button type="button" disabled>
+				<button
+					type="button"
+					className="shift64-woo-search-field__submit wp-element-button"
+					disabled
+				>
 					{ copy.submitLabel }
 				</button>
 			</div>
@@ -104,10 +112,41 @@ function Edit( { attributes, context, isSelected, setAttributes } ) {
 			attributes.noResultsLabel ||
 			__( 'No products found', 'shift64-woo-search' ),
 	};
+	const buttonColorMap = [
+		[
+			attributes.buttonTextColor,
+			'has-panel-button-color',
+			'--s64ws-panel-button-color',
+		],
+		[
+			attributes.buttonTextHoverColor,
+			'has-panel-button-hover-color',
+			'--s64ws-panel-button-hover-color',
+		],
+		[
+			attributes.buttonBackgroundColor,
+			'has-panel-button-background',
+			'--s64ws-panel-button-background',
+		],
+		[
+			attributes.buttonBackgroundHoverColor,
+			'has-panel-button-hover-background',
+			'--s64ws-panel-button-hover-background',
+		],
+	];
+	const buttonVars = {};
+	const buttonClasses = [];
+	buttonColorMap.forEach( ( [ value, className, cssVar ] ) => {
+		if ( value ) {
+			buttonVars[ cssVar ] = value;
+			buttonClasses.push( className );
+		}
+	} );
 	const blockProps = useBlockProps( {
 		className: `shift64-woo-search-panel is-${ variant } ${
 			previewOpen ? 'is-preview-open' : 'is-preview-closed'
-		}`,
+		} ${ buttonClasses.join( ' ' ) }`,
+		style: variant === 'modal' ? buttonVars : undefined,
 	} );
 
 	return (
@@ -164,6 +203,45 @@ function Edit( { attributes, context, isSelected, setAttributes } ) {
 						}
 					/>
 				</PanelBody>
+				{ variant === 'modal' && (
+					<PanelColorSettings
+						title={ __( 'Button colors', 'shift64-woo-search' ) }
+						colorSettings={ [
+							{
+								label: __( 'Text', 'shift64-woo-search' ),
+								value: attributes.buttonTextColor,
+								onChange: ( buttonTextColor ) =>
+									setAttributes( { buttonTextColor } ),
+							},
+							{
+								label: __(
+									'Text (hover)',
+									'shift64-woo-search'
+								),
+								value: attributes.buttonTextHoverColor,
+								onChange: ( buttonTextHoverColor ) =>
+									setAttributes( { buttonTextHoverColor } ),
+							},
+							{
+								label: __( 'Background', 'shift64-woo-search' ),
+								value: attributes.buttonBackgroundColor,
+								onChange: ( buttonBackgroundColor ) =>
+									setAttributes( { buttonBackgroundColor } ),
+							},
+							{
+								label: __(
+									'Background (hover)',
+									'shift64-woo-search'
+								),
+								value: attributes.buttonBackgroundHoverColor,
+								onChange: ( buttonBackgroundHoverColor ) =>
+									setAttributes( {
+										buttonBackgroundHoverColor,
+									} ),
+							},
+						] }
+					/>
+				) }
 			</InspectorControls>
 			<div { ...blockProps }>
 				{ ! previewOpen && isSelected && (

@@ -12,7 +12,66 @@
 		width: 100%;
 	}
 
+	// The icon trigger must be self-sufficient: the editor iframe loads
+	// neither the theme's .screen-reader-text nor the legacy frontend
+	// stylesheet, so both the circle layout and the hidden label live here.
+	// Trigger colors come from the block's own color panel (Text / icon,
+	// Background, each with a hover variant) via --s64ws-trigger-* vars; the
+	// hover rule also overrides theme button:hover styles (e.g. Storefront's
+	// grey pill).
 	.shift64-woo-search-modal__trigger {
+		background: var(--s64ws-trigger-surface-color, transparent);
+		border: 0;
+		color: var(--s64ws-trigger-icon-color, currentColor);
+
+		&:hover,
+		&:focus {
+			background: var(
+				--s64ws-trigger-surface-hover-color,
+				var(
+					--s64ws-trigger-surface-color,
+					color-mix(in srgb, currentColor 8%, transparent)
+				)
+			);
+			color: var(
+				--s64ws-trigger-icon-hover-color,
+				var(--s64ws-trigger-icon-color, currentColor)
+			);
+		}
+	}
+
+	.shift64-woo-search-modal__trigger:not(.shift64-woo-search-modal__trigger--text) {
+		align-items: center;
+		border-radius: 999px;
+		display: inline-grid;
+		height: 44px;
+		justify-items: center;
+		line-height: 0;
+		padding: 0;
+		position: relative;
+		width: 44px;
+
+		> svg {
+			height: 24px;
+			width: 24px;
+		}
+
+		.shift64-woo-search-modal__trigger-label {
+			clip: rect(1px, 1px, 1px, 1px);
+			clip-path: inset(50%);
+			height: 1px;
+			margin: -1px;
+			overflow: hidden;
+			padding: 0;
+			position: absolute;
+			width: 1px;
+			word-wrap: normal;
+		}
+	}
+
+	// Icon triggers use the shared icon-button styles; only the text-only
+	// variant (trigger icon "none") needs an auto-sized flex layout.
+	.shift64-woo-search-modal__trigger.shift64-woo-search-modal__trigger--text {
 		align-items: center;
 		display: inline-flex;
 		gap: 0.5em;
