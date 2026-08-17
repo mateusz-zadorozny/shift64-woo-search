@@ -461,11 +461,13 @@ load_descriptor_state() {
 }
 
 begin_generation() { # begin_generation <recovery-mode>
+	# A descriptor written before generation tracking may still own a running
+	# supervisor. Stop it before clearing the status file so generation rollout
+	# cannot start a second PHPUnit gate against the same test database.
+	stop_validation
 	GENERATION_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	GENERATION_ID="${RUN_ID}-${GENERATION_STARTED_AT//[^0-9]/}-$$"
 	RECOVERY_MODE="$1"
-	VALIDATION_PID=0
-	VALIDATION_LAUNCH_LABEL=""
 	rm -f "$VALIDATION_STATUS"
 }
 
@@ -836,7 +838,7 @@ stop_owned() { # stop_owned <wipe-datadir: 0|1>
 	stop_validation
 	if [ -n "${REDIS_CONTAINER:-}" ]; then
 		docker rm -f "$REDIS_CONTAINER" >/dev/null 2>&1 || true
-	elif [ "${REDIS_ISOLATION:-dedicated}" = "dedicated" ] && pid_matches "${REDIS_PID:-0}" "127.0.0.1:$REDIS_PORT"; then
+	elif [ "${REDIS_ISOLATION:-dedicated}" = "dedicated" ] && pid_matches "${REDIS_PID:-0}" "127.0.0.1:${REDIS_PORT:-0}"; then
 		redis_exec shutdown nosave 2>/dev/null || kill "$REDIS_PID" 2>/dev/null || true
 	fi
 	if [ -n "${MYSQL_CONTAINER:-}" ]; then
