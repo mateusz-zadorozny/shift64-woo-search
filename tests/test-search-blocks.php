@@ -209,15 +209,16 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Native design tools belong to independently styleable child blocks.
+	 * Child blocks keep spacing/typography supports; color moved to the
+	 * blocks' own attribute-backed panels (with hover variants), so the
+	 * native color support is intentionally absent.
 	 */
 	public function test_child_blocks_expose_native_design_supports() {
 		$registry = WP_Block_Type_Registry::get_instance();
 
 		foreach ( array( 'search-control', 'search-panel' ) as $name ) {
 			$block = $registry->get_registered( 'shift64-woo-search/' . $name );
-			$this->assertTrue( $block->supports['color']['text'] );
-			$this->assertTrue( $block->supports['color']['background'] );
+			$this->assertArrayNotHasKey( 'color', $block->supports );
 			$this->assertTrue( $block->supports['spacing']['padding'] );
 			$this->assertTrue( $block->supports['typography']['fontSize'] );
 		}

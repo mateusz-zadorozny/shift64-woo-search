@@ -9,8 +9,9 @@ async function loginAsAdmin( page: Page ): Promise< void > {
 	await page.goto( '/wp-login.php' );
 	await page.fill( '#user_login', 'admin' );
 	const password = page.locator( '#user_pass' );
-	await password.click();
-	await password.pressSequentially( 'admin' );
+	// fill() sets the value atomically; wp-login's deferred JS can swallow
+	// keystrokes from pressSequentially and leave a truncated password.
+	await password.fill( 'admin' );
 	await expect( password ).toHaveValue( 'admin' );
 	await page.click( '#wp-submit' );
 	await expect( page ).toHaveURL( /wp-admin/ );
@@ -102,11 +103,14 @@ test.describe( 'composable search block editor', () => {
 				const panelSelected =
 					select.getSelectedBlockClientId() === panel.clientId;
 
+				// Styling is per-block via the blocks' own color attributes
+				// (native color supports were removed in favor of the custom
+				// panels with hover + contrast checking).
 				dispatch.updateBlockAttributes( control.clientId, {
-					style: { color: { text: '#112233' } },
+					inputTextColor: '#112233',
 				} );
 				dispatch.updateBlockAttributes( panel.clientId, {
-					style: { color: { background: '#ddeeff' } },
+					allResultsColor: '#ddeeff',
 				} );
 
 				return {
@@ -133,8 +137,10 @@ test.describe( 'composable search block editor', () => {
 					],
 					selected: [ controlSelected, panelSelected ],
 					styles: [
-						select.getBlockAttributes( control.clientId ).style,
-						select.getBlockAttributes( panel.clientId ).style,
+						select.getBlockAttributes( control.clientId )
+							.inputTextColor,
+						select.getBlockAttributes( panel.clientId )
+							.allResultsColor,
 					],
 					supports: [ controlName, panelName ].map(
 						( name ) => wp.blocks.getBlockType( name ).supports
@@ -155,19 +161,15 @@ test.describe( 'composable search block editor', () => {
 		expect( editorContract.canRemove ).toEqual( [ false, false ] );
 		expect( editorContract.canMove ).toEqual( [ false, false ] );
 		expect( editorContract.selected ).toEqual( [ true, true ] );
-		expect( editorContract.styles ).toEqual( [
-			{ color: { text: '#112233' } },
-			{ color: { background: '#ddeeff' } },
-		] );
+		expect( editorContract.styles ).toEqual( [ '#112233', '#ddeeff' ] );
 		for ( const supports of editorContract.supports ) {
-			expect( supports.color.text ).toBe( true );
-			expect( supports.color.background ).toBe( true );
+			// Color moved to block-specific attribute panels; the native
+			// color and dimensions supports are intentionally absent.
+			expect( supports.color ).toBeUndefined();
 			expect( supports.spacing.padding ).toBe( true );
 			expect( supports.typography.fontSize ).toBe( true );
 		}
-		expect( editorContract.supports[ 0 ].dimensions.minHeight ).toBe(
-			true
-		);
+		expect( editorContract.supports[ 0 ].dimensions ).toBeUndefined();
 		expect( editorContract.supports[ 1 ].dimensions ).toBeUndefined();
 
 		await page.evaluate( ( parentClientId ) => {
