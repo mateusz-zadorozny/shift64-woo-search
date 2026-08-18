@@ -407,7 +407,7 @@ class Shift64_Woo_Search_Blocks {
 				$button_classes .= ' ' . $pair[1];
 			}
 		}
-		$wrapper_extra  = array(
+		$wrapper_extra = array(
 			'id'    => $runtime_id . '-dialog',
 			'class' => 'shift64-woo-search-dialog' . $button_classes . $max_width_class,
 		);
