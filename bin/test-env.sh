@@ -16,7 +16,8 @@
 #
 # Design doc: .ai/specs/2026-07-31-one-shot-worktree-test-env.md (issue #53).
 #
-# Every mutable path lives under $RUN_DIR (platform tmp); every port binds to
+# Every mutable path lives under $RUN_DIR (a durable per-user cache root, see
+# TEST_ENV_RUN_ROOT below — deliberately not tmp); every port binds to
 # 127.0.0.1; the descriptor (.ai/qa/test-env.json) records ownership so `down`
 # only ever stops what this script started. "running" is written only after
 # every health probe passes — a stale descriptor is detected, torn down, and
