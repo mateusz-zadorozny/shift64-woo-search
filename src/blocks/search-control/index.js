@@ -1,9 +1,16 @@
 import {
+	ContrastChecker,
 	InspectorControls,
 	PanelColorSettings,
 	useBlockProps,
 } from '@wordpress/block-editor';
-import { PanelBody, SelectControl, TextControl } from '@wordpress/components';
+import {
+	PanelBody,
+	RangeControl,
+	SelectControl,
+	TextControl,
+	ToggleControl,
+} from '@wordpress/components';
 import { registerBlockType } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
 import metadata from './block.json';
@@ -38,9 +45,104 @@ function Edit( { attributes, context, setAttributes } ) {
 		triggerVars[ '--s64ws-trigger-surface-hover-color' ] =
 			attributes.triggerBackgroundHoverColor;
 	}
+	const inlineVars = {};
+	const inlineClasses = [];
+	[
+		[
+			attributes.buttonTextColor,
+			'has-inline-button-color',
+			'--s64ws-inline-button-color',
+		],
+		[
+			attributes.buttonTextHoverColor,
+			'has-inline-button-hover-color',
+			'--s64ws-inline-button-hover-color',
+		],
+		[
+			attributes.buttonBackgroundColor,
+			'has-inline-button-background',
+			'--s64ws-inline-button-background',
+		],
+		[
+			attributes.buttonBackgroundHoverColor,
+			'has-inline-button-hover-background',
+			'--s64ws-inline-button-hover-background',
+		],
+		[
+			attributes.inputTextColor,
+			'has-inline-input-color',
+			'--s64ws-inline-input-color',
+		],
+		[
+			attributes.inputBackgroundColor,
+			'has-inline-input-background',
+			'--s64ws-inline-input-background',
+		],
+	].forEach( ( [ value, className, cssVar ] ) => {
+		if ( value ) {
+			inlineVars[ cssVar ] = value;
+			inlineClasses.push( className );
+		}
+	} );
+	if ( Number.isFinite( attributes.inputRadius ) ) {
+		inlineVars[
+			'--s64ws-inline-input-radius'
+		] = `${ attributes.inputRadius }px`;
+		inlineClasses.push( 'has-inline-input-radius' );
+	}
+	if ( Number.isFinite( attributes.buttonRadius ) ) {
+		inlineVars[
+			'--s64ws-inline-button-radius'
+		] = `${ attributes.buttonRadius }px`;
+		inlineClasses.push( 'has-inline-button-radius' );
+	}
+	if (
+		Number.isFinite( attributes.inputPaddingY ) ||
+		Number.isFinite( attributes.inputPaddingX )
+	) {
+		inlineVars[ '--s64ws-inline-input-pad-y' ] = `${
+			Number.isFinite( attributes.inputPaddingY )
+				? attributes.inputPaddingY
+				: 13
+		}px`;
+		inlineVars[ '--s64ws-inline-input-pad-x' ] = `${
+			Number.isFinite( attributes.inputPaddingX )
+				? attributes.inputPaddingX
+				: 18
+		}px`;
+		inlineClasses.push( 'has-inline-input-padding' );
+	}
+	if (
+		Number.isFinite( attributes.buttonPaddingY ) ||
+		Number.isFinite( attributes.buttonPaddingX )
+	) {
+		inlineVars[ '--s64ws-inline-button-pad-y' ] = `${
+			Number.isFinite( attributes.buttonPaddingY )
+				? attributes.buttonPaddingY
+				: 13
+		}px`;
+		inlineVars[ '--s64ws-inline-button-pad-x' ] = `${
+			Number.isFinite( attributes.buttonPaddingX )
+				? attributes.buttonPaddingX
+				: 24
+		}px`;
+		inlineClasses.push( 'has-inline-button-padding' );
+	}
+	if ( Number.isFinite( attributes.fieldGap ) && ! attributes.joined ) {
+		inlineVars[ '--s64ws-inline-gap' ] = `${ attributes.fieldGap }px`;
+		inlineClasses.push( 'has-inline-gap' );
+	}
+	if ( attributes.joined ) {
+		inlineClasses.push( 'is-joined' );
+	}
+	const sharedPaddingY = Number.isFinite( attributes.inputPaddingY )
+		? attributes.inputPaddingY
+		: attributes.buttonPaddingY;
 	const blockProps = useBlockProps( {
-		className: `shift64-woo-search-control is-${ variant }`,
-		style: variant === 'modal' ? triggerVars : undefined,
+		className: `shift64-woo-search-control is-${ variant } ${
+			variant === 'modal' ? '' : inlineClasses.join( ' ' )
+		}`,
+		style: variant === 'modal' ? triggerVars : inlineVars,
 	} );
 
 	return (
@@ -111,6 +213,247 @@ function Edit( { attributes, context, setAttributes } ) {
 						</>
 					) }
 				</PanelBody>
+				{ variant !== 'modal' && (
+					<>
+						<PanelColorSettings
+							title={ __( 'Input colors', 'shift64-woo-search' ) }
+							colorSettings={ [
+								{
+									label: __( 'Text', 'shift64-woo-search' ),
+									value: attributes.inputTextColor,
+									onChange: ( inputTextColor ) =>
+										setAttributes( { inputTextColor } ),
+								},
+								{
+									label: __(
+										'Background',
+										'shift64-woo-search'
+									),
+									value: attributes.inputBackgroundColor,
+									onChange: ( inputBackgroundColor ) =>
+										setAttributes( {
+											inputBackgroundColor,
+										} ),
+								},
+							] }
+						>
+							<ContrastChecker
+								textColor={ attributes.inputTextColor }
+								backgroundColor={
+									attributes.inputBackgroundColor
+								}
+							/>
+						</PanelColorSettings>
+						<PanelColorSettings
+							title={ __(
+								'Button colors',
+								'shift64-woo-search'
+							) }
+							colorSettings={ [
+								{
+									label: __( 'Text', 'shift64-woo-search' ),
+									value: attributes.buttonTextColor,
+									onChange: ( buttonTextColor ) =>
+										setAttributes( { buttonTextColor } ),
+								},
+								{
+									label: __(
+										'Text (hover)',
+										'shift64-woo-search'
+									),
+									value: attributes.buttonTextHoverColor,
+									onChange: ( buttonTextHoverColor ) =>
+										setAttributes( {
+											buttonTextHoverColor,
+										} ),
+								},
+								{
+									label: __(
+										'Background',
+										'shift64-woo-search'
+									),
+									value: attributes.buttonBackgroundColor,
+									onChange: ( buttonBackgroundColor ) =>
+										setAttributes( {
+											buttonBackgroundColor,
+										} ),
+								},
+								{
+									label: __(
+										'Background (hover)',
+										'shift64-woo-search'
+									),
+									value: attributes.buttonBackgroundHoverColor,
+									onChange: ( buttonBackgroundHoverColor ) =>
+										setAttributes( {
+											buttonBackgroundHoverColor,
+										} ),
+								},
+							] }
+						>
+							<ContrastChecker
+								textColor={ attributes.buttonTextColor }
+								backgroundColor={
+									attributes.buttonBackgroundColor
+								}
+							/>
+							<ContrastChecker
+								textColor={ attributes.buttonTextHoverColor }
+								backgroundColor={
+									attributes.buttonBackgroundHoverColor
+								}
+							/>
+						</PanelColorSettings>
+						<PanelBody
+							title={ __( 'Shape', 'shift64-woo-search' ) }
+							initialOpen={ false }
+						>
+							<RangeControl
+								label={ __(
+									'Input radius',
+									'shift64-woo-search'
+								) }
+								value={ attributes.inputRadius }
+								onChange={ ( inputRadius ) =>
+									setAttributes( { inputRadius } )
+								}
+								min={ 0 }
+								max={ 50 }
+								allowReset
+							/>
+							<RangeControl
+								label={ __(
+									'Button radius',
+									'shift64-woo-search'
+								) }
+								value={ attributes.buttonRadius }
+								onChange={ ( buttonRadius ) =>
+									setAttributes( { buttonRadius } )
+								}
+								min={ 0 }
+								max={ 50 }
+								allowReset
+							/>
+							{ attributes.joined ? (
+								<RangeControl
+									label={ __(
+										'Vertical padding',
+										'shift64-woo-search'
+									) }
+									help={ __(
+										'Shared by the joined input and button.',
+										'shift64-woo-search'
+									) }
+									value={ sharedPaddingY }
+									onChange={ ( paddingY ) =>
+										setAttributes( {
+											inputPaddingY: paddingY,
+											buttonPaddingY: paddingY,
+										} )
+									}
+									min={ 0 }
+									max={ 40 }
+									allowReset
+								/>
+							) : (
+								<>
+									<RangeControl
+										label={ __(
+											'Input padding — vertical',
+											'shift64-woo-search'
+										) }
+										value={ attributes.inputPaddingY }
+										onChange={ ( inputPaddingY ) =>
+											setAttributes( { inputPaddingY } )
+										}
+										min={ 0 }
+										max={ 40 }
+										allowReset
+									/>
+									<RangeControl
+										label={ __(
+											'Button padding — vertical',
+											'shift64-woo-search'
+										) }
+										value={ attributes.buttonPaddingY }
+										onChange={ ( buttonPaddingY ) =>
+											setAttributes( { buttonPaddingY } )
+										}
+										min={ 0 }
+										max={ 40 }
+										allowReset
+									/>
+									<RangeControl
+										label={ __(
+											'Gap between input and button',
+											'shift64-woo-search'
+										) }
+										value={ attributes.fieldGap }
+										onChange={ ( fieldGap ) =>
+											setAttributes( { fieldGap } )
+										}
+										min={ 0 }
+										max={ 40 }
+										allowReset
+									/>
+								</>
+							) }
+							<RangeControl
+								label={ __(
+									'Input padding — horizontal',
+									'shift64-woo-search'
+								) }
+								value={ attributes.inputPaddingX }
+								onChange={ ( inputPaddingX ) =>
+									setAttributes( { inputPaddingX } )
+								}
+								min={ 0 }
+								max={ 60 }
+								allowReset
+							/>
+							<RangeControl
+								label={ __(
+									'Button padding — horizontal',
+									'shift64-woo-search'
+								) }
+								value={ attributes.buttonPaddingX }
+								onChange={ ( buttonPaddingX ) =>
+									setAttributes( { buttonPaddingX } )
+								}
+								min={ 0 }
+								max={ 60 }
+								allowReset
+							/>
+							<ToggleControl
+								label={ __(
+									'Join input and button',
+									'shift64-woo-search'
+								) }
+								help={ __(
+									'Fuse them into one bar with a shared edge.',
+									'shift64-woo-search'
+								) }
+								checked={ Boolean( attributes.joined ) }
+								onChange={ ( joined ) =>
+									setAttributes( {
+										joined,
+										// Joining shares one vertical padding;
+										// align both sides on the way in.
+										...( joined &&
+										Number.isFinite( sharedPaddingY )
+											? {
+													inputPaddingY:
+														sharedPaddingY,
+													buttonPaddingY:
+														sharedPaddingY,
+											  }
+											: {} ),
+									} )
+								}
+							/>
+						</PanelBody>
+					</>
+				) }
 				{ variant === 'modal' && (
 					<PanelColorSettings
 						title={ __( 'Trigger colors', 'shift64-woo-search' ) }
@@ -151,7 +494,20 @@ function Edit( { attributes, context, setAttributes } ) {
 									} ),
 							},
 						] }
-					/>
+					>
+						<ContrastChecker
+							textColor={ attributes.triggerIconColor }
+							backgroundColor={
+								attributes.triggerBackgroundColor
+							}
+						/>
+						<ContrastChecker
+							textColor={ attributes.triggerIconHoverColor }
+							backgroundColor={
+								attributes.triggerBackgroundHoverColor
+							}
+						/>
+					</PanelColorSettings>
 				) }
 			</InspectorControls>
 			<div { ...blockProps }>
@@ -192,11 +548,16 @@ function Edit( { attributes, context, setAttributes } ) {
 						<span className="screen-reader-text">{ label }</span>
 						<input
 							type="search"
+							className="shift64-woo-search-field__input"
 							aria-label={ label }
 							placeholder={ placeholder }
 							disabled
 						/>
-						<button type="button" disabled>
+						<button
+							type="button"
+							className="shift64-woo-search-field__submit wp-element-button"
+							disabled
+						>
 							{ submitLabel }
 						</button>
 					</div>

@@ -206,10 +206,17 @@ class Shift64_Woo_Search_Blocks {
 			'fallbackUrl'           => home_url( '/?s={query}&post_type=product' ),
 			'minQueryLength'        => max( 1, (int) get_option( 'shift64_woo_search_min_query', 2 ) ),
 			'debounce'              => max( 0, (int) get_option( 'shift64_woo_search_debounce', 150 ) ),
-			'limit'                 => max( 1, (int) get_option( 'shift64_woo_search_autocomplete_limit', 7 ) ),
-			'showSku'               => 'yes' === get_option( 'shift64_woo_search_show_sku', 'yes' ),
-			'showCategory'          => 'yes' === get_option( 'shift64_woo_search_show_category', 'yes' ),
-			'showBrand'             => 'yes' === get_option( 'shift64_woo_search_show_brand', 'yes' ),
+			// The panel block can narrow the global settings per instance: its
+			// counts replace the option, its show toggles AND with it (the
+			// global switch stays the site-wide kill switch).
+			'limit'                 => is_numeric( $panel_attributes['productsCount'] ?? null )
+				? max( 1, (int) $panel_attributes['productsCount'] )
+				: max( 1, (int) get_option( 'shift64_woo_search_autocomplete_limit', 7 ) ),
+			'categoriesCount'       => is_numeric( $panel_attributes['categoriesCount'] ?? null ) ? max( 0, (int) $panel_attributes['categoriesCount'] ) : -1,
+			'suggestionsCount'      => is_numeric( $panel_attributes['suggestionsCount'] ?? null ) ? max( 0, (int) $panel_attributes['suggestionsCount'] ) : -1,
+			'showSku'               => ( 'yes' === get_option( 'shift64_woo_search_show_sku', 'yes' ) ) && false !== ( $panel_attributes['showSku'] ?? true ),
+			'showCategory'          => ( 'yes' === get_option( 'shift64_woo_search_show_category', 'yes' ) ) && false !== ( $panel_attributes['showCategory'] ?? true ),
+			'showBrand'             => ( 'yes' === get_option( 'shift64_woo_search_show_brand', 'yes' ) ) && false !== ( $panel_attributes['showBrand'] ?? true ),
 			'suggestionsHeaderText' => __( 'SEARCH SUGGESTIONS', 'shift64-woo-search' ),
 			'categoriesHeaderText'  => __( 'CATEGORIES', 'shift64-woo-search' ),
 			'brandsHeaderText'      => __( 'BRANDS', 'shift64-woo-search' ),
@@ -270,8 +277,59 @@ class Shift64_Woo_Search_Blocks {
 				$style .= $var . ':' . $value . ';';
 			}
 		}
-		$extra   = array( 'class' => 'shift64-woo-search-control is-' . $variant );
-		if ( '' !== $style && 'modal' === $variant ) {
+		$classes = 'shift64-woo-search-control is-' . $variant;
+		if ( 'modal' !== $variant ) {
+			// Inline field: gated button colors plus optional corner radii and
+			// the joined input+button mode.
+			$style        = '';
+			$inline_pairs = array(
+				'--s64ws-inline-button-color'            => array( $attributes['buttonTextColor'] ?? '', 'has-inline-button-color' ),
+				'--s64ws-inline-button-hover-color'      => array( $attributes['buttonTextHoverColor'] ?? '', 'has-inline-button-hover-color' ),
+				'--s64ws-inline-button-background'       => array( $attributes['buttonBackgroundColor'] ?? '', 'has-inline-button-background' ),
+				'--s64ws-inline-button-hover-background' => array( $attributes['buttonBackgroundHoverColor'] ?? '', 'has-inline-button-hover-background' ),
+				'--s64ws-inline-input-color'             => array( $attributes['inputTextColor'] ?? '', 'has-inline-input-color' ),
+				'--s64ws-inline-input-background'        => array( $attributes['inputBackgroundColor'] ?? '', 'has-inline-input-background' ),
+			);
+			foreach ( $inline_pairs as $var => $pair ) {
+				if ( '' !== $pair[0] && is_string( $pair[0] ) ) {
+					$style   .= $var . ':' . $pair[0] . ';';
+					$classes .= ' ' . $pair[1];
+				}
+			}
+			if ( isset( $attributes['inputRadius'] ) && is_numeric( $attributes['inputRadius'] ) ) {
+				$style   .= '--s64ws-inline-input-radius:' . (int) $attributes['inputRadius'] . 'px;';
+				$classes .= ' has-inline-input-radius';
+			}
+			if ( isset( $attributes['buttonRadius'] ) && is_numeric( $attributes['buttonRadius'] ) ) {
+				$style   .= '--s64ws-inline-button-radius:' . (int) $attributes['buttonRadius'] . 'px;';
+				$classes .= ' has-inline-button-radius';
+			}
+			if ( isset( $attributes['inputPaddingY'] ) || isset( $attributes['inputPaddingX'] ) ) {
+				$pad_y = is_numeric( $attributes['inputPaddingY'] ?? null ) ? (int) $attributes['inputPaddingY'] : null;
+				$pad_x = is_numeric( $attributes['inputPaddingX'] ?? null ) ? (int) $attributes['inputPaddingX'] : null;
+				if ( null !== $pad_y || null !== $pad_x ) {
+					$style   .= '--s64ws-inline-input-pad-y:' . ( $pad_y ?? 13 ) . 'px;--s64ws-inline-input-pad-x:' . ( $pad_x ?? 18 ) . 'px;';
+					$classes .= ' has-inline-input-padding';
+				}
+			}
+			if ( isset( $attributes['buttonPaddingY'] ) || isset( $attributes['buttonPaddingX'] ) ) {
+				$pad_y = is_numeric( $attributes['buttonPaddingY'] ?? null ) ? (int) $attributes['buttonPaddingY'] : null;
+				$pad_x = is_numeric( $attributes['buttonPaddingX'] ?? null ) ? (int) $attributes['buttonPaddingX'] : null;
+				if ( null !== $pad_y || null !== $pad_x ) {
+					$style   .= '--s64ws-inline-button-pad-y:' . ( $pad_y ?? 13 ) . 'px;--s64ws-inline-button-pad-x:' . ( $pad_x ?? 24 ) . 'px;';
+					$classes .= ' has-inline-button-padding';
+				}
+			}
+			if ( is_numeric( $attributes['fieldGap'] ?? null ) && empty( $attributes['joined'] ) ) {
+				$style   .= '--s64ws-inline-gap:' . (int) $attributes['fieldGap'] . 'px;';
+				$classes .= ' has-inline-gap';
+			}
+			if ( ! empty( $attributes['joined'] ) ) {
+				$classes .= ' is-joined';
+			}
+		}
+		$extra = array( 'class' => $classes );
+		if ( '' !== $style ) {
 			$extra['style'] = $style;
 		}
 		$wrapper = get_block_wrapper_attributes( $extra );
@@ -306,8 +364,24 @@ class Shift64_Woo_Search_Blocks {
 		$listbox    = $this->render_results_shell( $runtime_id );
 		$status     = '<p class="screen-reader-text shift64-woo-search-status" role="status" aria-live="polite" aria-atomic="true" data-wp-text="context.statusMessage"></p>';
 
+		// "All results" footer link color — the legacy stylesheet already reads
+		// this var, a wrapper-level override cascades into the results shell.
+		$see_all_style = '';
+		if ( ! empty( $attributes['allResultsColor'] ) && is_string( $attributes['allResultsColor'] ) ) {
+			$see_all_style = '--s64ws-see-all-color:' . $attributes['allResultsColor'] . ';';
+		}
+		$max_width_class = '';
+		if ( is_numeric( $attributes['maxWidth'] ?? null ) && (int) $attributes['maxWidth'] > 0 ) {
+			$see_all_style  .= '--s64ws-panel-max-width:' . (int) $attributes['maxWidth'] . 'px;';
+			$max_width_class = ' has-panel-max-width';
+		}
+
 		if ( 'modal' !== $variant ) {
-			$wrapper = get_block_wrapper_attributes( array( 'class' => 'shift64-woo-search-panel is-inline' ) );
+			$inline_extra = array( 'class' => 'shift64-woo-search-panel is-inline' . $max_width_class );
+			if ( '' !== $see_all_style ) {
+				$inline_extra['style'] = $see_all_style;
+			}
+			$wrapper = get_block_wrapper_attributes( $inline_extra );
 			return '<div ' . $wrapper . '><button type="button" class="shift64-woo-search-results__overlay" aria-label="' . esc_attr__( 'Close suggestions', 'shift64-woo-search' ) . '" hidden data-wp-bind--hidden="!state.isExpanded" data-wp-on--click="actions.closePanel"></button>' . $listbox . $status . '</div>';
 		}
 
@@ -335,10 +409,10 @@ class Shift64_Woo_Search_Blocks {
 		}
 		$wrapper_extra = array(
 			'id'                            => $runtime_id . '-dialog',
-			'class'                         => 'shift64-woo-search-dialog' . $button_classes,
+			'class'                         => 'shift64-woo-search-dialog' . $button_classes . $max_width_class,
 		);
-		if ( '' !== $button_style ) {
-			$wrapper_extra['style'] = $button_style;
+		if ( '' !== $button_style . $see_all_style ) {
+			$wrapper_extra['style'] = $button_style . $see_all_style;
 		}
 		$wrapper      = get_block_wrapper_attributes(
 			array_merge(

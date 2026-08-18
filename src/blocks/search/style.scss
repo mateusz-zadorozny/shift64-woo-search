@@ -1,3 +1,9 @@
 .wp-block-shift64-woo-search-search {
 	position: relative;
+	// A local stacking context contains the dropdown's large internal
+	// z-indexes (--s64ws-dropdown-z and friends): inside the block they still
+	// win over anything, but against the rest of the page only this wrapper's
+	// z-index competes — well below the WP admin bar's 99999, per WP
+	// conventions (only true modals may cover the admin bar).
+	z-index: 100;
 }

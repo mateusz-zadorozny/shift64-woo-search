@@ -34,33 +34,41 @@ export function normalizeResponse( data, config, query ) {
 	};
 	const fallbackTemplate =
 		config.fallbackUrl || '/?s={query}&post_type=product';
+	// Per-block section caps: a non-negative count trims what the endpoint
+	// returned; -1 (or absent) keeps the server's own cap.
+	const capped = ( list, count ) =>
+		Number.isFinite( count ) && count >= 0 ? list.slice( 0, count ) : list;
 
 	addSection(
 		'suggestions',
 		config.suggestionsHeaderText,
-		( data.suggestions || [] ).map( ( suggestion ) => ( {
-			type: 'suggestion',
-			label: String( suggestion ),
-			url: safeUrl(
-				fallbackTemplate.replace(
-					'{query}',
-					encodeURIComponent( suggestion )
+		capped( data.suggestions || [], config.suggestionsCount ).map(
+			( suggestion ) => ( {
+				type: 'suggestion',
+				label: String( suggestion ),
+				url: safeUrl(
+					fallbackTemplate.replace(
+						'{query}',
+						encodeURIComponent( suggestion )
+					),
+					config.searchUrl,
+					{ sameOrigin: true }
 				),
-				config.searchUrl,
-				{ sameOrigin: true }
-			),
-		} ) )
+			} )
+		)
 	);
 	addSection(
 		'categories',
 		config.categoriesHeaderText,
-		( data.categories || [] ).map( ( category ) => ( {
-			type: 'category',
-			label: String( category.name || '' ),
-			url: safeUrl( category.url, config.searchUrl, {
-				sameOrigin: true,
-			} ),
-		} ) )
+		capped( data.categories || [], config.categoriesCount ).map(
+			( category ) => ( {
+				type: 'category',
+				label: String( category.name || '' ),
+				url: safeUrl( category.url, config.searchUrl, {
+					sameOrigin: true,
+				} ),
+			} )
+		)
 	);
 	addSection(
 		'brands',

@@ -28,14 +28,33 @@
     "triggerIconColor": { "type": "string" },
     "triggerIconHoverColor": { "type": "string" },
     "triggerBackgroundColor": { "type": "string" },
-    "triggerBackgroundHoverColor": { "type": "string" }
+    "triggerBackgroundHoverColor": { "type": "string" },
+    "buttonTextColor": { "type": "string" },
+    "buttonTextHoverColor": { "type": "string" },
+    "buttonBackgroundColor": { "type": "string" },
+    "buttonBackgroundHoverColor": { "type": "string" },
+    "inputTextColor": { "type": "string" },
+    "inputBackgroundColor": { "type": "string" },
+    "inputRadius": { "type": "number" },
+    "buttonRadius": { "type": "number" },
+    "inputPaddingX": { "type": "number" },
+    "inputPaddingY": { "type": "number" },
+    "buttonPaddingX": { "type": "number" },
+    "buttonPaddingY": { "type": "number" },
+    "fieldGap": { "type": "number" },
+    "joined": { "type": "boolean", "default": false }
   },
   "supports": {
     "border": { "color": true, "radius": true, "style": true, "width": true },
     "html": false,
     "inserter": false,
     "spacing": { "margin": true, "padding": true },
-    "typography": { "fontSize": true, "fontWeight": true, "lineHeight": true }
+    "typography": {
+      "fontSize": true,
+      "lineHeight": true,
+      "__experimentalFontWeight": true,
+      "__experimentalFontStyle": true
+    }
   },
   "editorScript": "file:./index.js",
   "style": "file:./style-index.css"

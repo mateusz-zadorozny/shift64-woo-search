@@ -55,6 +55,33 @@
     },
     "buttonBackgroundHoverColor": {
       "type": "string"
+    },
+    "allResultsColor": {
+      "type": "string"
+    },
+    "productsCount": {
+      "type": "number"
+    },
+    "categoriesCount": {
+      "type": "number"
+    },
+    "suggestionsCount": {
+      "type": "number"
+    },
+    "showSku": {
+      "type": "boolean",
+      "default": true
+    },
+    "showCategory": {
+      "type": "boolean",
+      "default": true
+    },
+    "showBrand": {
+      "type": "boolean",
+      "default": true
+    },
+    "maxWidth": {
+      "type": "number"
     }
   },
   "supports": {
@@ -64,11 +91,6 @@
       "style": true,
       "width": true
     },
-    "color": {
-      "background": true,
-      "gradients": true,
-      "text": true
-    },
     "html": false,
     "inserter": false,
     "spacing": {
@@ -77,8 +99,9 @@
     },
     "typography": {
       "fontSize": true,
-      "fontWeight": true,
-      "lineHeight": true
+      "lineHeight": true,
+      "__experimentalFontWeight": true,
+      "__experimentalFontStyle": true
     }
   },
   "editorScript": "file:./index.js",

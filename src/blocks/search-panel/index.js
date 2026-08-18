@@ -1,9 +1,15 @@
 import {
+	ContrastChecker,
 	InspectorControls,
 	PanelColorSettings,
 	useBlockProps,
 } from '@wordpress/block-editor';
-import { PanelBody, TextControl } from '@wordpress/components';
+import {
+	PanelBody,
+	RangeControl,
+	TextControl,
+	ToggleControl,
+} from '@wordpress/components';
 import { registerBlockType } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
 import metadata from './block.json';
@@ -45,6 +51,12 @@ function ResultsPreview() {
 						</div>
 					</div>
 				</div>
+			</div>
+			<div
+				className="shift64-woo-search-results__all"
+				role="presentation"
+			>
+				{ __( 'See all results', 'shift64-woo-search' ) }
 			</div>
 		</div>
 	);
@@ -142,11 +154,20 @@ function Edit( { attributes, context, isSelected, setAttributes } ) {
 			buttonClasses.push( className );
 		}
 	} );
+	const panelVars = variant === 'modal' ? { ...buttonVars } : {};
+	if ( attributes.allResultsColor ) {
+		panelVars[ '--s64ws-see-all-color' ] = attributes.allResultsColor;
+	}
+	const panelClasses = [ ...buttonClasses ];
+	if ( Number.isFinite( attributes.maxWidth ) && attributes.maxWidth > 0 ) {
+		panelVars[ '--s64ws-panel-max-width' ] = `${ attributes.maxWidth }px`;
+		panelClasses.push( 'has-panel-max-width' );
+	}
 	const blockProps = useBlockProps( {
 		className: `shift64-woo-search-panel is-${ variant } ${
 			previewOpen ? 'is-preview-open' : 'is-preview-closed'
-		} ${ buttonClasses.join( ' ' ) }`,
-		style: variant === 'modal' ? buttonVars : undefined,
+		} ${ panelClasses.join( ' ' ) }`,
+		style: panelVars,
 	} );
 
 	return (
@@ -203,6 +224,102 @@ function Edit( { attributes, context, isSelected, setAttributes } ) {
 						}
 					/>
 				</PanelBody>
+				<PanelBody
+					title={ __( 'Quick search results', 'shift64-woo-search' ) }
+					initialOpen={ false }
+				>
+					<RangeControl
+						label={ __( 'Products', 'shift64-woo-search' ) }
+						help={ __(
+							'Unset falls back to the plugin settings.',
+							'shift64-woo-search'
+						) }
+						value={ attributes.productsCount }
+						onChange={ ( productsCount ) =>
+							setAttributes( { productsCount } )
+						}
+						min={ 1 }
+						max={ 20 }
+						allowReset
+					/>
+					<RangeControl
+						label={ __( 'Categories', 'shift64-woo-search' ) }
+						help={ __(
+							'0 hides the section; unset keeps the default.',
+							'shift64-woo-search'
+						) }
+						value={ attributes.categoriesCount }
+						onChange={ ( categoriesCount ) =>
+							setAttributes( { categoriesCount } )
+						}
+						min={ 0 }
+						max={ 10 }
+						allowReset
+					/>
+					<RangeControl
+						label={ __( 'Suggestions', 'shift64-woo-search' ) }
+						help={ __(
+							'0 hides the section; unset keeps the default.',
+							'shift64-woo-search'
+						) }
+						value={ attributes.suggestionsCount }
+						onChange={ ( suggestionsCount ) =>
+							setAttributes( { suggestionsCount } )
+						}
+						min={ 0 }
+						max={ 10 }
+						allowReset
+					/>
+					<ToggleControl
+						label={ __(
+							'Show SKU on products',
+							'shift64-woo-search'
+						) }
+						checked={ attributes.showSku !== false }
+						onChange={ ( showSku ) => setAttributes( { showSku } ) }
+					/>
+					<ToggleControl
+						label={ __(
+							'Show category on products',
+							'shift64-woo-search'
+						) }
+						checked={ attributes.showCategory !== false }
+						onChange={ ( showCategory ) =>
+							setAttributes( { showCategory } )
+						}
+					/>
+					<ToggleControl
+						label={ __(
+							'Show brand on products',
+							'shift64-woo-search'
+						) }
+						checked={ attributes.showBrand !== false }
+						onChange={ ( showBrand ) =>
+							setAttributes( { showBrand } )
+						}
+					/>
+					<RangeControl
+						label={ __( 'Max width (px)', 'shift64-woo-search' ) }
+						value={ attributes.maxWidth }
+						onChange={ ( maxWidth ) =>
+							setAttributes( { maxWidth } )
+						}
+						min={ 200 }
+						max={ 1200 }
+						allowReset
+					/>
+				</PanelBody>
+				<PanelColorSettings
+					title={ __( 'Colors', 'shift64-woo-search' ) }
+					colorSettings={ [
+						{
+							label: __( 'All results', 'shift64-woo-search' ),
+							value: attributes.allResultsColor,
+							onChange: ( allResultsColor ) =>
+								setAttributes( { allResultsColor } ),
+						},
+					] }
+				/>
 				{ variant === 'modal' && (
 					<PanelColorSettings
 						title={ __( 'Button colors', 'shift64-woo-search' ) }
@@ -240,7 +357,18 @@ function Edit( { attributes, context, isSelected, setAttributes } ) {
 									} ),
 							},
 						] }
-					/>
+					>
+						<ContrastChecker
+							textColor={ attributes.buttonTextColor }
+							backgroundColor={ attributes.buttonBackgroundColor }
+						/>
+						<ContrastChecker
+							textColor={ attributes.buttonTextHoverColor }
+							backgroundColor={
+								attributes.buttonBackgroundHoverColor
+							}
+						/>
+					</PanelColorSettings>
 				) }
 			</InspectorControls>
 			<div { ...blockProps }>

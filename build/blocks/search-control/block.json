@@ -53,6 +53,49 @@
     },
     "triggerBackgroundHoverColor": {
       "type": "string"
+    },
+    "buttonTextColor": {
+      "type": "string"
+    },
+    "buttonTextHoverColor": {
+      "type": "string"
+    },
+    "buttonBackgroundColor": {
+      "type": "string"
+    },
+    "buttonBackgroundHoverColor": {
+      "type": "string"
+    },
+    "inputTextColor": {
+      "type": "string"
+    },
+    "inputBackgroundColor": {
+      "type": "string"
+    },
+    "inputRadius": {
+      "type": "number"
+    },
+    "buttonRadius": {
+      "type": "number"
+    },
+    "inputPaddingX": {
+      "type": "number"
+    },
+    "inputPaddingY": {
+      "type": "number"
+    },
+    "buttonPaddingX": {
+      "type": "number"
+    },
+    "buttonPaddingY": {
+      "type": "number"
+    },
+    "fieldGap": {
+      "type": "number"
+    },
+    "joined": {
+      "type": "boolean",
+      "default": false
     }
   },
   "supports": {
@@ -70,8 +113,9 @@
     },
     "typography": {
       "fontSize": true,
-      "fontWeight": true,
-      "lineHeight": true
+      "lineHeight": true,
+      "__experimentalFontWeight": true,
+      "__experimentalFontStyle": true
     }
   },
   "editorScript": "file:./index.js",

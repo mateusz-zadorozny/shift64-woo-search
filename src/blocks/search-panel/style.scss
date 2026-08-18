@@ -1,6 +1,14 @@
 .wp-block-shift64-woo-search-search-panel {
 	box-sizing: border-box;
 
+	// Optional cap from the block's "Max width" control; the tray stays
+	// anchored to the search field's left edge instead of drifting to the
+	// center of the span it would otherwise fill.
+	&.has-panel-max-width .shift64-woo-search-results {
+		margin-inline: 0 auto;
+		max-width: var(--s64ws-panel-max-width);
+	}
+
 	// Submit button colors from the block's "Button colors" panel. Gated by
 	// has-* classes: with nothing set, the theme's wp-element-button styling
 	// stays untouched.
