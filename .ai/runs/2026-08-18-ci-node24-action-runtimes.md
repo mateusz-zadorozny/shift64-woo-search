@@ -63,15 +63,17 @@ No PHP or JavaScript source changes, so the unit-test rule does not apply — th
 
 ## Progress
 
+PR: #65
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Bump the deprecated action pins
 
-- [ ] 1.1 Bump upload-artifact in release.yml
-- [ ] 1.2 Bump checkout and upload-artifact in test-env.yml
-- [ ] 1.3 Bump action-semantic-pull-request in pr-lint.yml
+- [x] 1.1 Bump upload-artifact in release.yml — 271a0a8
+- [x] 1.2 Bump checkout and upload-artifact in test-env.yml — 271a0a8
+- [x] 1.3 Bump action-semantic-pull-request in pr-lint.yml — 271a0a8
 
 ### Phase 2: Verify
 
-- [ ] 2.1 Re-scan workflow action runtimes for node20
-- [ ] 2.2 Run the full validation gate
+- [x] 2.1 Re-scan workflow action runtimes for node20 — 271a0a8
+- [x] 2.2 Run the full validation gate — 271a0a8
