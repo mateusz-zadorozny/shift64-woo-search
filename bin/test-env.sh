@@ -32,8 +32,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 WORKTREE_HASH="$(printf '%s' "$REPO_ROOT" | sha1sum | cut -c1-8)"
 RUN_ID="s64-$(basename "$REPO_ROOT" | tr -cd 'a-zA-Z0-9-' | cut -c1-24)-${WORKTREE_HASH}"
-TMP_ROOT="${TMPDIR:-/tmp}"
-RUN_DIR="${TMP_ROOT%/}/shift64-test-env/${RUN_ID}"
+# The run directory holds the WordPress docroot, the MySQL datadir and
+# wordpress-tests-lib for the entire life of the environment, so it must NOT
+# live under $TMPDIR. Agent harnesses (cezar, for one) point $TMPDIR at a
+# per-task scratch directory that they recycle while the environment is still
+# running: `wp server` and `mysqld` survive, their filesystem does not, and
+# every page then answers HTTP 200 carrying a PHP fatal from the wp-cli router
+# ("chdir(): No such file or directory"). Anchor to a stable per-user cache
+# directory instead; TEST_ENV_RUN_ROOT relocates it for anyone who needs to.
+RUN_ROOT="${TEST_ENV_RUN_ROOT:-${XDG_CACHE_HOME:-$HOME/.cache}/shift64-test-env}"
+RUN_DIR="${RUN_ROOT%/}/${RUN_ID}"
 QA_DIR="$REPO_ROOT/.ai/qa"
 LOG_DIR="$QA_DIR/logs"
 DESCRIPTOR="$QA_DIR/test-env.json"
@@ -45,9 +53,10 @@ MYSQL_DIR="$RUN_DIR/mysql"
 REDIS_DIR="$RUN_DIR/redis"
 WP_TESTS_DIR_RUN="$RUN_DIR/wordpress-tests-lib"
 WP_CORE_DIR_RUN="$RUN_DIR/wordpress-develop"
-# UNIX socket paths are capped at ~103 chars on macOS; $RUN_DIR under a
-# macOS $TMPDIR (/var/folders/…) can exceed that on its own, so the socket
-# lives in /tmp keyed by the worktree hash instead of inside $MYSQL_DIR.
+# UNIX socket paths are capped at ~103 chars on macOS; a deep $RUN_ROOT can
+# exceed that on its own, so the socket lives in /tmp keyed by the worktree
+# hash instead of inside $MYSQL_DIR. /tmp is fine here: the socket is
+# recreated on every start, so losing it to a tmp sweep costs nothing.
 MYSQL_SOCK="/tmp/s64-mysql-${WORKTREE_HASH}.sock"
 
 DB_USER="wp"
@@ -85,29 +94,56 @@ die()  { printf 'FATAL: %s\n' "$1" >&2; exit "${2:-1}"; }
 
 # Pick a PHP >= 8.3 with mysqli for wp-cli and the served site. The gate's
 # own commands keep using the repo default `php`.
+# Every PHP binary on the box, one absolute path per line, in PATH order and
+# then the common package-manager prefixes. Enumerating by DIRECTORY rather
+# than by command name is the whole point: `command -v php` returns exactly one
+# hit, and on macOS that hit is routinely Local by Flywheel's phpredis-less
+# build shadowing a Homebrew php that does carry the extension. A name-only
+# search can never see past the first match, so the "prefer a PHP with
+# phpredis" pass below would be structurally blind.
+# Read with `while IFS= read -r`, never `for x in $(...)`: PATH entries here
+# contain spaces (".../Application Support/Local/lightning-services/...").
+php_candidates() {
+	local name
+	{
+		printf '%s\n' "${PATH:-}" | tr ':' '\n'
+		printf '%s\n' /opt/homebrew/bin /usr/local/bin /opt/local/bin /usr/bin
+	} | while IFS= read -r dir; do
+		[ -n "$dir" ] && [ -d "$dir" ] || continue
+		for name in php php8.5 php8.4 php8.3; do
+			[ -x "$dir/$name" ] && printf '%s\n' "$dir/$name"
+		done
+	done | awk '!seen[$0]++'
+}
+
+# Prints the first candidate for which <php-snippet> exits 0; empty when none.
+php_pick() { # php_pick <php-snippet>
+	local candidate
+	while IFS= read -r candidate; do
+		[ -n "$candidate" ] || continue
+		if "$candidate" -r "$1" 2>/dev/null; then
+			printf '%s' "$candidate"
+			return 0
+		fi
+	done <<<"$(php_candidates)"
+	return 1
+}
+
 select_php() {
 	if [ -n "${TEST_ENV_PHP:-}" ]; then
 		PHP_BIN="$TEST_ENV_PHP"
 		return
 	fi
-	local candidate
+	local picked=""
 	# First pass: prefer a PHP that already carries phpredis — it saves the
 	# automatic pecl install entirely.
-	for candidate in php php8.5 php8.4 php8.3; do
-		command -v "$candidate" >/dev/null 2>&1 || continue
-		if "$candidate" -r 'exit(PHP_VERSION_ID >= 80300 && extension_loaded("mysqli") && extension_loaded("redis") ? 0 : 1);' 2>/dev/null; then
-			PHP_BIN="$(command -v "$candidate")"
-			return
-		fi
-	done
-	for candidate in php php8.5 php8.4 php8.3; do
-		command -v "$candidate" >/dev/null 2>&1 || continue
-		if "$candidate" -r 'exit(PHP_VERSION_ID >= 80300 && extension_loaded("mysqli") ? 0 : 1);' 2>/dev/null; then
-			PHP_BIN="$(command -v "$candidate")"
-			return
-		fi
-	done
-	PHP_BIN=""
+	picked="$(php_pick 'exit(PHP_VERSION_ID >= 80300 && extension_loaded("mysqli") && extension_loaded("redis") ? 0 : 1);' || true)"
+	if [ -n "$picked" ]; then
+		PHP_BIN="$picked"
+		return
+	fi
+	picked="$(php_pick 'exit(PHP_VERSION_ID >= 80300 && extension_loaded("mysqli") ? 0 : 1);' || true)"
+	PHP_BIN="$picked"
 }
 
 # pecl may enable the extension in php.ini a beat after install; if both its
@@ -884,6 +920,24 @@ stop_owned() { # stop_owned <wipe-datadir: 0|1>
 			pid_matches "$MYSQL_PID" "$MYSQL_DIR" || break
 			sleep 1
 		done
+		# The graceful path is never trusted on its own: mysqladmin can connect
+		# and report success while the server never actually exits — seen when
+		# the datadir was deleted out from under a running mysqld, which left an
+		# orphan holding the port until it was killed by hand. Escalate through
+		# the signals, and say so loudly if even SIGKILL does not take.
+		if pid_matches "$MYSQL_PID" "$MYSQL_DIR"; then
+			kill "$MYSQL_PID" 2>/dev/null || true
+			for i in $(seq 1 5); do
+				pid_matches "$MYSQL_PID" "$MYSQL_DIR" || break
+				sleep 1
+			done
+			if pid_matches "$MYSQL_PID" "$MYSQL_DIR"; then
+				kill -9 "$MYSQL_PID" 2>/dev/null || true
+				sleep 1
+			fi
+			pid_matches "$MYSQL_PID" "$MYSQL_DIR" \
+				&& warn "mysqld pid $MYSQL_PID survived SIGKILL — stop it manually" || true
+		fi
 	fi
 	if [ "$wipe" = "1" ]; then
 		rm -rf "$RUN_DIR"

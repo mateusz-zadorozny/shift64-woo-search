@@ -140,9 +140,26 @@ their stderr in the run log named by the failure.
 
 | Variable | Effect |
 | --- | --- |
-| `TEST_ENV_PHP` | Absolute path of the PHP binary to use (default: newest `php`/`php8.x` ≥ 8.3 with `mysqli`) |
+| `TEST_ENV_PHP` | Absolute path of the PHP binary to use (default: every `php`/`php8.x` on `PATH` and in the usual prefixes is probed, preferring one that already has `mysqli` **and** `phpredis`) |
 | `TEST_ENV_SHARED_REDIS` | `host:port` of the shared-Redis fallback (default `127.0.0.1:6379`) |
-| `TMPDIR` | Root for the run directory (default `/tmp`); the wp-cli shim lives worktree-side because tmp roots are often `noexec` |
+| `TEST_ENV_RUN_ROOT` | Root for the run directory (default `${XDG_CACHE_HOME:-$HOME/.cache}/shift64-test-env`) |
+
+**The run directory deliberately ignores `$TMPDIR`.** It holds the WordPress
+docroot, the MySQL datadir and `wordpress-tests-lib` for the whole life of the
+environment, and agent harnesses (cezar) point `$TMPDIR` at a per-task scratch
+directory they recycle *while the environment is still running*. When that
+happened, `wp server` and `mysqld` stayed up on top of a deleted docroot and
+every page answered **HTTP 200 carrying a PHP fatal** (`chdir(): No such file
+or directory` from the wp-cli router) — an environment that looks healthy to a
+status-code check and is entirely dead. Anchoring to a stable per-user cache
+directory removes that failure mode; use `TEST_ENV_RUN_ROOT` to relocate it.
+The wp-cli shim still lives worktree-side, because tmp roots are often `noexec`.
+
+PHP discovery enumerates candidates **by directory**, not by command name: on
+macOS, Local by Flywheel's phpredis-less `php` commonly shadows a Homebrew
+`php` that has the extension, and `command -v php` only ever returns the first
+of them — so a name-only search would silently pick the build that cannot talk
+to Redis, and then fail on `pecl install redis`.
 
 Managed servers that periodically strip exec bits under the web root (this
 repo's dev server does) are handled: invoke the launcher as
