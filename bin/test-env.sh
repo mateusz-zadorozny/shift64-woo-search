@@ -117,11 +117,16 @@ php_candidates() {
 }
 
 # Prints the first candidate for which <php-snippet> exits 0; empty when none.
+# The probe speaks through its exit status only, so BOTH its streams are
+# discarded — same reason free_port() forces display_errors=stderr: PHP prints
+# startup warnings ("Module redis is already loaded", which this script's own
+# pecl install can provoke) to STDOUT, and this function's stdout is captured
+# by select_php(). A single stray warning would otherwise land inside $PHP_BIN.
 php_pick() { # php_pick <php-snippet>
 	local candidate
 	while IFS= read -r candidate; do
 		[ -n "$candidate" ] || continue
-		if "$candidate" -r "$1" 2>/dev/null; then
+		if "$candidate" -d display_errors=stderr -r "$1" >/dev/null 2>&1; then
 			printf '%s' "$candidate"
 			return 0
 		fi
@@ -1308,6 +1313,14 @@ usage() {
 	sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
 	exit 1
 }
+
+# Sourcing the script loads the variables and helpers without dispatching, so
+# tests/env/test-env-discovery.sh can exercise the pure logic (PHP discovery,
+# path derivation) without provisioning anything. Executing it behaves exactly
+# as before.
+if [ "${BASH_SOURCE[0]}" != "$0" ]; then
+	return 0
+fi
 
 [ $# -ge 1 ] || usage
 COMMAND="$1"; shift

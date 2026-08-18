@@ -155,6 +155,17 @@ status-code check and is entirely dead. Anchoring to a stable per-user cache
 directory removes that failure mode; use `TEST_ENV_RUN_ROOT` to relocate it.
 The wp-cli shim still lives worktree-side, because tmp roots are often `noexec`.
 
+**The flip side is that nothing reaps the run root for you any more.** Each
+worktree gets its own `$RUN_ROOT/<runId>/` holding a WordPress core checkout,
+`wordpress-develop`, `wordpress-tests-lib` and a MySQL datadir — hundreds of MB
+— and `down` only removes the *current* worktree's directory. A worktree that
+is deleted without a `down` first leaves its run directory behind for good.
+Reclaim the space with `rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/shift64-test-env"`
+once no environment is running (`bin/test-env.sh status` in each worktree, or
+just after a reboot). Upgrading from a pre-`TEST_ENV_RUN_ROOT` checkout: run
+`bin/test-env.sh down` **before** updating, or the old `$TMPDIR`-anchored
+environment is orphaned — the new code cannot see it to stop it.
+
 PHP discovery enumerates candidates **by directory**, not by command name: on
 macOS, Local by Flywheel's phpredis-less `php` commonly shadows a Homebrew
 `php` that has the extension, and `command -v php` only ever returns the first
@@ -173,3 +184,11 @@ supervisor repair `vendor/bin/*` exec bits before relying on them.
 It is deliberately not part of the per-PR gate, and the launcher test — like
 Playwright — must never be added to `.ai/agentic.config.json`
 `validation.commands`.
+
+`tests/env/test-env-discovery.sh` is the cheap half: it sources `test-env.sh`
+(sourcing loads the helpers without dispatching a command) and asserts the pure
+logic — PHP discovery returns a bare executable path even when the candidate
+binary is noisy on stdout, and `RUN_DIR` is anchored to `TEST_ENV_RUN_ROOT` /
+`$XDG_CACHE_HOME` and never to `$TMPDIR`. It provisions nothing, needs no PHP
+(the candidates are stubs) and runs in seconds, so it *is* part of the per-PR
+`Tests (PHP 8.3)` job.
