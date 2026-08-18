@@ -393,7 +393,7 @@ class Shift64_Woo_Search_Blocks {
 		$submit_label = isset( $attributes['submitLabel'] ) ? $attributes['submitLabel'] : __( 'Search', 'shift64-woo-search' );
 		// Button colors are gated behind has-* classes so an unset color keeps
 		// the theme's wp-element-button styling untouched.
-		$button_vars = array(
+		$button_vars    = array(
 			'--s64ws-panel-button-color'            => array( $attributes['buttonTextColor'] ?? '', 'has-panel-button-color' ),
 			'--s64ws-panel-button-hover-color'      => array( $attributes['buttonTextHoverColor'] ?? '', 'has-panel-button-hover-color' ),
 			'--s64ws-panel-button-background'       => array( $attributes['buttonBackgroundColor'] ?? '', 'has-panel-button-background' ),
@@ -407,14 +407,14 @@ class Shift64_Woo_Search_Blocks {
 				$button_classes .= ' ' . $pair[1];
 			}
 		}
-		$wrapper_extra = array(
-			'id'                            => $runtime_id . '-dialog',
-			'class'                         => 'shift64-woo-search-dialog' . $button_classes . $max_width_class,
+		$wrapper_extra  = array(
+			'id'    => $runtime_id . '-dialog',
+			'class' => 'shift64-woo-search-dialog' . $button_classes . $max_width_class,
 		);
 		if ( '' !== $button_style . $see_all_style ) {
 			$wrapper_extra['style'] = $button_style . $see_all_style;
 		}
-		$wrapper      = get_block_wrapper_attributes(
+		$wrapper = get_block_wrapper_attributes(
 			array_merge(
 				$wrapper_extra,
 				array(
