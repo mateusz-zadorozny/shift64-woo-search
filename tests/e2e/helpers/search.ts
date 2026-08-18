@@ -77,9 +77,8 @@ export function modalTrigger(page: Page): Locator {
 }
 
 /**
- * The modal paired with the block's trigger. Modals are portaled to
- * document.body on init, so the pairing comes from the trigger's
- * aria-controls id — never from DOM nesting.
+ * The native dialog paired with the block's trigger. Pair through the
+ * trigger's aria-controls id so this stays independent of DOM placement.
  */
 export async function blockModal(page: Page): Promise<Locator> {
 	const controls = await modalTrigger(page).getAttribute('aria-controls');

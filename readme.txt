@@ -26,7 +26,8 @@ Features include:
 * A settings screen organised into six workspaces, from connection and indexing through relevance tuning and diagnostics.
 * Search statistics and diagnostic tools, including an opt-in storefront debug panel — visible only to users who can manage WooCommerce, never to shoppers — that breaks a query down into request-phase and browser timings.
 * WP-CLI commands for setup, indexing, tests, and health checks.
-* Shift64 Product Search and Shift64 Modal Product Search blocks on WordPress 7.0+.
+* Composable Shift64 Product Search and Modal Product Search blocks with independently styleable Control and Panel children.
+* Progressive native search forms plus accessible autocomplete and native dialog behavior through the WordPress Interactivity API.
 * A `[shift64_woo_search]` product search form shortcode for classic themes.
 * A `[shift64_woo_search_modal]` compact modal search shortcode for classic themes.
 

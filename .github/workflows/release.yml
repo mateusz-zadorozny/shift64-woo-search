@@ -265,6 +265,13 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Validate block sources and generated assets
+        run: |
+          npm run lint:blocks
+          npm run test:blocks
+          npm run build:blocks
+          git diff --exit-code -- build/
+
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 

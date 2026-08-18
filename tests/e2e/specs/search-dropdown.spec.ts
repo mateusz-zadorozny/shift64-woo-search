@@ -20,6 +20,62 @@ test.describe('search dropdown', () => {
 		await typeQuery(page, 'athena');
 
 		await expect(visibleTray(page)).toBeVisible();
+		const overlay = page.locator(
+			'.wp-block-shift64-woo-search-search-panel.is-inline .shift64-woo-search-results__overlay:not([hidden])'
+		);
+		await expect(overlay).toBeVisible();
+		const overlayAppearance = await overlay.evaluate((element) => {
+			const style = getComputedStyle(element);
+			return {
+				backgroundColor: style.backgroundColor,
+				backgroundImage: style.backgroundImage,
+				borderTopWidth: style.borderTopWidth,
+				boxShadow: style.boxShadow,
+			};
+		});
+		expect(overlayAppearance).toEqual({
+			backgroundColor: 'rgba(0, 0, 0, 0)',
+			backgroundImage: 'none',
+			borderTopWidth: '0px',
+			boxShadow: 'none',
+		});
+		const stacking = await page.evaluate(() => {
+			const tray = document.querySelector<HTMLElement>(
+				'.shift64-woo-search-results--visible'
+			);
+			const modalControl = document.querySelector<HTMLElement>(
+				'.wp-block-shift64-woo-search-search-control.is-modal'
+			);
+			const modalTrigger = modalControl?.querySelector<HTMLElement>(
+				'.shift64-woo-search-modal__trigger'
+			);
+			if (!tray || !modalControl || !modalTrigger) {
+				return null;
+			}
+
+			const trayBox = tray.getBoundingClientRect();
+			const triggerBox = modalTrigger.getBoundingClientRect();
+			const overlap =
+				triggerBox.left < trayBox.right &&
+				triggerBox.right > trayBox.left &&
+				triggerBox.top < trayBox.bottom &&
+				triggerBox.bottom > trayBox.top;
+			const topmost = document.elementFromPoint(
+				triggerBox.left + triggerBox.width / 2,
+				triggerBox.top + triggerBox.height / 2
+			);
+
+			return {
+				modalControlZIndex: getComputedStyle(modalControl).zIndex,
+				overlap,
+				trayOwnsOverlap: !overlap || Boolean(topmost && tray.contains(topmost)),
+			};
+		});
+		expect(stacking).toEqual({
+			modalControlZIndex: 'auto',
+			overlap: true,
+			trayOwnsOverlap: true,
+		});
 		const products = traySection(page, 'products');
 		await expect(products).toBeVisible();
 		await expect(products.locator(SEL.sectionHeader)).toHaveText('PRODUCTS');

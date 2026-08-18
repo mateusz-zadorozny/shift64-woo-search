@@ -37,6 +37,7 @@ rsync -a \
 	--exclude='.editorconfig' \
 	--exclude='.distignore' \
   --exclude='node_modules' \
+	--exclude='src' \
   --exclude='vendor' \
   --exclude='.releaserc.json' \
   --exclude='.gitignore' \

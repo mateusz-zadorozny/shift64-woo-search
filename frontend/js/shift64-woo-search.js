@@ -20,11 +20,13 @@
     function init() {
         var modals = document.querySelectorAll('[data-shift64-woo-search-modal]');
         modals.forEach(function (modal) {
+            if (modal.closest('[data-shift64-search-root]')) return;
             modalSearches.push(new Shift64WooSearchModal(modal));
         });
 
         var inputs = document.querySelectorAll(config.selectors);
         inputs.forEach(function (input) {
+            if (input.closest('[data-shift64-search-root]')) return;
             instances.push(new Shift64WooSearch(input));
         });
     }

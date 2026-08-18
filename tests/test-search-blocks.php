@@ -11,13 +11,15 @@
 class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 
 	/**
-	 * Both blocks are registered while both classic-theme shortcodes remain.
+	 * Parent and child blocks are registered while classic-theme shortcodes remain.
 	 */
 	public function test_blocks_and_shortcodes_are_registered() {
 		$registry = WP_Block_Type_Registry::get_instance();
 
 		$this->assertTrue( $registry->is_registered( 'shift64-woo-search/search' ) );
 		$this->assertTrue( $registry->is_registered( 'shift64-woo-search/modal-search' ) );
+		$this->assertTrue( $registry->is_registered( 'shift64-woo-search/search-control' ) );
+		$this->assertTrue( $registry->is_registered( 'shift64-woo-search/search-panel' ) );
 		$this->assertTrue( shortcode_exists( 'shift64_woo_search' ) );
 		$this->assertTrue( shortcode_exists( 'shift64_woo_search_modal' ) );
 	}
@@ -179,132 +181,113 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * WordPress 7 automatically exposes these server-rendered blocks to the editor.
+	 * All composable blocks use API v3 metadata and the public parent names stay stable.
 	 */
-	public function test_auto_register_support_matches_wordpress_capability() {
-		global $wp_version;
+	public function test_blocks_use_api_v3_metadata() {
+		$registry = WP_Block_Type_Registry::get_instance();
 
-		$block = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/search' );
-		$modal = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
-
-		if ( version_compare( $wp_version, '7.0', '>=' ) ) {
-			$this->assertTrue( $block->supports['autoRegister'] );
-			$this->assertTrue( $block->attributes['placeholder']['autoGenerateControl'] );
-			$this->assertTrue( $block->attributes['button']['autoGenerateControl'] );
-			$this->assertTrue( $block->attributes['label']['autoGenerateControl'] );
-			$this->assertArrayNotHasKey( 'autoGenerateControl', $modal->attributes['preview'] );
-			$this->assertArrayNotHasKey( 'autoGenerateControl', $modal->attributes['trigger_style'] );
-			$this->assertTrue( $modal->attributes['placeholder']['autoGenerateControl'] );
-		} else {
-			$this->assertArrayNotHasKey( 'autoRegister', $block->supports );
+		foreach ( array( 'search', 'modal-search', 'search-control', 'search-panel' ) as $name ) {
+			$block = $registry->get_registered( 'shift64-woo-search/' . $name );
+			$this->assertSame( 3, $block->api_version );
+			$this->assertIsCallable( $block->render_callback );
 		}
 	}
 
 	/**
-	 * Primitive attributes are labelled so WordPress can generate inspector fields.
+	 * Child blocks can only be inserted under one of the stable parent blocks.
 	 */
-	public function test_block_attributes_have_editor_labels() {
-		$block = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
+	public function test_child_blocks_are_parent_scoped_and_hidden_from_inserter() {
+		$registry = WP_Block_Type_Registry::get_instance();
+		$parents  = array( 'shift64-woo-search/search', 'shift64-woo-search/modal-search' );
 
-		foreach ( array( 'placeholder', 'button', 'label', 'trigger_label', 'close_label', 'clear_label', 'icon', 'preview', 'trigger_style', 'trigger_icon_color', 'trigger_icon_hover_color', 'trigger_surface_color', 'trigger_surface_hover_color', 'trigger_border_radius', 'trigger_icon_size', 'trigger_padding', 'trigger_outline_width', 'modal_search_style', 'modal_background_color', 'modal_background_transparency', 'search_input_text_color', 'search_input_background_color', 'search_button_color', 'search_button_background_color', 'search_button_hover_color', 'search_button_background_hover_color' ) as $attribute ) {
-			$this->assertNotEmpty( $block->attributes[ $attribute ]['label'] );
+		foreach ( array( 'search-control', 'search-panel' ) as $name ) {
+			$block = $registry->get_registered( 'shift64-woo-search/' . $name );
+			$this->assertSame( $parents, $block->parent );
+			$this->assertSame( $parents, $block->ancestor );
+			$this->assertFalse( $block->supports['inserter'] );
+		}
+	}
+
+	/**
+	 * Child blocks keep spacing/typography supports; color moved to the
+	 * blocks' own attribute-backed panels (with hover variants), so the
+	 * native color support is intentionally absent.
+	 */
+	public function test_child_blocks_expose_native_design_supports() {
+		$registry = WP_Block_Type_Registry::get_instance();
+
+		foreach ( array( 'search-control', 'search-panel' ) as $name ) {
+			$block = $registry->get_registered( 'shift64-woo-search/' . $name );
+			$this->assertArrayNotHasKey( 'color', $block->supports );
+			$this->assertTrue( $block->supports['spacing']['padding'] );
+			$this->assertTrue( $block->supports['typography']['fontSize'] );
+		}
+	}
+
+	/**
+	 * Metadata-built editor scripts and view modules are registered.
+	 */
+	public function test_blocks_register_built_editor_and_view_assets() {
+		$registry = WP_Block_Type_Registry::get_instance();
+
+		foreach ( array( 'search', 'modal-search', 'search-control', 'search-panel' ) as $name ) {
+			$block = $registry->get_registered( 'shift64-woo-search/' . $name );
+			$this->assertNotEmpty( $block->editor_script_handles );
 		}
 
-		$this->assertSame( array( 'default', 'alternative' ), $block->attributes['icon']['enum'] );
-		$this->assertSame( array( 'icon', 'background', 'outline' ), $block->attributes['trigger_style']['enum'] );
-		$this->assertSame( array( 'default', 'pill', 'minimal' ), $block->attributes['modal_search_style']['enum'] );
+		$this->assertNotEmpty( $registry->get_registered( 'shift64-woo-search/search' )->view_script_module_ids );
+		$this->assertNotEmpty( $registry->get_registered( 'shift64-woo-search/modal-search' )->view_script_module_ids );
 	}
 
 	/**
-	 * WordPress provides the Default style choice, so custom styles must not duplicate it.
+	 * Nested inline content renders a native form and a scoped interactive listbox.
 	 */
-	public function test_block_styles_only_register_custom_variants() {
-		$search = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/search' );
-		$modal  = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
+	public function test_composable_inline_block_renders_native_interactive_form() {
+		$html = do_blocks(
+			'<!-- wp:shift64-woo-search/search {"instanceId":"catalog-search"} --><!-- wp:shift64-woo-search/search-control {"label":"Catalog search","placeholder":"Find lamps","submitLabel":"Go"} /--><!-- wp:shift64-woo-search/search-panel {"noResultsLabel":"Nothing found"} /--><!-- /wp:shift64-woo-search/search -->'
+		);
 
-		$this->assertSame( array( 'pill', 'minimal' ), wp_list_pluck( $search->styles, 'name' ) );
-		$this->assertSame( array(), wp_list_pluck( $modal->styles, 'name' ) );
+		$this->assertStringContainsString( 'data-wp-interactive="shift64-woo-search/search"', $html );
+		$this->assertStringContainsString( 'data-shift64-search-root', $html );
+		$this->assertStringContainsString( 'action="http://example.org/"', $html );
+		$this->assertStringContainsString( 'method="get"', $html );
+		$this->assertStringContainsString( 'data-wp-on--submit="actions.submit"', $html );
+		$this->assertStringContainsString( 'data-wp-bind--value="context.query"', $html );
+		$this->assertStringContainsString( 'name="post_type" value="product"', $html );
+		$this->assertStringContainsString( 'placeholder="Find lamps"', $html );
+		$this->assertStringContainsString( '>Go</button>', $html );
+		$this->assertStringContainsString( 'id="catalog-search-listbox"', $html );
+		$this->assertStringContainsString( 'Nothing found', html_entity_decode( $html ) );
 	}
 
 	/**
-	 * The regular block keeps native colors while the modal uses dedicated controls.
+	 * Modal content uses native dialog semantics and scoped actions.
 	 */
-	public function test_search_block_color_supports_target_field_and_button() {
-		$search = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/search' );
-		$modal  = WP_Block_Type_Registry::get_instance()->get_registered( 'shift64-woo-search/modal-search' );
+	public function test_composable_modal_block_renders_native_dialog() {
+		$html = do_blocks(
+			'<!-- wp:shift64-woo-search/modal-search {"instanceId":"header-search"} --><!-- wp:shift64-woo-search/search-control {"triggerLabel":"Open catalog"} /--><!-- wp:shift64-woo-search/search-panel {"dialogLabel":"Catalog dialog","closeLabel":"Close catalog"} /--><!-- /wp:shift64-woo-search/modal-search -->'
+		);
 
-		$this->assertTrue( $search->supports['color']['button'] );
-		$this->assertArrayNotHasKey( 'color', $modal->supports );
+		$this->assertStringContainsString( 'aria-controls="header-search-dialog"', $html );
+		$this->assertStringContainsString( 'data-wp-on--click="actions.open"', $html );
+		$this->assertStringContainsString( '<dialog ', $html );
+		$this->assertStringContainsString( 'id="header-search-dialog"', $html );
+		$this->assertStringContainsString( 'aria-modal="true"', $html );
+		$this->assertStringContainsString( 'data-wp-on--cancel="actions.onDialogCancel"', $html );
+	}
+
+	/**
+	 * Duplicate saved instance IDs receive unique runtime-only DOM IDs.
+	 */
+	public function test_duplicate_instance_ids_are_disambiguated_at_render_time() {
+		$block = '<!-- wp:shift64-woo-search/search {"instanceId":"duplicate"} --><!-- wp:shift64-woo-search/search-control /--><!-- wp:shift64-woo-search/search-panel /--><!-- /wp:shift64-woo-search/search -->';
+		$html  = do_blocks( $block . $block );
+
+		$this->assertStringContainsString( 'id="duplicate-input"', $html );
+		$this->assertStringContainsString( 'id="duplicate-2-input"', $html );
 		$this->assertSame(
-			array( 'text', 'background', 'gradients' ),
-			$search->supports['color']['__experimentalSkipSerialization']
-		);
-	}
-
-	/**
-	 * The modal block loads its purpose-built editor controls.
-	 */
-	public function test_modal_block_registers_editor_control_script() {
-		$this->assertTrue( wp_script_is( 'shift64-woo-search-block-editor', 'registered' ) );
-
-		do_action( 'enqueue_block_editor_assets' );
-		$this->assertTrue( wp_script_is( 'shift64-woo-search-block-editor', 'enqueued' ) );
-	}
-
-	/**
-	 * Editor previews post their attributes so hosting firewalls cannot reject the URL.
-	 *
-	 * The "Search products..." placeholder default put a `..` sequence in the
-	 * preview request's query string, which 7G-style firewalls answer with a 403
-	 * before PHP runs, so the editor showed "Error loading block".
-	 */
-	public function test_editor_preview_sends_attributes_in_the_request_body() {
-		$script = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'admin/js/shift64-woo-search-block-editor.js' );
-
-		$this->assertStringContainsString( "httpMethod: 'POST'", $script );
-		$this->assertStringContainsString( "'shift64-woo-search/search',", $script );
-		$this->assertStringContainsString( "'shift64-woo-search/modal-search',", $script );
-		$this->assertStringContainsString( 'wp.serverSideRender', $script );
-
-		$this->assertTrue(
-			strpos( $script, "'shift64-woo-search/post-preview-requests'" )
-				< strpos( $script, "'shift64-woo-search/modal-search-controls'" ),
-			'The POST preview filter must register first so the modal controls wrap it.'
-		);
-	}
-
-	/**
-	 * The editor script can only reach ServerSideRender when it declares the dependency.
-	 */
-	public function test_editor_script_depends_on_server_side_render() {
-		$script = wp_scripts()->query( 'shift64-woo-search-block-editor' );
-
-		$this->assertNotFalse( $script );
-		$this->assertContains( 'wp-server-side-render', $script->deps );
-		$this->assertContains( 'wp-compose', $script->deps );
-	}
-
-	/**
-	 * The editor script provides every dedicated modal and trigger design control.
-	 */
-	public function test_modal_editor_script_exposes_dedicated_design_controls() {
-		$script = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'admin/js/shift64-woo-search-block-editor.js' );
-
-		$this->assertStringContainsString( "'blocks.registerBlockType'", $script );
-		foreach ( array( 'Modal preview', 'Show preview in editor', 'Button style', 'Icon size', 'Padding', 'Border radius', 'Outline width', 'Icon color', 'Icon hover color', 'Background or outline color', 'Background or outline hover color', 'Search box input color', 'Search button color', 'Icon hover', 'Background hover', 'Search field style', 'Modal background color', 'Modal transparency' ) as $label ) {
-			$this->assertStringContainsString( "'" . $label . "'", $script );
-		}
-		$this->assertTrue(
-			strpos( $script, "title: __( 'Modal preview'" ) < strpos( $script, 'createElement( ServerSideEdit' )
-		);
-		$this->assertTrue(
-			strpos( $script, "title: __( 'Trigger button'" ) < strpos( $script, "title: __( 'Search box input color'" )
-		);
-		$this->assertTrue(
-			strpos( $script, "title: __( 'Search box input color'" ) < strpos( $script, "title: __( 'Search button color'" )
-		);
-		$this->assertTrue(
-			strpos( $script, "title: __( 'Search button color'" ) < strpos( $script, "title: __( 'Modal'" )
+			1,
+			substr_count( $html, 'id="duplicate-listbox"' )
 		);
 	}
 

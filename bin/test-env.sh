@@ -362,10 +362,29 @@ docker_pull_with_retry() { # docker_pull_with_retry <image> <logfile>
 	die "docker pull $image failed after 3 attempts — see $logfile"
 }
 
+# Local by Flywheel's php.ini auto-prepends its local-bootstrap.php, whose
+# functions have no function_exists guards — wp-admin requests end up
+# including it twice and fatal with "Cannot redeclare localwp_auto_login()".
+# Serve from a sanitized copy of the loaded ini instead; PHPRC already flows
+# into launchd jobs (start_detached) and `wp server` forwards the loaded ini
+# to the php -S child via -c.
+neutralize_auto_prepend() {
+	local loaded sanitized
+	loaded="$("$PHP_BIN" -r 'echo (string) php_ini_loaded_file();' 2>/dev/null)"
+	[ -n "$loaded" ] && [ -f "$loaded" ] || return 0
+	grep -qi '^[[:space:]]*auto_prepend_file[[:space:]]*=' "$loaded" || return 0
+	sanitized="$RUN_DIR/php-cli.ini"
+	mkdir -p "$RUN_DIR"
+	grep -vi '^[[:space:]]*auto_prepend_file[[:space:]]*=' "$loaded" > "$sanitized"
+	export PHPRC="$sanitized"
+	info "Neutralized auto_prepend_file from $loaded (PHPRC=$sanitized)"
+}
+
 preflight() {
 	local missing=() docker_required=0
 	select_php
 	[ -n "$PHP_BIN" ] || missing+=("php >= 8.3 with mysqli (install php8.3-cli + php8.3-mysql, or set TEST_ENV_PHP)")
+	[ -z "$PHP_BIN" ] || neutralize_auto_prepend
 	command -v wp >/dev/null || missing+=("wp (wp-cli: https://wp-cli.org)")
 	command -v composer >/dev/null || missing+=("composer (https://getcomposer.org)")
 	command -v jq >/dev/null || missing+=("jq")

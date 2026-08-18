@@ -1,0 +1,42 @@
+// Classic themes (no theme.json layout) leave the editor canvas as one huge
+// flow root: each block fakes a column via max-width + auto margins, so any
+// explicit horizontal margin replaces the auto centering and the block jumps
+// to the canvas edge — nowhere near where the front end (with its real narrow
+// content column) puts it. Pin the canvas itself to a centered column so
+// margins preview the way they render. Constrained-layout (theme.json) roots
+// are untouched.
+.editor-styles-wrapper .is-root-container.is-layout-flow.wp-block-post-content {
+	margin-inline: auto;
+	max-width: 840px;
+}
+
+.wp-block-shift64-woo-search-search.shift64-woo-search-editor-parent,
+.wp-block-shift64-woo-search-modal-search.shift64-woo-search-editor-parent {
+	display: grid;
+	gap: 0.75rem;
+	width: 100%;
+
+	> .wp-block-shift64-woo-search-search-control,
+	> .wp-block-shift64-woo-search-search-panel {
+		max-width: none;
+		width: 100%;
+	}
+}
+
+.shift64-woo-search-editor-parent.is-preview-closed {
+	.wp-block-shift64-woo-search-search-panel:not(.is-selected) {
+		display: none;
+	}
+}
+
+// With the preview closed the modal parent is just its trigger, and the
+// frontend renders it as an inline-flex box that shrinks to the trigger's
+// size. Mirror that here — a full-width wrapper makes horizontal margins
+// shove an invisible full-row box around instead of the visible button.
+.wp-block-shift64-woo-search-modal-search.shift64-woo-search-editor-parent.is-preview-closed {
+	width: fit-content;
+
+	> .wp-block-shift64-woo-search-search-control {
+		width: auto;
+	}
+}
