@@ -1,3 +1,10 @@
+## [0.16.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.16.0...v0.16.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* **tooling:** anchor the test env outside $TMPDIR and find PHP by path ([#66](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/66)) ([66ef1f3](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/66ef1f3130571d7691934447fe3a352df6ba2a86))
+
 # [0.16.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.15.1...v0.16.0) (2026-08-18)
 
 
