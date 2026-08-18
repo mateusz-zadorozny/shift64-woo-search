@@ -41,6 +41,25 @@ test.describe( 'composable search block editor', () => {
 				.click();
 		}
 
+		// A block theme with starter page patterns (Twenty Twenty-Five has
+		// them) opens a "Choose a pattern" modal on every new page, which
+		// aria-hides the editor chrome — role-based lookups like the Document
+		// Overview toggle below would never resolve. Give it a moment to
+		// appear, then dismiss it; on themes without page patterns the wait
+		// just times out and the catch is a no-op.
+		const patternDialog = page.getByRole( 'dialog', {
+			name: /Choose a pattern/i,
+		} );
+		await patternDialog
+			.waitFor( { state: 'visible', timeout: 5000 } )
+			.catch( () => {} );
+		if ( await patternDialog.isVisible() ) {
+			await patternDialog
+				.getByRole( 'button', { name: 'Close' } )
+				.click();
+			await patternDialog.waitFor( { state: 'hidden' } );
+		}
+
 		await page.evaluate(
 			( blockNames ) => {
 				const wp = ( window as any ).wp;
