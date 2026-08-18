@@ -1,3 +1,10 @@
+# [0.16.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.15.1...v0.16.0) (2026-08-18)
+
+
+### Features
+
+* **blocks:** add composable search blocks ([#60](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/60)) ([ca61b18](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/ca61b1803f593610e62b84e467684e0e39663972))
+
 ## [0.15.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.15.0...v0.15.1) (2026-08-17)
 
 
