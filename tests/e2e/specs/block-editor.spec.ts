@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { wpCli } from '../helpers/env';
 
 const SEARCH = 'shift64-woo-search/search';
 const MODAL_SEARCH = 'shift64-woo-search/modal-search';
@@ -18,6 +19,30 @@ async function loginAsAdmin( page: Page ): Promise< void > {
 }
 
 test.describe( 'composable search block editor', () => {
+	// Pre-seed the admin's persisted editor preferences so the editor never
+	// opens its startup modals. On a block theme with starter page patterns
+	// (Twenty Twenty-Five has them) the "Choose a pattern" modal appears on
+	// every new page — asynchronously, once the patterns REST request
+	// resolves — and aria-hides the toolbar, so any dismiss-when-visible
+	// check in the test races it (and on a retry it can stack on top of the
+	// welcome guide, hiding that dialog's close button too). Disabling the
+	// preference up front removes the race instead of chasing it.
+	test.beforeAll( () => {
+		wpCli( [
+			'user',
+			'meta',
+			'update',
+			'admin',
+			'wp_persisted_preferences',
+			JSON.stringify( {
+				core: { enableChoosePatternModal: false },
+				'core/edit-post': { welcomeGuide: false },
+				_modified: '2026-01-01T00:00:00.000Z',
+			} ),
+			'--format=json',
+		] );
+	} );
+
 	test( 'inserts a locked, selectable, independently styleable child pair', async ( {
 		page,
 	} ) => {
