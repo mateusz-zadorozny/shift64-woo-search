@@ -7,9 +7,12 @@ import { SEL } from '../helpers/search';
 /**
  * Blockified (block-theme) projection of the pagination journeys — issue #17.
  *
- * The rest of the suite runs on Storefront, whose classic WooCommerce markup
- * hid a whole class of frontend bug from CI (#15). This file adds the missing
- * projection: a real block theme rendering WooCommerce's Product Collection.
+ * Historically the rest of the suite ran on Storefront, whose classic
+ * WooCommerce markup hid a whole class of frontend bug from CI (#15), and
+ * this file added the missing projection: a real block theme rendering
+ * WooCommerce's Product Collection. Since #63 the block theme IS the
+ * environment default; this file remains the deep pagination-ownership
+ * projection for it.
  *
  * WHAT THIS FILE ASSERTS IS AN OWNERSHIP CONTRACT, NOT "the plugin swaps
  * everything". Per the decision on #20, pagination ownership is:
@@ -20,8 +23,8 @@ import { SEL } from '../helpers/search';
  *   | Product Collection + data-wp-router-region  | WooCommerce (IA) |
  *   | Product Collection + forcePageReload        | the browser      |
  *
- * Scenario 1 (classic markup, plugin owns the AJAX swap) is already covered on
- * Storefront by tests/e2e/specs/search-results-page.spec.ts — it is not
+ * Scenario 1 (classic markup, plugin owns the AJAX swap) is covered on
+ * Storefront by tests/e2e/classic-theme/classic.spec.ts — it is not
  * duplicated here. This file covers the two block-theme columns.
  *
  * These assertions were introduced as `test.fail()` while #20 was decided but
@@ -33,18 +36,17 @@ import { SEL } from '../helpers/search';
  *                        so Back needed two presses to leave page 2
  *   - forcePageReload -> the plugin intercepted; no real navigation happened
  *
- * REAL environment mutation, like the degraded project: this file activates a
- * block theme in beforeAll and restores the previous one in afterAll, and the
- * forcePageReload describe installs/removes a test-only mu-plugin around
- * itself. The bounds are beforeAll/afterAll rather than a Playwright
- * setup/teardown project pair on purpose — a spec file is the unit a worker
- * runs to completion, so no other project can observe the switched theme, and
- * afterAll still runs when a test fails. If a run is hard-killed in between,
- * restore with `wp theme activate storefront` and delete
+ * The block theme is the environment default (#63), so the theme guard in
+ * beforeAll is normally a no-op; against a differently-themed target it still
+ * switches and restores, bounded by beforeAll/afterAll — a spec file is the
+ * unit a worker runs to completion, so no other project can observe the
+ * switched theme, and afterAll still runs when a test fails. The
+ * forcePageReload describe REALLY installs/removes a test-only mu-plugin
+ * around itself; if a run is hard-killed in between, delete
  * wp-content/mu-plugins/shift64-e2e-force-page-reload.php.
  */
 
-// 48 results = 3 pages at 16/page — the same broad query the Storefront
+// 48 results = 3 pages at 16/page — the same broad query the main-suite
 // journeys use. "series" (not "clothing") is what spans the whole multi-vertical
 // catalog; see the comment in specs/search-results-page.spec.ts.
 const BROAD_QUERY = '/?s=series&post_type=product';

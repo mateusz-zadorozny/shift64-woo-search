@@ -5,14 +5,11 @@ import { wpCli } from '../helpers/env';
 /**
  * The opt-in storefront debug panel.
  *
- * Two behaviors that PHPUnit cannot reach, because both are decided in the
- * browser:
- *
- *  1. The panel stays absent for a shop manager who has not switched it on.
- *  2. Once on, it tracks the query that produced the results on screen. It used
- *     to be written once at page load and never touched again, so changing a
- *     filter left the bar describing the unfiltered query while the grid below
- *     showed filtered results.
+ * Gating behavior that PHPUnit cannot reach, because it is decided in the
+ * browser: the panel stays absent for a shop manager who has not switched it
+ * on, and never renders for a logged-out shopper. (The companion journey —
+ * the panel refreshing alongside the plugin's AJAX grid swap — only exists on
+ * classic Woo markup and lives in tests/e2e/classic-theme/classic.spec.ts.)
  *
  * This spec REALLY flips `shift64_woo_search_archive_debug_enabled` on the
  * target site and restores the previous value in afterAll — same contract as the
@@ -83,7 +80,7 @@ test.describe('archive debug panel', () => {
 		await expect(page.locator(BAR)).toHaveCount(0);
 	});
 
-	test('refreshes its contents when a filter changes', async ({ page }) => {
+	test('renders for an admin once the setting is on', async ({ page }) => {
 		writeOption(DEBUG_OPTION, 'yes');
 		await loginAsAdmin(page);
 
@@ -91,46 +88,13 @@ test.describe('archive debug panel', () => {
 
 		const bar = page.locator(BAR);
 		await expect(bar).toBeVisible();
-
-		const before = (await page.locator(BAR_LINES).innerText()).trim();
-		expect(before).not.toBe('');
-
-		// The interception logs one entry per stage, so a healthy panel is always
-		// several lines. Asserting the structure catches a refresh that collapses
-		// them into one run-on line — which is what happens if the handler reads
-		// the lines with textContent, since that discards the <br> separators.
-		expect(before.split('\n').filter(Boolean).length).toBeGreaterThan(1);
-
-		// Change a filter. The grid swaps via AJAX — no navigation — which is
-		// exactly the path that used to leave the panel frozen.
-		const filters = page.locator(SEL.filters).first();
-		await expect(filters).toBeVisible();
-
-		// Desktop pills keep their checkbox lists inside a dropdown — open it
-		// first, same as the search-results-page journey.
-		await filters
-			.locator('[data-filter-key] .shift64-woo-search-filter__pill', { hasText: /color/i })
-			.click();
-		await filters
-			.locator(`${SEL.filterCheckbox}[data-taxonomy="pa_color"][data-slug="copper"]`)
-			.check();
-
-		await expect(page).toHaveURL(/filter_pa_color=copper/);
-
-		// The panel must end up describing the filtered query, not the first one.
-		await expect
-			.poll(async () => (await page.locator(BAR_LINES).innerText()).trim(), {
-				message: 'debug panel should re-render for the filtered query',
-			})
-			.not.toBe(before);
-
-		// Still a single bar with its heading intact — the refresh replaces the
-		// lines, not the whole element.
-		await expect(bar).toHaveCount(1);
 		await expect(bar).toContainText('Shift64 Archive Debug');
 
-		// And still structured as lines after the swap, not one collapsed blob.
-		const after = (await page.locator(BAR_LINES).innerText()).trim();
-		expect(after.split('\n').filter(Boolean).length).toBeGreaterThan(1);
+		const lines = (await page.locator(BAR_LINES).innerText()).trim();
+		expect(lines).not.toBe('');
+
+		// The interception logs one entry per stage, so a healthy panel is always
+		// several lines — one collapsed run-on line means broken markup.
+		expect(lines.split('\n').filter(Boolean).length).toBeGreaterThan(1);
 	});
 });

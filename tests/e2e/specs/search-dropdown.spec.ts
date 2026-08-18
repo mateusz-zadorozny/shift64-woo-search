@@ -17,6 +17,13 @@ test.describe('search dropdown', () => {
 
 	// Test 1: type "athena" → dropdown visible, ≥1 matching product row, Products header.
 	test('typing a product name opens the dropdown with matching products', async ({ page }) => {
+		// Narrow viewport on purpose: the stacking probe below needs the open
+		// tray to really cover the modal trigger, and only a single-column
+		// layout guarantees that geometry on every theme (at desktop width a
+		// block theme lays the two blocks out side by side, so they never
+		// overlap and the z-order assertion would be vacuous).
+		await page.setViewportSize({ width: 480, height: 800 });
+		await page.goto(SEARCH_PAGE);
 		await typeQuery(page, 'athena');
 
 		await expect(visibleTray(page)).toBeVisible();

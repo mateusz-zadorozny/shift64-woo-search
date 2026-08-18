@@ -42,12 +42,14 @@ rename, or delete spec files — their paths are referenced from other specs,
 `http://127.0.0.1:8889`; use `BASE_URL=http://<site>.local` for LocalWP).
 The suite's degraded project REALLY mutates the target site's Redis config
 and restores it in a teardown — if an aborted run leaves the site broken,
-re-run `npm run e2e:provision`. The `block-theme` project likewise REALLY
-switches the site's theme (to `E2E_BLOCK_THEME`, default `twentytwentyfive`)
-and restores the previous one in the spec's `afterAll`; if a hard-killed run
-leaves the wrong theme active, run `wp theme activate storefront`, and delete
+re-run `npm run e2e:provision`. The environment's default theme is the block
+theme (`E2E_BLOCK_THEME`, default `twentytwentyfive`); the `classic-theme`
+project REALLY switches the site to `E2E_CLASSIC_THEME` (default
+`storefront`) for the plugin-owned classic AJAX-swap journeys and restores
+the previous theme in the spec's `afterAll`. If a hard-killed run leaves the
+wrong theme active, run `wp theme activate twentytwentyfive`, and delete
 `wp-content/mu-plugins/shift64-e2e-force-page-reload.php` (a scenario fixture
-that project installs and removes around one describe block).
+the `block-theme` project installs and removes around one describe block).
 
 The `block-theme` project encodes the **pagination ownership matrix** decided
 in #20, not "the plugin swaps everything": classic Woo markup / Kadence /

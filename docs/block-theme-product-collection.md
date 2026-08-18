@@ -109,6 +109,6 @@ WooCommerce's native query. To roll the integration back completely, unregister
 the adapter and shared control module; stored content and Redis index data need
 no migration or cleanup.
 
-For local E2E recovery after a hard-killed block-theme run, reactivate
-Storefront and remove the force-page-reload MU fixture as documented in
-`AGENTS.md`.
+For local E2E recovery after a hard-killed theme-projection run, reactivate
+the block theme (`wp theme activate twentytwentyfive`) and remove the
+force-page-reload MU fixture as documented in `AGENTS.md`.
