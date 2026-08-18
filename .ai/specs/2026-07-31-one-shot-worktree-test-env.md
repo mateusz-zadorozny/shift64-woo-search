@@ -58,7 +58,9 @@ bin/test-env.sh (orchestrator: up | status | down)
   │             generate ./phpunit.xml from phpunit.xml.dist + <env WP_TESTS_DIR>
   ├─ validate:  nohup supervisor → runs validation.commands sequentially,
   │             writes .ai/qa/validation-status.json + .ai/qa/logs/validation-<runId>.log
-  └─ state:     .ai/qa/test-env.json (descriptor), $RUN_DIR=<tmp>/shift64-test-env/<runId>/
+  └─ state:     .ai/qa/test-env.json (descriptor),
+                $RUN_DIR=${TEST_ENV_RUN_ROOT:-${XDG_CACHE_HOME:-$HOME/.cache}/shift64-test-env}/<runId>/
+                (deliberately not under $TMPDIR — harnesses recycle it mid-run)
 .ai/scripts/test-env-up.sh / test-env-down.sh  →  exec bin/test-env.sh up|down (marker-less wrappers)
 tests/env/test-env-launcher.sh                 →  clean-room integration test (dispatch CI job)
 ```

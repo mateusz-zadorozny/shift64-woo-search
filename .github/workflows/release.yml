@@ -153,6 +153,13 @@ jobs:
       - name: Run PHP_CodeSniffer
         run: vendor/bin/phpcs
 
+      # Unit-level checks of bin/test-env.sh (PHP discovery, run-directory
+      # anchoring). Seconds, no servers — unlike the clean-room launcher test,
+      # which stays in the on-demand test-env workflow.
+      - name: Test-env discovery unit tests
+        if: matrix.php-version == '8.3'
+        run: bash tests/env/test-env-discovery.sh
+
       - name: Determine WordPress version
         id: wp-version
         run: |
