@@ -51,7 +51,7 @@ printf '# (rate limit, suggestions, archive gates, filter attributes)\n'
 printf '# and reseeds the demo catalog (generator-owned products only).\n'
 printf '############################################################\n'
 
-log "WooCommerce active + storefront visible"
+log "WooCommerce active + shop front visible"
 # The plugin's CLI commands only register when WooCommerce is active, and the
 # plugin's own activation hook silently no-ops while WooCommerce is inactive.
 wpc plugin is-active woocommerce >/dev/null 2>&1 || wpc plugin activate woocommerce

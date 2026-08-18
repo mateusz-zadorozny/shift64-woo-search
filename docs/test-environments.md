@@ -19,7 +19,9 @@ That is the whole setup. When it returns, the launcher has:
 - started an isolated MariaDB/MySQL (native `mysqld` when the host has one,
   otherwise a Docker `mariadb:lts` container) and a RediSearch-capable Redis
   on run-scoped `127.0.0.1` ports;
-- installed WordPress + WooCommerce + Storefront via `bin/e2e-install-wp.sh`
+- installed WordPress + WooCommerce via `bin/e2e-install-wp.sh`, with Twenty
+  Twenty-Five active (the supported block-theme baseline) and Storefront
+  installed inactive for the classic-theme e2e projection
   and provisioned the plugin state (demo catalog, options, index) via
   `bin/e2e-provision.sh`;
 - installed `wordpress-tests-lib` and its test database via

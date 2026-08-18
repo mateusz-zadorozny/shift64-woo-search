@@ -34,8 +34,9 @@ test.describe('search results page (Redis takeover)', () => {
 		await expect(cards.first()).toBeVisible();
 		await expect(cards.first()).toContainText(/Pulse/);
 
-		// Storefront renders the ordering control twice (above and below the
-		// loop); block themes render it once — assert on the first.
+		// Block themes render the ordering control once (via WooCommerce's
+		// blockified compatibility layer); Storefront renders it twice (above
+		// and below the loop) — assert on the first so both hold.
 		const orderby = page.locator(SEL.orderbySelect).first();
 		await expect(orderby).toBeVisible();
 		await expect(orderby).toHaveValue('relevance');
@@ -92,11 +93,13 @@ test.describe('search results page (Redis takeover)', () => {
 			await expect(cards.nth(i)).toContainText(/Copper/);
 		}
 
-		// Copper narrows 48 results to a single page, so the swap must hide the
-		// pagination control outright. Merely emptying it leaves a nav that
-		// still occupies its box — asserting on `display` rather than
-		// visibility is what distinguishes the two.
-		await expect(page.locator(SEL.pagination).first()).toHaveCSS('display', 'none');
+		// Copper narrows 48 results to a single page, so no pagination control
+		// may remain visible. On a block theme WooCommerce re-renders and
+		// drops the nav from the DOM; on classic markup the plugin's swap
+		// hides it — toBeHidden() accepts both (zero matches or display:none).
+		// The stricter classic-only `display` assertion lives in
+		// tests/e2e/classic-theme/classic.spec.ts.
+		await expect(page.locator(SEL.pagination).first()).toBeHidden();
 	});
 
 	// Test 10: orderby=price → rendered prices non-decreasing.
@@ -121,33 +124,8 @@ test.describe('search results page (Redis takeover)', () => {
 		}
 	});
 
-	// Test 11: AJAX pagination → grid changes without a full page load.
-	test('pagination swaps the grid via AJAX without reloading', async ({ page }) => {
-		await page.goto(BROAD_QUERY);
-
-		const cards = productCards(page);
-		await expect(cards.first()).toBeVisible();
-		const firstTitleBefore = await cards.first().innerText();
-
-		// A full navigation would wipe this flag; the AJAX swap must keep it.
-		await page.evaluate(() => {
-			(window as unknown as Record<string, unknown>).__e2eNoReload = true;
-		});
-
-		await page.locator('a.page-numbers', { hasText: '2' }).first().click();
-
-		await expect(page).toHaveURL(/(\/page\/2\/|[?&]paged=2)/);
-		await expect(cards.first()).not.toHaveText(firstTitleBefore);
-
-		// The pagination control itself must be swapped too, not just the grid.
-		// `.page-numbers.current` covers classic Woo (span.page-numbers.current)
-		// and blockified markup (span.page-numbers.current[aria-current="page"]),
-		// so the same assertion holds on Storefront and on a block theme.
-		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
-
-		const flagSurvived = await page.evaluate(() => {
-			return (window as unknown as Record<string, unknown>).__e2eNoReload === true;
-		});
-		expect(flagSurvived).toBe(true);
-	});
+	// The plugin-owned AJAX pagination journey ("pagination swaps the grid via
+	// AJAX without reloading") lives in tests/e2e/classic-theme/ — it only
+	// exists on classic Woo markup. The block-theme pagination journeys live
+	// in tests/e2e/block-theme/.
 });

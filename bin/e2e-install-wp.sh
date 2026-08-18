@@ -6,17 +6,19 @@
 #
 # Assumes the MySQL service at 127.0.0.1:3306 (root/root, db wordpress_e2e).
 #
-# Storefront is installed AND activated deliberately: stock block themes render
-# WooCommerce's blockified archive templates, which never fire
-# woocommerce_before_shop_loop — the hook the filter bar (and the ordering
-# control) depends on. A classic Woo theme guarantees the shop-loop hooks the
-# journey tests assert on, so it stays the default for the bulk of the suite.
+# The block theme (Twenty Twenty-Five by default) is installed AND activated:
+# the plugin is developed and QA'd for modern block themes (theme.json / Site
+# Editor era), so the default environment must match that baseline. WooCommerce
+# renders its blockified archive templates on it, and Woo's compatibility layer
+# still fires the classic shop-loop hooks the filter bar and ordering control
+# hang on — the bulk of the suite runs here.
 #
-# A block theme is installed alongside it but left INACTIVE: the block-theme
-# Playwright project (tests/e2e/block-theme/) activates it for the duration of
-# its own spec file and restores the previous theme afterwards. Installing it
-# here — rather than at switch time — keeps that switch a local `wp theme
-# activate` instead of a network install in the middle of a run.
+# Storefront is installed alongside it but left INACTIVE: the classic-theme
+# Playwright project (tests/e2e/classic-theme/) activates it for the duration
+# of its own spec file — covering the plugin-owned classic AJAX-swap journeys —
+# and restores the block theme afterwards. Installing it here — rather than at
+# switch time — keeps that switch a local `wp theme activate` instead of a
+# network install in the middle of a run.
 #
 # WordPress, WooCommerce, Storefront, and the block theme versions are
 # deliberately UNPINNED:
@@ -54,10 +56,13 @@ if ! wp core is-installed --path="$WP_ROOT" 2>/dev/null; then
 		--skip-email
 fi
 
-wp theme install storefront --activate --path="$WP_ROOT"
-# Inactive on purpose — see the header note; the block-theme e2e project
-# activates it and restores Storefront itself.
 wp theme install "${E2E_BLOCK_THEME:-twentytwentyfive}" --path="$WP_ROOT"
+# Explicit activate rather than install --activate: on a reused environment
+# the install is a no-op skip, and the activation must still happen.
+wp theme activate "${E2E_BLOCK_THEME:-twentytwentyfive}" --path="$WP_ROOT"
+# Inactive on purpose — see the header note; the classic-theme e2e project
+# activates it and restores the block theme itself.
+wp theme install storefront --path="$WP_ROOT"
 wp plugin install woocommerce --activate --path="$WP_ROOT"
 
 ln -sfn "$PLUGIN_SRC" "$WP_ROOT/wp-content/plugins/shift64-woo-search"

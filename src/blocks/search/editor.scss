@@ -4,7 +4,8 @@
 // to the canvas edge — nowhere near where the front end (with its real narrow
 // content column) puts it. Pin the canvas itself to a centered column so
 // margins preview the way they render. Constrained-layout (theme.json) roots
-// are untouched.
+// are untouched. Kept for classic-theme users only — the test environment's
+// default theme is a block theme (#63), so QA no longer depends on this.
 .editor-styles-wrapper .is-root-container.is-layout-flow.wp-block-post-content {
 	margin-inline: auto;
 	max-width: 840px;
