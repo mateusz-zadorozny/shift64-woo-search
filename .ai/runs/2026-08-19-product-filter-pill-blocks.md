@@ -149,5 +149,5 @@ trigger/panel visual primitive that Product Sort will later consume.
 
 ### Phase 3: Shared visual-contract hardening and docs
 
-- [ ] 3.1 Extract and document the reusable pill primitive with visual fixture
-- [ ] 3.2 Update docs and flip the spec lifecycle status
+- [x] 3.1 Extract and document the reusable pill primitive with visual fixture — 7204659
+- [x] 3.2 Update docs and flip the spec lifecycle status — 10b15f3
