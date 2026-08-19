@@ -57,7 +57,7 @@ class Shift64_Woo_Search_Facet_Eligibility {
 	 * attributes and registered WooCommerce attribute taxonomies.
 	 *
 	 * @param Shift64_Woo_Search_Redis|null $redis Optional connection (tests).
-	 * @return array<string,array{key:string,taxonomy:string,type:string,label:string,operators:array,status:string,redis_field:string}>
+	 * @return array<string,array{key:string,taxonomy:string,type:string,label:string,operators:array,status:string,redis_field:string}> Entries; redis_field is the aggregation bucket key (categories|brands|attr_{taxonomy}).
 	 */
 	public static function get_entries( $redis = null ) {
 		$fields  = self::index_fields( $redis );
@@ -71,7 +71,7 @@ class Shift64_Woo_Search_Facet_Eligibility {
 			'label'       => self::taxonomy_label( 'product_cat', __( 'Category', 'shift64-woo-search' ) ),
 			'operators'   => array( 'or' ),
 			'status'      => self::core_status( $categories_enabled, 'product_cat', $fields ),
-			'redis_field' => 'category',
+			'redis_field' => 'categories',
 		);
 
 		$brands_enabled           = 'yes' === get_option( 'shift64_woo_search_filter_brands_enabled', 'no' );
@@ -82,7 +82,7 @@ class Shift64_Woo_Search_Facet_Eligibility {
 			'label'       => self::taxonomy_label( 'product_brand', __( 'Brand', 'shift64-woo-search' ) ),
 			'operators'   => array( 'or' ),
 			'status'      => self::core_status( $brands_enabled, 'product_brand', $fields ),
-			'redis_field' => 'brand',
+			'redis_field' => 'brands',
 		);
 
 		foreach ( self::attribute_taxonomies() as $taxonomy => $selected ) {

@@ -110,7 +110,7 @@ class Facet_Eligibility_Test extends WP_UnitTestCase {
 		$this->assertNotNull( $entry );
 		$this->assertSame( Shift64_Woo_Search_Facet_Eligibility::STATUS_READY, $entry['status'] );
 		$this->assertSame( 'category', $entry['type'] );
-		$this->assertSame( 'category', $entry['redis_field'] );
+		$this->assertSame( 'categories', $entry['redis_field'] );
 		$this->assertSame( array( 'or' ), $entry['operators'] );
 	}
 

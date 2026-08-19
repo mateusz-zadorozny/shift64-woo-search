@@ -66,6 +66,7 @@ require_once SHIFT64_WOO_SEARCH_PATH . 'includes/interface-shift64-woo-search-fa
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-facet-registry.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-facets.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-facet-eligibility.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-facet-count-provider.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-editor-facets-rest.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-archive.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-attribute-auto-register.php';

@@ -304,9 +304,11 @@ class Shift64_Woo_Search_Filter_Blocks {
 	/**
 	 * Options for one pill: taxonomy terms ordered and bounded per attributes.
 	 *
-	 * Counts arrive with the Phase 2 facet provider; until then options render
-	 * without counts (the degraded contract) and `hideEmpty` falls back to the
-	 * taxonomy's own empty-term flag. Selected terms always stay visible.
+	 * Counts come from the request-scoped facet provider (disjunctive Redis
+	 * buckets, keyed by indexed term name). When that dimension is degraded
+	 * or unavailable, options render without counts and `hideEmpty` falls
+	 * back to the taxonomy's own empty-term flag — filtering stays possible
+	 * either way. Selected terms always stay visible.
 	 *
 	 * @param array               $entry Eligibility entry.
 	 * @param array<string,mixed> $attributes Pill attributes.
@@ -315,10 +317,24 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 */
 	private function pill_options( $entry, $attributes, $selected ) {
 		$hide_empty = ! empty( $attributes['hideEmpty'] );
-		$terms      = get_terms(
+
+		$buckets     = Shift64_Woo_Search_Facet_Count_Provider::get_buckets( $entry['redis_field'] );
+		$have_counts = is_array( $buckets );
+		$counts      = array();
+		if ( $have_counts ) {
+			foreach ( $buckets as $bucket ) {
+				if ( isset( $bucket['value'] ) ) {
+					$counts[ (string) $bucket['value'] ] = (int) ( $bucket['count'] ?? 0 );
+				}
+			}
+		}
+
+		$terms = get_terms(
 			array(
 				'taxonomy'   => $entry['taxonomy'],
-				'hide_empty' => $hide_empty,
+				// With live counts the result set decides emptiness; without
+				// them the taxonomy's own assignment count is the fallback.
+				'hide_empty' => $have_counts ? false : $hide_empty,
 			)
 		);
 		if ( is_wp_error( $terms ) ) {
@@ -328,11 +344,16 @@ class Shift64_Woo_Search_Filter_Blocks {
 		$options = array();
 		$seen    = array();
 		foreach ( $terms as $term ) {
+			$count       = $have_counts ? ( $counts[ $term->name ] ?? 0 ) : null;
+			$is_selected = in_array( $term->slug, $selected, true );
+			if ( $hide_empty && $have_counts && 0 === $count && ! $is_selected ) {
+				continue;
+			}
 			$options[]           = array(
 				'slug'     => $term->slug,
 				'name'     => $term->name,
-				'count'    => null,
-				'selected' => in_array( $term->slug, $selected, true ),
+				'count'    => $count,
+				'selected' => $is_selected,
 			);
 			$seen[ $term->slug ] = true;
 		}
@@ -347,7 +368,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 				$options[] = array(
 					'slug'     => $term->slug,
 					'name'     => $term->name,
-					'count'    => null,
+					'count'    => $have_counts ? ( $counts[ $term->name ] ?? 0 ) : null,
 					'selected' => true,
 				);
 			}
