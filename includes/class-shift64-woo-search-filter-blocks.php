@@ -35,6 +35,20 @@ class Shift64_Woo_Search_Filter_Blocks {
 	private static $selections = null;
 
 	/**
+	 * Runtime id of the Product Filters parent currently rendering.
+	 *
+	 * @var string
+	 */
+	private static $parent_id = '';
+
+	/**
+	 * Per-request pill counter for unique interactivity ids.
+	 *
+	 * @var int
+	 */
+	private static $pill_sequence = 0;
+
+	/**
 	 * Render the Product Filters parent: router region, pills, Clear all.
 	 *
 	 * @param array<string,mixed> $attributes Block attributes.
@@ -48,21 +62,42 @@ class Shift64_Woo_Search_Filter_Blocks {
 			$runtime_id = 'shift64-woo-search-filters';
 		}
 
+		self::$parent_id     = $runtime_id;
+		self::$pill_sequence = 0;
+
 		$clear_all = '';
 		if ( ! empty( $attributes['showClearAll'] ) ) {
 			$clear_all = $this->render_clear_all( $attributes, $block );
 		}
+
+		$represented = array();
+		foreach ( $this->represented_facets( $block ) as $facet ) {
+			$entry = $this->ready_entry( $facet );
+			if ( null !== $entry ) {
+				$represented[] = $entry['taxonomy'];
+			}
+		}
+
+		$context = array(
+			'parentId'        => $runtime_id,
+			'clearTaxonomies' => $represented,
+		);
+
+		// The backdrop stays hidden without JavaScript; the tray presentation
+		// only activates once the store controls the hidden binding.
+		$backdrop = '<div class="shift64-woo-search-product-filters__backdrop" hidden data-wp-bind--hidden="!state.hasOpenPill" data-wp-on--click="actions.closeOpenPill" aria-hidden="true"></div>';
 
 		$wrapper = get_block_wrapper_attributes(
 			array(
 				'class'                 => 'shift64-woo-search-product-filters',
 				'id'                    => $runtime_id,
 				'data-wp-interactive'   => 'shift64-woo-search/product-filters',
+				'data-wp-context'       => wp_json_encode( $context ),
 				'data-wp-router-region' => $runtime_id . '-region',
 			)
 		);
 
-		return '<div ' . $wrapper . '>' . $content . $clear_all . '</div>';
+		return '<div ' . $wrapper . '>' . $content . $clear_all . $backdrop . '</div>';
 	}
 
 	/**
@@ -102,8 +137,17 @@ class Shift64_Woo_Search_Filter_Blocks {
 
 		$summary_count = count( $selected );
 
-		$html  = '<details class="shift64-woo-search-pill__disclosure">';
-		$html .= '<summary class="shift64-woo-search-pill__trigger">';
+		++self::$pill_sequence;
+		$pill_context = array(
+			'pillId'      => $taxonomy . '-' . self::$pill_sequence,
+			'taxonomy'    => $taxonomy,
+			'operatorAnd' => ! $single
+				&& 'and' === ( $attributes['queryType'] ?? 'or' )
+				&& in_array( 'and', $entry['operators'], true ),
+		);
+
+		$html  = '<details class="shift64-woo-search-pill__disclosure" data-wp-context="' . esc_attr( wp_json_encode( $pill_context ) ) . '" data-wp-bind--open="state.isPillOpen" data-wp-on--toggle="actions.pillToggled" data-wp-on--keydown="actions.panelKeydown">';
+		$html .= '<summary class="shift64-woo-search-pill__trigger" aria-expanded="false" data-wp-bind--aria-expanded="state.pillExpanded">';
 		$html .= '<span class="shift64-woo-search-pill__label">' . esc_html( $label ) . '</span>';
 		if ( $summary_count > 0 ) {
 			$html .= '<span class="shift64-woo-search-pill__summary-count"><span>' . esc_html( (string) $summary_count ) . '</span></span>';
@@ -113,7 +157,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 
 		$html .= '<div class="shift64-woo-search-pill__panel">';
 		$html .= '<p class="shift64-woo-search-pill__heading">' . esc_html( $label ) . '</p>';
-		$html .= '<form class="shift64-woo-search-pill__form" method="get" action="' . esc_url( $this->form_action() ) . '">';
+		$html .= '<form class="shift64-woo-search-pill__form" method="get" action="' . esc_url( $this->form_action() ) . '" data-wp-on--submit="actions.apply">';
 		$html .= $this->hidden_state_inputs( $taxonomy );
 
 		if ( ! $single && 'and' === ( $attributes['queryType'] ?? 'or' ) && in_array( 'and', $entry['operators'], true ) ) {
@@ -144,7 +188,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 					'query_type_' . $taxonomy => null,
 				)
 			);
-			$html     .= '<a class="shift64-woo-search-pill__clear" href="' . esc_url( $clear_url ) . '">' . esc_html( $clear_label ) . '</a>';
+			$html     .= '<a class="shift64-woo-search-pill__clear" href="' . esc_url( $clear_url ) . '" data-wp-on--click="actions.clear">' . esc_html( $clear_label ) . '</a>';
 		}
 		$html .= '<button type="submit" class="shift64-woo-search-pill__apply wp-element-button">' . esc_html( $apply_label ) . '</button>';
 		$html .= '</div></form></div></details>';
@@ -160,7 +204,9 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 * Clear the per-request selection cache (tests).
 	 */
 	public static function reset() {
-		self::$selections = null;
+		self::$selections    = null;
+		self::$parent_id     = '';
+		self::$pill_sequence = 0;
 	}
 
 	/**
@@ -201,7 +247,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 
 		$url = Shift64_Woo_Search_Catalog_State::build_url( $this->current_url(), $changes );
 
-		return '<a class="shift64-woo-search-product-filters__clear-all" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
+		return '<a class="shift64-woo-search-product-filters__clear-all" href="' . esc_url( $url ) . '" data-wp-on--click="actions.clearAll">' . esc_html( $label ) . '</a>';
 	}
 
 	/**

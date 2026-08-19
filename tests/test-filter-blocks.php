@@ -125,7 +125,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'shift64-woo-search-product-filters', $html );
 		$this->assertStringContainsString( 'data-wp-router-region', $html );
-		$this->assertStringContainsString( '<details class="shift64-woo-search-pill__disclosure">', $html );
+		$this->assertStringContainsString( '<details class="shift64-woo-search-pill__disclosure"', $html );
 		$this->assertStringContainsString( 'shift64-woo-search-pill__trigger', $html );
 		$this->assertStringContainsString( 'name="filter_product_cat[]"', $html );
 		$this->assertStringContainsString( 'value="lamps"', $html );

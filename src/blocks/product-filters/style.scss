@@ -3,12 +3,34 @@
  * Pill trigger/panel styles live with the Filter Pill child.
  */
 .shift64-woo-search-product-filters {
+	// Stacking tokens: backdrop above page controls, tray above backdrop.
+	--s64ws-pill-backdrop-z: 40;
+	--s64ws-pill-tray-z: 50;
+
 	// The flex layout itself comes from the block's layout support; this is
 	// only the fallback gap for themes without blockGap output.
 	&:not(.is-layout-flex) {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.5rem;
+	}
+
+	&__backdrop {
+		background: rgba(0, 0, 0, 0.4);
+		display: none;
+		inset: 0;
+		position: fixed;
+		z-index: var(--s64ws-pill-backdrop-z, 40);
+
+		&[hidden] {
+			display: none;
+		}
+
+		@media (max-width: 782px) {
+			&:not([hidden]) {
+				display: block;
+			}
+		}
 	}
 
 	&__clear-all {
