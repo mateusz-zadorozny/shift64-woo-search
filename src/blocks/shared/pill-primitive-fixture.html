@@ -1,0 +1,114 @@
+<!doctype html>
+<!--
+	Visual fixture for the shared pill trigger/panel primitive.
+
+	Open this file in a browser next to build/blocks/filter-pill/style-index.css
+	(or the theme'd storefront) to review the primitive's states without a
+	WordPress install, and reuse it from downstream controls (Product Sort) to
+	prove selector parity without importing the Product Filters store.
+	pill-primitive.test.js asserts every contract selector below exists in the
+	shared stylesheet and in the documentation.
+-->
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Shift64 pill primitive fixture</title>
+	<link rel="stylesheet" href="../../../build/blocks/filter-pill/style-index.css" />
+	<style>
+		body { font-family: sans-serif; margin: 2rem; }
+		section { margin-bottom: 3rem; }
+	</style>
+</head>
+<body>
+	<h1>Pill primitive states</h1>
+
+	<section>
+		<h2>Closed, no selection</h2>
+		<div class="shift64-woo-search-product-filters">
+			<div class="shift64-woo-search-pill">
+				<details class="shift64-woo-search-pill__disclosure">
+					<summary class="shift64-woo-search-pill__trigger">
+						<span class="shift64-woo-search-pill__label">Material</span>
+						<span class="shift64-woo-search-pill__chevron" aria-hidden="true"></span>
+					</summary>
+					<div class="shift64-woo-search-pill__panel"></div>
+				</details>
+			</div>
+		</div>
+	</section>
+
+	<section>
+		<h2>Open, selection and counts</h2>
+		<div class="shift64-woo-search-product-filters">
+			<div class="shift64-woo-search-pill">
+				<details class="shift64-woo-search-pill__disclosure" open>
+					<summary class="shift64-woo-search-pill__trigger">
+						<span class="shift64-woo-search-pill__label">Material</span>
+						<span class="shift64-woo-search-pill__summary-count"><span>2</span></span>
+						<span class="shift64-woo-search-pill__chevron" aria-hidden="true"></span>
+					</summary>
+					<div class="shift64-woo-search-pill__panel">
+						<p class="shift64-woo-search-pill__heading">Material</p>
+						<form class="shift64-woo-search-pill__form">
+							<ul class="shift64-woo-search-pill__options">
+								<li class="shift64-woo-search-pill__option">
+									<label>
+										<input type="checkbox" checked />
+										<span class="shift64-woo-search-pill__option-label">Cotton</span>
+										<span class="shift64-woo-search-pill__count">12</span>
+									</label>
+								</li>
+								<li class="shift64-woo-search-pill__option">
+									<label>
+										<input type="checkbox" checked />
+										<span class="shift64-woo-search-pill__option-label">Wool</span>
+										<span class="shift64-woo-search-pill__count">0</span>
+									</label>
+								</li>
+								<li class="shift64-woo-search-pill__option">
+									<label>
+										<input type="checkbox" />
+										<span class="shift64-woo-search-pill__option-label">Linen</span>
+										<span class="shift64-woo-search-pill__count">7</span>
+									</label>
+								</li>
+							</ul>
+							<div class="shift64-woo-search-pill__actions">
+								<a class="shift64-woo-search-pill__clear" href="#">Clear</a>
+								<button type="submit" class="shift64-woo-search-pill__apply">Apply</button>
+							</div>
+						</form>
+					</div>
+				</details>
+			</div>
+			<a class="shift64-woo-search-product-filters__clear-all" href="#">Clear all</a>
+			<div class="shift64-woo-search-product-filters__backdrop" hidden></div>
+		</div>
+	</section>
+
+	<section>
+		<h2>Radio (single-selection) variant — what Product Sort consumes</h2>
+		<div class="shift64-woo-search-product-filters">
+			<div class="shift64-woo-search-pill">
+				<details class="shift64-woo-search-pill__disclosure" open>
+					<summary class="shift64-woo-search-pill__trigger">
+						<span class="shift64-woo-search-pill__label">Sort by</span>
+						<span class="shift64-woo-search-pill__chevron" aria-hidden="true"></span>
+					</summary>
+					<div class="shift64-woo-search-pill__panel">
+						<p class="shift64-woo-search-pill__heading">Sort by</p>
+						<ul class="shift64-woo-search-pill__options">
+							<li class="shift64-woo-search-pill__option">
+								<label><input type="radio" name="sort" checked /> <span class="shift64-woo-search-pill__option-label">Relevance</span></label>
+							</li>
+							<li class="shift64-woo-search-pill__option">
+								<label><input type="radio" name="sort" /> <span class="shift64-woo-search-pill__option-label">Price: low to high</span></label>
+							</li>
+						</ul>
+					</div>
+				</details>
+			</div>
+		</div>
+	</section>
+</body>
+</html>
