@@ -1617,3 +1617,92 @@ body.shift64-woo-search-modal-open {
     overflow-y: auto;
     opacity: 0.95;
 }
+
+/* ================================================================
+   Product Sort Block (Pill Trigger)
+   ================================================================ */
+.shift64-woo-search-product-sort {
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    border-radius: 9999px;
+}
+
+.shift64-woo-search-product-sort__form {
+    margin: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    border-radius: inherit;
+}
+
+.shift64-woo-search-product-sort__control {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    border-radius: inherit;
+    width: 100%;
+}
+
+.shift64-woo-search-product-sort__select {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    margin: 0;
+    padding: 8px 36px 8px 18px;
+    font-family: inherit;
+    font-size: var(--wp--preset--font-size--small, 14px);
+    font-weight: 500;
+    line-height: 1.4;
+    color: inherit;
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: inherit;
+    cursor: pointer;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    outline: none;
+    box-shadow: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Default pill styling when block wrapper does NOT have custom background or text color */
+:where(.shift64-woo-search-product-sort:not(.has-background):not([style*="background"])) {
+    background-color: #f3f4f6;
+}
+
+:where(.shift64-woo-search-product-sort:not(.has-text-color):not([style*="color"])) {
+    color: #111827;
+}
+
+:where(.shift64-woo-search-product-sort:not(.has-background):not([style*="background"])):hover {
+    background-color: #e5e7eb;
+}
+
+.shift64-woo-search-product-sort__select:focus-visible {
+    outline: 2px solid var(--shift64-woo-search-brand-color, #183e86);
+    outline-offset: 2px;
+}
+
+.shift64-woo-search-product-sort__chevron {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    color: currentColor;
+    opacity: 0.75;
+}
+
+.shift64-woo-search-product-sort__chevron svg {
+    display: block;
+    width: 12px;
+    height: 12px;
+}
+

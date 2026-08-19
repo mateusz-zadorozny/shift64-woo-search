@@ -855,19 +855,26 @@ class Shift64_Woo_Search_Blocks {
 				<label for="<?php echo esc_attr( $select_id ); ?>" class="screen-reader-text">
 					<?php esc_html_e( 'Sort by', 'shift64-woo-search' ); ?>
 				</label>
-				<select
-					id="<?php echo esc_attr( $select_id ); ?>"
-					name="orderby"
-					class="orderby shift64-woo-search-product-sort__select"
-					aria-label="<?php esc_attr_e( 'Shop order', 'shift64-woo-search' ); ?>"
-					data-wp-on--change="actions.onSortChange"
-				>
-					<?php foreach ( $rendered_options as $slug => $label ) : ?>
-						<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $effective_sort, $slug ); ?>>
-							<?php echo esc_html( $label ); ?>
-						</option>
-					<?php endforeach; ?>
-				</select>
+				<div class="shift64-woo-search-product-sort__control">
+					<select
+						id="<?php echo esc_attr( $select_id ); ?>"
+						name="orderby"
+						class="orderby shift64-woo-search-product-sort__select"
+						aria-label="<?php esc_attr_e( 'Shop order', 'shift64-woo-search' ); ?>"
+						data-wp-on--change="actions.onSortChange"
+					>
+						<?php foreach ( $rendered_options as $slug => $label ) : ?>
+							<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $effective_sort, $slug ); ?>>
+								<?php echo esc_html( $label ); ?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+					<span class="shift64-woo-search-product-sort__chevron" aria-hidden="true">
+						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+							<polyline points="6 9 12 15 18 9"></polyline>
+						</svg>
+					</span>
+				</div>
 				<?php
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				foreach ( $_GET as $key => $val ) {
