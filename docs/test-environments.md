@@ -132,6 +132,14 @@ through `docker exec` into the run's container. The wp-cli shim also pins
 128M default extracts WordPress without OOMing. Native Windows remains out of
 scope (`om-prepare-test-env` owns that path).
 
+No GNU coreutils are required on macOS. The per-worktree hash that names the
+run directory, the MySQL socket and both databases is a SHA-1 of the worktree
+path, computed with the first of `sha1sum`, `shasum` or `openssl` found on
+`PATH` — all three produce the same digest, and stock macOS satisfies the
+requirement through `shasum`. A host with none of the three stops immediately
+naming all three, rather than dying with a bare `command not found` before
+preflight can report anything.
+
 When a Docker fallback is required, preflight verifies the daemon rather than
 only the CLI. On macOS with `/Applications/Docker.app`, it starts Docker
 Desktop and waits up to 90 seconds. Other hosts fail before provisioning with
@@ -190,7 +198,9 @@ Playwright — must never be added to `.ai/agentic.config.json`
 `tests/env/test-env-discovery.sh` is the cheap half: it sources `test-env.sh`
 (sourcing loads the helpers without dispatching a command) and asserts the pure
 logic — PHP discovery returns a bare executable path even when the candidate
-binary is noisy on stdout, and `RUN_DIR` is anchored to `TEST_ENV_RUN_ROOT` /
-`$XDG_CACHE_HOME` and never to `$TMPDIR`. It provisions nothing, needs no PHP
+binary is noisy on stdout, `RUN_DIR` is anchored to `TEST_ENV_RUN_ROOT` /
+`$XDG_CACHE_HOME` and never to `$TMPDIR`, and `WORKTREE_HASH` is byte-identical
+whichever of `sha1sum`/`shasum`/`openssl` the host exposes. It provisions
+nothing, needs no PHP
 (the candidates are stubs) and runs in seconds, so it *is* part of the per-PR
 `Tests (PHP 8.3)` job.
