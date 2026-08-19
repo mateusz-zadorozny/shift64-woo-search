@@ -279,11 +279,24 @@ jobs:
           npm run build:blocks
           git diff --exit-code -- build/
 
+      - name: Resolve Playwright version
+        id: playwright-version
+        # Keyed on the resolved Playwright version, NOT on hashFiles('package-lock.json').
+        # semantic-release rewrites the version field inside package-lock.json on every
+        # release, so a lockfile hash invalidates this cache every time a release lands —
+        # for a reason that has nothing to do with Playwright. Observed on this PR: runs
+        # 32238355177 and 32238622459 produced different keys minutes apart because
+        # `chore(release): 0.16.2` landed between them. The installed package's own
+        # version changes exactly when the browser revision does, which is the only thing
+        # this cache should track.
+        run: |
+          echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Cache Playwright browsers
         uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
 
       - name: Install Playwright Chromium
         # No `--with-deps` on purpose, and bounded on purpose. `--with-deps` shells
