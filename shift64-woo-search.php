@@ -66,6 +66,7 @@ require_once SHIFT64_WOO_SEARCH_PATH . 'includes/interface-shift64-woo-search-fa
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-facet-registry.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-facets.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-facet-eligibility.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-editor-facets-rest.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-archive.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-attribute-auto-register.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-taxonomy-archive.php';
@@ -347,6 +348,7 @@ class Shift64_Woo_Search_Plugin {
 		$frontend = new Shift64_Woo_Search_Frontend();
 		new Shift64_Woo_Search_Blocks( $frontend );
 		new Shift64_Woo_Search_Catalog_Navigation();
+		new Shift64_Woo_Search_Editor_Facets_Rest();
 
 		// Frontend autocomplete and search integrations.
 		if ( ! is_admin() ) {
