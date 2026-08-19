@@ -1,3 +1,10 @@
+## [0.16.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.16.1...v0.16.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* **tooling:** resolve the worktree SHA-1 without GNU coreutils ([#69](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/69)) ([14644c8](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/14644c81943df57b24a5922f3628b9b4998ba7b7)), closes [#68](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/68)
+
 ## [0.16.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.16.0...v0.16.1) (2026-08-18)
 
 
