@@ -279,8 +279,37 @@ jobs:
           npm run build:blocks
           git diff --exit-code -- build/
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        # No `--with-deps` on purpose, and bounded on purpose. `--with-deps` shells
+        # out to apt as root, and a wedged Azure apt mirror hangs it with no output
+        # and no timeout of its own: in run 32228732727 this step printed the first
+        # mirrorlist line and then sat silent for 18 minutes until the job's
+        # `timeout-minutes: 20` killed it, never reaching the browser download at
+        # all. ubuntu-latest already ships Chromium's shared libraries, so the apt
+        # pass bought nothing but that tail. If a runner image ever drops one, the
+        # suite fails immediately on browser launch with an explicit missing-library
+        # error — the fix is a `playwright install-deps chromium` step wrapped in
+        # this same timeout/retry, NOT restoring `--with-deps` unbounded.
+        #
+        # The retry loop mirrors the readiness loop in "Start wp server" above:
+        # three bounded attempts cap the worst case at ~9 minutes and end in a real
+        # error, instead of silently consuming the whole job budget.
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 180 npx playwright install chromium; then
+              exit 0
+            fi
+            echo "playwright install attempt ${attempt} failed or timed out after 180s" >&2
+            sleep 5
+          done
+          echo "playwright install chromium failed after 3 bounded attempts" >&2
+          exit 1
 
       - name: Run Playwright suite
         env:
