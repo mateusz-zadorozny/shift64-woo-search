@@ -282,9 +282,10 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 
 		// Determine sort mode.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public archive sorting uses a read-only GET parameter.
-		$orderby   = isset( $_GET['orderby'] ) ? sanitize_text_field( wp_unslash( $_GET['orderby'] ) ) : 'relevance';
-		$is_price  = in_array( $orderby, array( 'price', 'price-desc' ), true );
-		$price_dir = ( 'price-desc' === $orderby ) ? 'DESC' : 'ASC';
+		$requested_orderby = isset( $_GET['orderby'] ) ? sanitize_text_field( wp_unslash( $_GET['orderby'] ) ) : null;
+		$orderby           = Shift64_Woo_Search_Sort::get_effective_sort( $requested_orderby, true );
+		$sort_res          = Shift64_Woo_Search_Sort::resolve_mode( $orderby );
+		$sort_mode         = $sort_res['mode'];
 
 		// Parse facet filter parameters from URL.
 		$this->active_filters = $this->parse_filter_params();
@@ -313,19 +314,50 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 
 		$this->log( 'Terms', $terms );
 
-		$strategy     = $config['strategy'] ?? 'strict_first';
-		$price_mode   = get_option( 'shift64_woo_search_price_sort_mode', 'redis' );
-		$use_wc_price = $is_price && 'db' === $price_mode && is_user_logged_in();
-		$redis_sort   = $is_price && ! $use_wc_price ? "price {$price_dir}" : null;
+		$strategy = $config['strategy'] ?? 'strict_first';
 
-		if ( $use_wc_price ) {
-			$this->log( 'Price sort mode', 'WC (logged-in user — B2B prices from DB)' );
-			// Get ALL matching IDs from Redis (no pagination — WC will paginate).
-			$result = $this->execute_search( $search_query, $search_term, $strategy, $config, 1000, 1, null, $this->active_filters );
-		} else {
-			$this->log( 'Sort mode', $redis_sort ? "Redis SORTBY {$redis_sort}" : 'Redis relevance' );
-			$result = $this->execute_search( $search_query, $search_term, $strategy, $config, $per_page, $paged, $redis_sort, $this->active_filters );
+		if ( Shift64_Woo_Search_Sort::MODE_WC === $sort_mode ) {
+			$candidate_limit = Shift64_Woo_Search_Sort::get_candidate_limit();
+			$this->log( 'Sort mode', 'WC candidate pass-through (' . $orderby . ')' );
+			$result = $this->execute_candidate_search( $search_query, $search_term, $strategy, $config, $candidate_limit, $this->active_filters );
+
+			if ( false === $result ) {
+				$this->log( 'Redis search failed — falling back to MySQL' );
+				return;
+			}
+
+			if ( $result['total'] > $candidate_limit ) {
+				$this->log( sprintf( 'wc-sort candidate limit exceeded (%d > %d) — native fallback', $result['total'], $candidate_limit ) );
+				return;
+			}
+
+			$post_ids          = $result['ids'];
+			$this->redis_total = $result['total'];
+			$this->log( 'Results', "candidate_total={$this->redis_total} matched_ids=" . count( $post_ids ) );
+
+			$this->facet_data = $this->compute_facets( $search_query, $search_term, $this->active_filters );
+			Shift64_Woo_Search_Facet_Registry::set_current( $this );
+
+			if ( empty( $post_ids ) ) {
+				$post_ids = array( 0 );
+			}
+
+			$query->set( 'post__in', $post_ids );
+			$query->set( 's', '' );
+			$query->set( 'post_type', 'product' );
+			$query->set( 'orderby', $orderby );
+
+			add_filter( 'the_posts', array( $this, 'restore_search_query_var' ), 5, 2 );
+			$this->log( 'Injected post__in + WC orderby=' . $orderby );
+			return;
 		}
+
+		$sort_label = $sort_res['sort_by']
+			? "Redis SORTBY {$sort_res['sort_by']}"
+			: ( Shift64_Woo_Search_Sort::MODE_REDIS_COMPOSITE === $sort_mode ? 'Redis composite (menu_order, title)' : 'Redis relevance' );
+		$this->log( 'Sort mode', $sort_label );
+
+		$result = $this->execute_search( $search_query, $search_term, $strategy, $config, $per_page, $paged, $sort_res, $this->active_filters );
 
 		if ( false === $result ) {
 			$this->log( 'Redis search failed — falling back to MySQL' );
@@ -352,35 +384,18 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		$query->set( 'post__in', $post_ids );
 		$query->set( 's', '' ); // Clear search — prevents MySQL LIKE query.
 		$query->set( 'post_type', 'product' );
+		$query->set( 'orderby', 'post__in' );
 
-		// The blank `s` only has to survive until the SQL is built. Everything
-		// that renders afterwards — the WooCommerce breadcrumb, theme search
-		// headings, the search field — reads the term back through
-		// get_search_query(), so put it back as soon as the posts are in.
+		// The blank `s` only has to survive until the SQL is built.
 		add_filter( 'the_posts', array( $this, 'restore_search_query_var' ), 5, 2 );
 
-		if ( $use_wc_price ) {
-			// WC handles pagination — keep paged as-is.
-			// Let WC sort by actual customer prices. WP handles pagination.
-			$query->set( 'orderby', 'price' === $orderby ? 'meta_value_num' : 'meta_value_num' );
-			$query->set( 'order', $price_dir );
-			// WC price sorting uses this meta query internally, but we set post__in
-			// to limit to Redis candidate set. WC's own orderby hook will handle the rest.
-			$query->set( 'orderby', $orderby );
-			$this->log( 'Injected post__in + WC orderby=' . $orderby );
-		} else {
-			$query->set( 'orderby', 'post__in' );
-			// Redis already paginated — reset paged to 1 so WordPress doesn't
-			// apply a second OFFSET on top of the already-sliced result set.
-			// Restore real paged after SQL executes so WooCommerce displays
-			// the correct "Showing X–Y of Z" range.
-			$this->real_paged = $paged;
-			$query->set( 'paged', 1 );
-			add_filter( 'the_posts', array( $this, 'restore_paged' ), 10, 2 );
-			$this->log( 'Injected post__in + orderby=post__in' );
-			// Override found_posts for correct pagination (Redis handles paging).
-			add_filter( 'found_posts', array( $this, 'override_found_posts' ), 10, 2 );
-		}
+		// Redis already paginated — reset paged to 1 so WordPress doesn't
+		// apply a second OFFSET on top of the already-sliced result set.
+		$this->real_paged = $paged;
+		$query->set( 'paged', 1 );
+		add_filter( 'the_posts', array( $this, 'restore_paged' ), 10, 2 );
+		$this->log( 'Injected post__in + orderby=post__in' );
+		add_filter( 'found_posts', array( $this, 'override_found_posts' ), 10, 2 );
 	}
 
 	/**
@@ -442,6 +457,63 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	}
 
 	/**
+	 * Execute candidate search for WC pass-through mode without pagination.
+	 *
+	 * @param Shift64_Woo_Search_Query $search_query Query service.
+	 * @param string                   $search_term  Original search term.
+	 * @param string                   $strategy     Retrieval strategy.
+	 * @param array                    $config       Search configuration.
+	 * @param int                      $limit        Maximum candidate count.
+	 * @param array                    $filters      Active facet filters from URL.
+	 * @return array|false
+	 */
+	private function execute_candidate_search( $search_query, $search_term, $strategy, $config, $limit, $filters = array() ) {
+		$redis      = Shift64_Woo_Search_Redis::get_instance();
+		$index_name = $redis->get_index_name();
+		$sanitized  = $search_query->sanitize_query( $search_term );
+		$terms      = $search_query->get_search_terms( $sanitized );
+
+		// Pass 1: Strict (prefix).
+		$ft_query = $search_query->build_strict_query( $terms, $filters, null, 'search' );
+		$this->log( 'Candidate Pass 1 (strict)', $ft_query );
+		$t0     = microtime( true );
+		$result = $this->ft_search_with_offset( $redis, $index_name, $ft_query, 0, $limit, null );
+		$this->log( 'Candidate Pass 1 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+
+		// Pass 2: Token reduction fallback.
+		if ( $this->is_empty_result( $result ) && ! empty( $config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
+			$reduced = $search_query->reduce_tokens( $terms );
+			if ( count( $reduced ) < count( $terms ) && ! empty( $reduced ) ) {
+				$ft_query = $search_query->build_strict_query( $reduced, $filters, null, 'search' );
+				$this->log( 'Candidate Pass 2 (token reduced)', $ft_query );
+				$t0     = microtime( true );
+				$result = $this->ft_search_with_offset( $redis, $index_name, $ft_query, 0, $limit, null );
+				$this->log( 'Candidate Pass 2 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+			}
+		}
+
+		// Pass 3: OR prefix fallback.
+		if ( $this->is_empty_result( $result ) && 'AND' === strtoupper( $config['logic'] ?? 'OR' ) ) {
+			$ft_query = $search_query->build_strict_query( $terms, $filters, 'OR', 'search' );
+			$this->log( 'Candidate Pass 3 (or_prefix)', $ft_query );
+			$t0     = microtime( true );
+			$result = $this->ft_search_with_offset( $redis, $index_name, $ft_query, 0, $limit, null );
+			$this->log( 'Candidate Pass 3 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+		}
+
+		// Pass 4: Fuzzy fallback.
+		if ( 'strict_first' === $strategy && $this->is_empty_result( $result ) ) {
+			$ft_query = $search_query->build_fuzzy_query( $terms, $filters, null, 'search' );
+			$this->log( 'Candidate Pass 4 (fuzzy)', $ft_query );
+			$t0     = microtime( true );
+			$result = $this->ft_search_with_offset( $redis, $index_name, $ft_query, 0, $limit, null );
+			$this->log( 'Candidate Pass 4 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Execute Redis search with the full fallback chain.
 	 *
 	 * Returns array with 'ids' and 'total', or false on failure.
@@ -452,11 +524,11 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	 * @param array                    $config       Search configuration.
 	 * @param int                      $per_page     Products per page.
 	 * @param int                      $paged        Requested page.
-	 * @param string|null              $sort     Optional Redis SORTBY, e.g. "price ASC".
-	 * @param array                    $filters  Active facet filters from URL.
+	 * @param array                    $sort_res     Resolved sort mode and parameters.
+	 * @param array                    $filters      Active facet filters from URL.
 	 * @return array|false
 	 */
-	private function execute_search( $search_query, $search_term, $strategy, $config, $per_page, $paged, $sort = null, $filters = array() ) {
+	private function execute_search( $search_query, $search_term, $strategy, $config, $per_page, $paged, $sort_res = array(), $filters = array() ) {
 		$redis         = Shift64_Woo_Search_Redis::get_instance();
 		$index_name    = $redis->get_index_name();
 		$sanitized     = $search_query->sanitize_query( $search_term );
@@ -464,23 +536,22 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		$stock_mode    = $config['outofstock_mode'] ?? 'exclude';
 		$demote_factor = (float) ( $config['outofstock_demote_factor'] ?? 0.3 );
 
-		// For relevance ordering, fetch a larger batch, re-rank in PHP, then paginate.
-		$relevance_mode = ( null === $sort );
+		$sort_mode      = $sort_res['mode'] ?? Shift64_Woo_Search_Sort::MODE_RELEVANCE;
+		$relevance_mode = ( Shift64_Woo_Search_Sort::MODE_RELEVANCE === $sort_mode );
+
 		if ( $relevance_mode ) {
 			$offset      = 0;
 			$fetch_limit = max( $per_page * $paged * 3, 300 );
 		} else {
 			$offset      = ( $paged - 1 ) * $per_page;
-			$fetch_limit = ( 'demote' === $stock_mode ) ? $per_page * 3 : $per_page;
+			$fetch_limit = ( 'demote' === $stock_mode && Shift64_Woo_Search_Sort::MODE_REDIS === $sort_mode ) ? $per_page * 3 : $per_page;
 		}
 
 		// Pass 1: Strict (prefix).
 		$ft_query = $search_query->build_strict_query( $terms, $filters, null, 'search' );
 		$this->log( 'Pass 1 (strict)', $ft_query );
 		$t0     = microtime( true );
-		$result = $relevance_mode
-			? $this->ft_search_relevance( $redis, $index_name, $ft_query, $terms, $fetch_limit, false, $stock_mode, $demote_factor )
-			: $this->ft_search_with_offset( $redis, $index_name, $ft_query, $offset, $fetch_limit, $sort );
+		$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, false, $stock_mode, $demote_factor );
 		$this->log( 'Pass 1 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 
 		// Pass 2: Token reduction fallback.
@@ -490,9 +561,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 				$ft_query = $search_query->build_strict_query( $reduced, $filters, null, 'search' );
 				$this->log( 'Pass 2 (token reduced)', $ft_query );
 				$t0     = microtime( true );
-				$result = $relevance_mode
-					? $this->ft_search_relevance( $redis, $index_name, $ft_query, $terms, $fetch_limit, false, $stock_mode, $demote_factor )
-					: $this->ft_search_with_offset( $redis, $index_name, $ft_query, $offset, $fetch_limit, $sort );
+				$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, false, $stock_mode, $demote_factor );
 				$this->log( 'Pass 2 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 			}
 		}
@@ -502,31 +571,17 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			$ft_query = $search_query->build_strict_query( $terms, $filters, 'OR', 'search' );
 			$this->log( 'Pass 3 (or_prefix)', $ft_query );
 			$t0     = microtime( true );
-			$result = $relevance_mode
-				? $this->ft_search_relevance( $redis, $index_name, $ft_query, $terms, $fetch_limit, true, $stock_mode, $demote_factor )
-				: $this->ft_search_with_offset( $redis, $index_name, $ft_query, $offset, $fetch_limit, $sort );
+			$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, true, $stock_mode, $demote_factor );
 			$this->log( 'Pass 3 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 		}
 
-		// Pass 4: Fuzzy fallback. Score-filtered to match Query::search(), which
-		// drops sub-threshold fuzzy matches — without this the archive kept
-		// noise autocomplete had already discarded. Prefix passes above are
-		// deliberately not filtered. See Query::filter_low_scores().
-		//
-		// Known limit: price-sorted requests take the ft_search_with_offset()
-		// branch, which asks Redis to sort and so never fetches scores. A
-		// fuzzy pass under ?orderby=price therefore stays unfiltered and can
-		// still show what autocomplete would drop. Filtering it would mean
-		// re-fetching with WITHSCORES and paginating in PHP, losing the point
-		// of the SORTBY branch.
+		// Pass 4: Fuzzy fallback.
 		if ( 'strict_first' === $strategy && $this->is_empty_result( $result ) ) {
 			$ft_query = $search_query->build_fuzzy_query( $terms, $filters, null, 'search' );
 			$this->log( 'Pass 4 (fuzzy)', $ft_query );
 			$t0        = microtime( true );
 			$min_score = (float) ( $config['fallback_score_threshold'] ?? 0.5 );
-			$result    = $relevance_mode
-				? $this->ft_search_relevance( $redis, $index_name, $ft_query, $terms, $fetch_limit, false, $stock_mode, $demote_factor, $min_score )
-				: $this->ft_search_with_offset( $redis, $index_name, $ft_query, $offset, $fetch_limit, $sort );
+			$result    = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, false, $stock_mode, $demote_factor, $min_score );
 			$this->log( 'Pass 4 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 		}
 
@@ -550,22 +605,141 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	}
 
 	/**
+	 * Dispatch one search pass to the appropriate query executor.
+	 *
+	 * @param Shift64_Woo_Search_Redis $redis         Redis connection.
+	 * @param string                   $index_name    Index name.
+	 * @param string                   $ft_query      RediSearch query.
+	 * @param array                    $sort_res      Resolved sort mode definition.
+	 * @param array                    $terms         Search terms.
+	 * @param int                      $offset        Offset.
+	 * @param int                      $fetch_limit   Limit.
+	 * @param bool                     $or_mode       Whether OR fallback mode is active.
+	 * @param string                   $stock_mode    Out-of-stock mode.
+	 * @param float                    $demote_factor Out-of-stock demote factor.
+	 * @param float                    $min_score     Minimum score threshold.
+	 * @return array|false
+	 */
+	private function execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_mode, $stock_mode, $demote_factor, $min_score = 0.0 ) {
+		$sort_mode = $sort_res['mode'] ?? Shift64_Woo_Search_Sort::MODE_RELEVANCE;
+
+		if ( Shift64_Woo_Search_Sort::MODE_RELEVANCE === $sort_mode ) {
+			return $this->ft_search_relevance( $redis, $index_name, $ft_query, $terms, $fetch_limit, $or_mode, $stock_mode, $demote_factor, $min_score );
+		}
+
+		if ( Shift64_Woo_Search_Sort::MODE_REDIS_COMPOSITE === $sort_mode && ! empty( $sort_res['sort_fields'] ) ) {
+			return $this->ft_aggregate_composite_sort( $redis, $index_name, $ft_query, $offset, $fetch_limit, $sort_res['sort_fields'] );
+		}
+
+		if ( Shift64_Woo_Search_Sort::MODE_REDIS === $sort_mode ) {
+			return $this->ft_search_with_offset( $redis, $index_name, $ft_query, $offset, $fetch_limit, $sort_res['sort_by'] );
+		}
+
+		return $this->ft_search_with_offset( $redis, $index_name, $ft_query, 0, $fetch_limit, null );
+	}
+
+	/**
+	 * Check whether a search result is empty or failed.
+	 *
+	 * @param array|false $result Search result.
+	 * @return bool
+	 */
+	private function is_empty_result( $result ) {
+		return false === $result || ! isset( $result['ids'] ) || empty( $result['ids'] );
+	}
+
+	/**
+	 * Execute FT.AGGREGATE with composite SORTBY for menu_order + title.
+	 *
+	 * @param Shift64_Woo_Search_Redis $redis       Redis service.
+	 * @param string                   $index_name  Index name.
+	 * @param string                   $ft_query    RediSearch query.
+	 * @param int                      $offset      Offset.
+	 * @param int                      $limit       Limit.
+	 * @param array<string,string>     $sort_fields Field => direction map.
+	 * @return array|false
+	 */
+	private function ft_aggregate_composite_sort( $redis, $index_name, $ft_query, $offset, $limit, array $sort_fields ) {
+		$parts        = preg_split( '/\s+/', trim( $ft_query ) );
+		$has_positive = false;
+		foreach ( $parts as $part ) {
+			if ( '' !== $part && '-' !== substr( $part, 0, 1 ) ) {
+				$has_positive = true;
+				break;
+			}
+		}
+		if ( ! $has_positive ) {
+			$ft_query = trim( '* ' . $ft_query );
+		}
+
+		$sortby_args = array();
+		foreach ( $sort_fields as $field => $dir ) {
+			$field_name    = '@' . ltrim( (string) $field, '@' );
+			$sortby_args[] = $field_name;
+			$sortby_args[] = strtoupper( (string) $dir ) === 'DESC' ? 'DESC' : 'ASC';
+		}
+
+		$args   = array(
+			'FT.AGGREGATE',
+			$index_name,
+			$ft_query,
+			'LOAD',
+			'1',
+			'@post_id',
+			'SORTBY',
+			(string) count( $sortby_args ),
+		);
+		$args   = array_merge( $args, $sortby_args );
+		$args[] = 'LIMIT';
+		$args[] = (string) $offset;
+		$args[] = (string) $limit;
+
+		$raw = $redis->raw_command( ...$args );
+		if ( false === $raw || ! is_array( $raw ) || empty( $raw ) ) {
+			return false;
+		}
+
+		$total = max( 0, (int) array_shift( $raw ) );
+		$ids   = array();
+
+		foreach ( $raw as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$rc = count( $row );
+			for ( $j = 0; $j < $rc - 1; $j += 2 ) {
+				if ( 'post_id' === $row[ $j ] || '@post_id' === $row[ $j ] ) {
+					$id = absint( $row[ $j + 1 ] );
+					if ( $id > 0 ) {
+						$ids[] = $id;
+					}
+					break;
+				}
+			}
+		}
+
+		return array(
+			'ids'   => $ids,
+			'total' => $total,
+		);
+	}
+
+	/**
 	 * Execute FT.SEARCH with scores + title for relevance re-ranking.
 	 *
 	 * Fetches a batch from Redis, applies out-of-stock demote and title-start
 	 * boost, then returns re-ranked IDs. When $or_mode is true, also applies
-	 * term-match-count boost/filter (done here because titles are only
-	 * available at this level).
+	 * term-match-count boost/filter.
 	 *
 	 * @param Shift64_Woo_Search_Redis $redis         Redis service.
 	 * @param string                   $index_name    RediSearch index name.
 	 * @param string                   $ft_query      RediSearch query.
 	 * @param array                    $terms         Normalized query terms.
 	 * @param int                      $limit         Candidate limit.
-	 * @param bool                     $or_mode Apply term-match-count boost and filter.
-	 * @param string                   $stock_mode Out-of-stock handling mode.
+	 * @param bool                     $or_mode       Apply term-match-count boost and filter.
+	 * @param string                   $stock_mode    Out-of-stock handling mode.
 	 * @param float                    $demote_factor Out-of-stock score multiplier.
-	 * @param float                    $min_score  Drop results scoring below this; 0 disables.
+	 * @param float                    $min_score     Drop results scoring below this; 0 disables.
 	 * @return array|false
 	 */
 	private function ft_search_relevance( $redis, $index_name, $ft_query, $terms, $limit, $or_mode = false, $stock_mode = 'exclude', $demote_factor = 0.3, $min_score = 0.0 ) {
@@ -627,12 +801,9 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 				);
 			}
 
-			$i += 3; // key + score + fields.
+			$i += 3;
 		}
 
-		// Drop sub-threshold matches before any boost, mirroring Query::search()
-		// which filters ahead of demote/title-start. Total must follow the
-		// filtered set or pagination would advertise pages that cannot render.
 		if ( $min_score > 0 ) {
 			$results = Shift64_Woo_Search_Query::filter_low_scores( $results, $min_score, 'score' );
 			$total   = count( $results );
@@ -655,11 +826,8 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			);
 		}
 
-		// Reuse shared title-start boost from Query class (DRY).
 		$results = Shift64_Woo_Search_Query::boost_title_start( $terms, $results, 'score' );
 
-		// For OR mode: boost by term-match ratio + filter minimum matches.
-		// Done here (not in caller) because titles are only available at this level.
 		if ( $or_mode ) {
 			$results = Shift64_Woo_Search_Query::boost_term_match_count( $terms, $results, 0.4, 'score' );
 			$total   = count( $results );
@@ -684,8 +852,8 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	 * @param string                   $ft_query   RediSearch query.
 	 * @param int                      $offset     Result offset.
 	 * @param int                      $limit      Result limit.
-	 * @param string|null              $sort   Optional "price ASC" or "price DESC".
-	 * @return array|false  ['ids' => int[], 'total' => int]
+	 * @param string|null              $sort       Optional SORTBY clause.
+	 * @return array|false
 	 */
 	private function ft_search_with_offset( $redis, $index_name, $ft_query, $offset, $limit, $sort = null ) {
 		$args = array(
@@ -699,7 +867,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		if ( $sort ) {
 			$parts  = explode( ' ', $sort );
 			$args[] = 'SORTBY';
-			$args[] = $parts[0]; // field name.
+			$args[] = $parts[0];
 			$args[] = isset( $parts[1] ) ? strtoupper( $parts[1] ) : 'ASC';
 		}
 
@@ -718,11 +886,8 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			return false;
 		}
 
-		$total = (int) $raw[0];
-		$ids   = array();
-
-		// Parse: [total, key1, [field_data1], key2, [field_data2], ...]
-		// With RETURN 1 post_id: each result has key + fields array ["post_id", "123"].
+		$total     = (int) $raw[0];
+		$ids       = array();
 		$raw_count = count( $raw );
 		for ( $i = 1; $i < $raw_count; $i += 2 ) {
 			$fields_raw = $raw[ $i + 1 ] ?? array();
@@ -738,20 +903,14 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	}
 
 	/**
-	 * Check if FT.SEARCH result is empty.
+	 * Filter WooCommerce catalog orderby options on search pages.
 	 *
-	 * @param array|false $result Search result.
-	 * @return bool
-	 */
-	private function is_empty_result( $result ) {
-		return false === $result || empty( $result['ids'] );
-	}
-
-	/**
-	 * Limit WC sort options to relevance + price.
+	 * Core WooCommerce removes 'Default sorting' on search results and maps
+	 * default menu_order to relevance. Shift64 prepends relevance and removes
+	 * menu_order in search contexts while retaining the remaining options.
 	 *
-	 * @param array $options Available sort options.
-	 * @return array
+	 * @param array<string,string> $options Available sort options.
+	 * @return array<string,string>
 	 */
 	public function filter_sort_options( $options ) {
 		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
@@ -762,11 +921,18 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			return $options;
 		}
 
-		return array(
-			'relevance'  => __( 'Search relevance', 'shift64-woo-search' ),
-			'price'      => __( 'Price: low to high', 'shift64-woo-search' ),
-			'price-desc' => __( 'Price: high to low', 'shift64-woo-search' ),
+		$filtered = array(
+			'relevance' => __( 'Relevance', 'shift64-woo-search' ),
 		);
+
+		foreach ( $options as $key => $label ) {
+			if ( 'menu_order' === $key ) {
+				continue;
+			}
+			$filtered[ $key ] = $label;
+		}
+
+		return $filtered;
 	}
 
 	/**

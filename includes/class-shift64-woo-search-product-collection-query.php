@@ -210,7 +210,8 @@ class Shift64_Woo_Search_Product_Collection_Query {
 	 * @return array
 	 */
 	public static function apply_result( array $query_vars, Shift64_Woo_Search_Product_Collection_Result $result ) {
-		if ( Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS !== $result->get_status() ) {
+		$status = $result->get_status();
+		if ( Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS !== $status && Shift64_Woo_Search_Product_Collection_Result::STATUS_WC_PASS_THROUGH !== $status ) {
 			return $query_vars;
 		}
 
@@ -228,11 +229,15 @@ class Shift64_Woo_Search_Product_Collection_Query {
 		}
 
 		$query_vars['post__in']           = empty( $ids ) ? array( 0 ) : $ids;
-		$query_vars['orderby']            = 'post__in';
-		$query_vars['paged']              = 1;
-		$query_vars['offset']             = 0;
 		$query_vars['s']                  = '';
 		$query_vars[ self::QUERY_MARKER ] = $result->get_request_key();
+
+		if ( Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS === $status ) {
+			$query_vars['orderby'] = 'post__in';
+			$query_vars['paged']   = 1;
+			$query_vars['offset']  = 0;
+		}
+
 		return $query_vars;
 	}
 

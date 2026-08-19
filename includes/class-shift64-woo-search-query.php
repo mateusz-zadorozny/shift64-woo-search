@@ -1108,12 +1108,15 @@ class Shift64_Woo_Search_Query {
 
 		$index_name = $this->redis->get_index_name();
 
+		if ( is_array( $sort_by ) && ! empty( $sort_by ) ) {
+			return $this->execute_composite_catalog_query( $ft_query, $offset, $per_page, $sort_by );
+		}
+
 		$args = array( 'FT.SEARCH', $index_name, $ft_query, 'LIMIT', (string) $offset, (string) $per_page );
-		if ( is_string( $sort_by ) && '' !== $sort_by ) {
+		if ( is_string( $sort_by ) && '' !== trim( $sort_by ) ) {
 			$sort_parts = explode( ' ', trim( $sort_by ), 2 );
 			$sort_field = $sort_parts[0];
-			// Whitelist the field name shape to prevent Redis command injection if
-			// a caller ever wires user input (e.g. ?orderby=...) into this param.
+			// Whitelist the field name shape to prevent Redis command injection.
 			if ( preg_match( '/^[a-z_][a-z0-9_]*$/i', $sort_field ) ) {
 				$args[] = 'SORTBY';
 				$args[] = $sort_field;
@@ -1165,7 +1168,7 @@ class Shift64_Woo_Search_Query {
 	 * @param array                $filters Validated Redis filters.
 	 * @param int                  $per_page Products per page.
 	 * @param int                  $paged Current page.
-	 * @param string|null          $sort_by Optional Redis sort clause.
+	 * @param string|array|null    $sort_by Optional Redis sort clause or composite fields array.
 	 * @param string|string[]|null $visibility_policy Visibility context.
 	 * @param array                $filter_operators Per-filter `and`/`or` operators.
 	 * @return array{ids:int[],total:int,ok:bool}
@@ -1200,7 +1203,9 @@ class Shift64_Woo_Search_Query {
 		}
 
 		foreach ( $queries as $ft_query ) {
-			$result = $this->execute_catalog_query( $ft_query, $offset, $per_page, $sort_by );
+			$result = is_array( $sort_by ) && ! empty( $sort_by )
+				? $this->execute_composite_catalog_query( $ft_query, $offset, $per_page, $sort_by )
+				: $this->execute_catalog_query( $ft_query, $offset, $per_page, $sort_by );
 			if ( empty( $result['ok'] ) ) {
 				return $result;
 			}
@@ -1225,12 +1230,12 @@ class Shift64_Woo_Search_Query {
 	 * @param string|null $sort_by Sort clause.
 	 * @return array{ids:int[],total:int,ok:bool}
 	 */
-	private function execute_catalog_query( $ft_query, $offset, $limit, $sort_by ) {
+	public function execute_catalog_query( $ft_query, $offset, $limit, $sort_by = null ) {
 		$args = array( 'FT.SEARCH', $this->redis->get_index_name(), $ft_query );
-		if ( is_string( $sort_by ) && preg_match( '/^(price) (ASC|DESC)$/', $sort_by, $matches ) ) {
+		if ( is_string( $sort_by ) && preg_match( '/^([a-z_][a-z0-9_]*)\s+(ASC|DESC)$/i', trim( $sort_by ), $matches ) ) {
 			$args[] = 'SORTBY';
 			$args[] = $matches[1];
-			$args[] = $matches[2];
+			$args[] = strtoupper( $matches[2] );
 		}
 		$args[] = 'LIMIT';
 		$args[] = (string) $offset;
@@ -1268,6 +1273,96 @@ class Shift64_Woo_Search_Query {
 			'total' => $total,
 			'ok'    => true,
 		);
+	}
+
+	/**
+	 * Execute one composite FT.AGGREGATE catalog query.
+	 *
+	 * @param string               $ft_query    RediSearch query.
+	 * @param int                  $offset      Offset.
+	 * @param int                  $limit       Page size.
+	 * @param array<string,string> $sort_fields Map of field => direction (e.g. ['menu_order' => 'ASC', 'title' => 'ASC']).
+	 * @return array{ids:int[],total:int,ok:bool}
+	 */
+	public function execute_composite_catalog_query( $ft_query, $offset, $limit, array $sort_fields ) {
+		$parts        = preg_split( '/\s+/', trim( $ft_query ) );
+		$has_positive = false;
+		foreach ( $parts as $part ) {
+			if ( '' !== $part && '-' !== substr( $part, 0, 1 ) ) {
+				$has_positive = true;
+				break;
+			}
+		}
+		if ( ! $has_positive ) {
+			$ft_query = trim( '* ' . $ft_query );
+		}
+
+		$sortby_args = array();
+		foreach ( $sort_fields as $field => $dir ) {
+			$field_name    = '@' . ltrim( (string) $field, '@' );
+			$sortby_args[] = $field_name;
+			$sortby_args[] = strtoupper( (string) $dir ) === 'DESC' ? 'DESC' : 'ASC';
+		}
+
+		$args   = array(
+			'FT.AGGREGATE',
+			$this->redis->get_index_name(),
+			$ft_query,
+			'LOAD',
+			'1',
+			'@post_id',
+			'SORTBY',
+			(string) count( $sortby_args ),
+		);
+		$args   = array_merge( $args, $sortby_args );
+		$args[] = 'LIMIT';
+		$args[] = (string) $offset;
+		$args[] = (string) $limit;
+
+		$raw = $this->redis->raw_command( ...$args );
+		if ( false === $raw || ! is_array( $raw ) || empty( $raw ) ) {
+			return array(
+				'ids'   => array(),
+				'total' => 0,
+				'ok'    => false,
+			);
+		}
+
+		$total = max( 0, (int) array_shift( $raw ) );
+		$ids   = array();
+
+		foreach ( $raw as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$rc = count( $row );
+			for ( $j = 0; $j < $rc - 1; $j += 2 ) {
+				if ( 'post_id' === $row[ $j ] || '@post_id' === $row[ $j ] ) {
+					$id = absint( $row[ $j + 1 ] );
+					if ( $id > 0 ) {
+						$ids[] = $id;
+					}
+					break;
+				}
+			}
+		}
+
+		return array(
+			'ids'   => $ids,
+			'total' => $total,
+			'ok'    => true,
+		);
+	}
+
+	/**
+	 * Fetch candidate product IDs from Redis without slicing or sorting.
+	 *
+	 * @param string $ft_query RediSearch query string.
+	 * @param int    $limit    Maximum candidate IDs to fetch.
+	 * @return array{ids:int[],total:int,ok:bool}
+	 */
+	public function fetch_candidate_ids( $ft_query, $limit ) {
+		return $this->execute_catalog_query( $ft_query, 0, $limit, null );
 	}
 
 	/**

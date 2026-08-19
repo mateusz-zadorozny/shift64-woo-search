@@ -43,9 +43,8 @@ class Shift64_Woo_Search_Product_Collection_Query_Service {
 			return $this->fallback( $context, $state );
 		}
 
-		if ( ! in_array( $state->get_sort(), array( 'relevance', 'price', 'price-desc' ), true ) ) {
-			return $this->fallback( $context, $state );
-		}
+		$sort_res  = Shift64_Woo_Search_Sort::resolve_mode( $state->get_sort() );
+		$sort_mode = $sort_res['mode'];
 
 		$query = $this->search_query ?? new Shift64_Woo_Search_Query( $redis );
 		$scope = array();
@@ -54,11 +53,67 @@ class Shift64_Woo_Search_Product_Collection_Query_Service {
 			$scope[ $map[ $context->get_taxonomy() ]['filter_key'] ] = array( $context->get_term_name() );
 		}
 
+		if ( Shift64_Woo_Search_Sort::MODE_WC === $sort_mode ) {
+			$candidate_limit = Shift64_Woo_Search_Sort::get_candidate_limit();
+			if ( '' !== $state->get_search() ) {
+				$result = $query->search_catalog(
+					$state->get_search(),
+					$state->get_redis_filters(),
+					$candidate_limit,
+					1,
+					null,
+					'search',
+					$state->get_redis_operators()
+				);
+				$terms  = $query->get_search_terms( $query->sanitize_query( $state->get_search() ) );
+			} else {
+				$result = $query->search_by_filters(
+					$scope,
+					$state->get_redis_filters(),
+					$candidate_limit,
+					1,
+					null,
+					$context->get_visibility_policy(),
+					$state->get_redis_operators()
+				);
+				$terms  = null;
+			}
+
+			if ( ! is_array( $result ) || ! isset( $result['ids'], $result['total'] ) || empty( $result['ok'] ) ) {
+				return $this->fallback( $context, $state );
+			}
+
+			if ( $result['total'] > $candidate_limit ) {
+				return $this->fallback( $context, $state );
+			}
+
+			$facets = Shift64_Woo_Search_Facets::compute(
+				$query,
+				$scope,
+				$state->get_redis_filters(),
+				$terms,
+				$context->get_visibility_policy(),
+				$state->get_redis_operators()
+			);
+
+			return new Shift64_Woo_Search_Product_Collection_Result(
+				$context->get_request_key(),
+				$result['ids'],
+				$result['total'],
+				$state->get_page(),
+				$context->get_per_page(),
+				$state->get_sort(),
+				$state->get_selected_filters(),
+				$facets,
+				Shift64_Woo_Search_Product_Collection_Result::STATUS_WC_PASS_THROUGH
+			);
+		}
+
 		$sort_by = null;
-		if ( 'price' === $state->get_sort() ) {
-			$sort_by = 'price ASC';
-		} elseif ( 'price-desc' === $state->get_sort() ) {
-			$sort_by = 'price DESC';
+		if ( Shift64_Woo_Search_Sort::MODE_REDIS === $sort_mode ) {
+			$sort_by = $sort_res['sort_by'];
+		} elseif ( Shift64_Woo_Search_Sort::MODE_REDIS_COMPOSITE === $sort_mode ) {
+			$sort_by = $sort_res['sort_fields'];
 		}
 
 		if ( '' !== $state->get_search() ) {

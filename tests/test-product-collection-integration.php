@@ -847,15 +847,31 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Sort modes not yet owned by Redis remain native WooCommerce queries.
+	 * Sort modes using candidate pass-through produce STATUS_WC_PASS_THROUGH when under candidate limit.
 	 */
-	public function test_query_service_preserves_native_sort_modes() {
+	public function test_query_service_uses_wc_pass_through_for_unindexed_or_custom_sorts() {
 		$redis = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
 			->disableOriginalConstructor()
 			->getMock();
-		$query = new Shift64_Woo_Search_Query( $redis );
+		$redis->method( 'get_index_name' )->willReturn( 'shift64_woo_search_product_idx' );
+		$redis->method( 'raw_command' )
+			->willReturnCallback(
+				function () {
+					$args = func_get_args();
+					if ( 'GET' === ( $args[0] ?? '' ) ) {
+						return false;
+					}
+					return array(
+						2,
+						'shift64_woo_search:product:10',
+						array( 'post_id', '10' ),
+						'shift64_woo_search:product:20',
+						array( 'post_id', '20' ),
+					);
+				}
+			);
 
-		$service = new Shift64_Woo_Search_Product_Collection_Query_Service( $query );
+		$service = new Shift64_Woo_Search_Product_Collection_Query_Service( new Shift64_Woo_Search_Query( $redis ) );
 		$context = new Shift64_Woo_Search_Product_Collection_Context( 7, 'pc-7-test', 1, 12, '', '', '', null );
 		$state   = Shift64_Woo_Search_Catalog_State::from_request(
 			$context,
@@ -864,6 +880,162 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 		);
 		$result  = $service->execute( $context, $state );
 
+		$this->assertSame( Shift64_Woo_Search_Product_Collection_Result::STATUS_WC_PASS_THROUGH, $result->get_status() );
+		$this->assertSame( array( 10, 20 ), $result->get_product_ids() );
+	}
+
+	/**
+	 * When candidate count exceeds the ceiling, query service declines interception.
+	 */
+	public function test_query_service_falls_back_when_candidate_ceiling_exceeded() {
+		$filter_cb = function ( $opts ) {
+			$opts['custom_sort'] = 'Custom';
+			return $opts;
+		};
+		add_filter( 'woocommerce_catalog_orderby', $filter_cb );
+
+		$redis = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$redis->method( 'get_index_name' )->willReturn( 'shift64_woo_search_product_idx' );
+		$redis->method( 'raw_command' )
+			->willReturnCallback(
+				function () {
+					$args = func_get_args();
+					if ( 'GET' === ( $args[0] ?? '' ) ) {
+						return false;
+					}
+					return array(
+						15000,
+						'shift64_woo_search:product:10',
+						array( 'post_id', '10' ),
+					);
+				}
+			);
+
+		$service = new Shift64_Woo_Search_Product_Collection_Query_Service( new Shift64_Woo_Search_Query( $redis ) );
+		$context = new Shift64_Woo_Search_Product_Collection_Context( 7, 'pc-7-test', 1, 12, '', '', '', null );
+		$state   = Shift64_Woo_Search_Catalog_State::from_request(
+			$context,
+			array( 'orderby' => 'custom_sort' ),
+			'/shop/'
+		);
+		$result  = $service->execute( $context, $state );
+
+		remove_filter( 'woocommerce_catalog_orderby', $filter_cb );
+
 		$this->assertSame( Shift64_Woo_Search_Product_Collection_Result::STATUS_NATIVE_FALLBACK, $result->get_status() );
+	}
+
+	/**
+	 * Popularity and rating sort modes execute Redis SORTBY queries.
+	 */
+	public function test_query_service_supports_popularity_and_rating_sorts() {
+		$captured = null;
+		$redis    = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$redis->method( 'get_index_name' )->willReturn( 'shift64_woo_search_product_idx' );
+		$redis->method( 'raw_command' )
+			->willReturnCallback(
+				function () use ( &$captured ) {
+					$args = func_get_args();
+					if ( 'GET' === ( $args[0] ?? '' ) ) {
+						return false;
+					}
+					if ( in_array( 'SORTBY', $args, true ) ) {
+						$captured = $args;
+					}
+					return array(
+						1,
+						'shift64_woo_search:product:99',
+						array( 'post_id', '99' ),
+					);
+				}
+			);
+
+		$service = new Shift64_Woo_Search_Product_Collection_Query_Service( new Shift64_Woo_Search_Query( $redis ) );
+		$context = new Shift64_Woo_Search_Product_Collection_Context( 7, 'pc-7-test', 1, 12, '', '', '', null );
+		$state   = Shift64_Woo_Search_Catalog_State::from_request(
+			$context,
+			array( 'orderby' => 'popularity' ),
+			'/shop/'
+		);
+		$result  = $service->execute( $context, $state );
+
+		$this->assertSame( Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS, $result->get_status() );
+		$this->assertSame( 'total_sales', $captured[ array_search( 'SORTBY', $captured, true ) + 1 ] );
+		$this->assertSame( 'DESC', $captured[ array_search( 'SORTBY', $captured, true ) + 2 ] );
+	}
+
+	/**
+	 * Menu order sort mode executes FT.AGGREGATE composite sort query.
+	 */
+	public function test_query_service_supports_composite_menu_order_sort() {
+		$captured = null;
+		$redis    = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$redis->method( 'get_index_name' )->willReturn( 'shift64_woo_search_product_idx' );
+		$redis->method( 'raw_command' )
+			->willReturnCallback(
+				function () use ( &$captured ) {
+					$args = func_get_args();
+					if ( 'GET' === ( $args[0] ?? '' ) ) {
+						return false;
+					}
+					if ( 'FT.AGGREGATE' === ( $args[0] ?? '' ) ) {
+						$captured = $args;
+					}
+					return array(
+						1,
+						array( 'post_id', '42' ),
+					);
+				}
+			);
+
+		$service = new Shift64_Woo_Search_Product_Collection_Query_Service( new Shift64_Woo_Search_Query( $redis ) );
+		$context = new Shift64_Woo_Search_Product_Collection_Context( 7, 'pc-7-test', 1, 12, '', '', '', null );
+		$state   = Shift64_Woo_Search_Catalog_State::from_request(
+			$context,
+			array( 'orderby' => 'menu_order' ),
+			'/shop/'
+		);
+		$result  = $service->execute( $context, $state );
+
+		$this->assertSame( Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS, $result->get_status() );
+		$this->assertSame( 'FT.AGGREGATE', $captured[0] );
+		$this->assertSame( array( 42 ), $result->get_product_ids() );
+	}
+
+	/**
+	 * Query adapter apply_result sets post__in and preserves orderby for WC pass-through.
+	 */
+	public function test_apply_result_preserves_orderby_and_paged_for_wc_pass_through() {
+		$result = new Shift64_Woo_Search_Product_Collection_Result(
+			'pc-7-test',
+			array( 5, 8, 12 ),
+			3,
+			2,
+			12,
+			'date',
+			array(),
+			array(),
+			Shift64_Woo_Search_Product_Collection_Result::STATUS_WC_PASS_THROUGH
+		);
+
+		$query_vars = array(
+			'post_type' => 'product',
+			'orderby'   => 'date',
+			'paged'     => 2,
+			's'         => 'shoes',
+		);
+
+		$applied = Shift64_Woo_Search_Product_Collection_Query::apply_result( $query_vars, $result );
+
+		$this->assertSame( array( 5, 8, 12 ), $applied['post__in'] );
+		$this->assertSame( 'date', $applied['orderby'] );
+		$this->assertSame( 2, $applied['paged'] );
+		$this->assertSame( '', $applied['s'] );
 	}
 }
