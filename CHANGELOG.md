@@ -43,6 +43,7 @@
 
 ### Features
 
+* **sort:** native WooCommerce catalog sorting engine and Product Sort block ([#73](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/73))
 * **blocks:** integrate inherited WooCommerce Product Collections with Redis membership, marker-scoped totals, canonical URL state, and public Interactivity Router navigation while retaining WooCommerce rendering ownership ([#51](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/51))
 
 ### Bug Fixes

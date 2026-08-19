@@ -188,10 +188,35 @@ class Shift64_Woo_Search_Sort {
 	 */
 	public static function get_effective_sort( $requested_sort, $is_search = false ) {
 		if ( is_string( $requested_sort ) && '' !== trim( $requested_sort ) ) {
-			return sanitize_key( $requested_sort );
+			$sanitized = sanitize_key( $requested_sort );
+			if ( self::is_valid_sort( $sanitized ) ) {
+				return $sanitized;
+			}
 		}
 
 		return self::resolve_default_sort( $is_search );
+	}
+
+	/**
+	 * Check whether a sort key is recognized by WooCommerce or registered extensions.
+	 *
+	 * @param string $sort Sort key.
+	 * @return bool
+	 */
+	public static function is_valid_sort( $sort ) {
+		if ( in_array( $sort, self::CANONICAL_KEYS, true ) || in_array( $sort, array( 'rand', 'id', 'title', 'modified' ), true ) ) {
+			return true;
+		}
+
+		if ( function_exists( 'apply_filters' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Read core WooCommerce filter.
+			$options = apply_filters( 'woocommerce_catalog_orderby', array() );
+			if ( is_array( $options ) && isset( $options[ $sort ] ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

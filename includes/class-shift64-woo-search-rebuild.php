@@ -105,6 +105,9 @@ class Shift64_Woo_Search_Rebuild {
 		$indexer           = new Shift64_Woo_Search_Indexer( $redis );
 		$result['indexed'] = (int) $indexer->reindex_all( $progress );
 
+		// Mark date field as indexed so SORTBY date DESC is active.
+		update_option( 'shift64_woo_search_date_indexed', 'yes' );
+
 		// Regenerate the SHORTINIT config so the endpoint sees any schema or
 		// setting change this rebuild introduced.
 		if ( class_exists( 'Shift64_Woo_Search_Plugin' ) && method_exists( 'Shift64_Woo_Search_Plugin', 'get_instance' ) ) {

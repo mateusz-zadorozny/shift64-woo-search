@@ -159,6 +159,9 @@ class Shift64_Woo_Search_Schema {
 			'average_rating',
 			'NUMERIC',
 			'SORTABLE',
+			'date',
+			'NUMERIC',
+			'SORTABLE',
 			'post_id',
 			'NUMERIC',
 			'SORTABLE',
@@ -195,6 +198,18 @@ class Shift64_Woo_Search_Schema {
 		// DD = Drop Documents. Without DD, only the index definition is removed.
 		$result = $redis->raw_command( 'FT.DROPINDEX', $index_name, 'DD' );
 		return $result !== false;
+	}
+
+	/**
+	 * Alter existing schema to add the date field if missing.
+	 *
+	 * @param Shift64_Woo_Search_Redis $redis Redis connection instance.
+	 * @return bool
+	 */
+	public static function alter_schema_add_date( $redis ) {
+		$index_name = $redis->get_index_name();
+		$result     = $redis->raw_command( 'FT.ALTER', $index_name, 'SCHEMA', 'ADD', 'date', 'NUMERIC', 'SORTABLE' );
+		return false !== $result;
 	}
 
 	/**

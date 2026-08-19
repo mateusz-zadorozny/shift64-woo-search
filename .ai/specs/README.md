@@ -16,7 +16,7 @@ and PRs.
 | [Filter Bar Gutenberg Block & Placement Modes](2026-07-21-filter-bar-gutenberg-block-and-placement-modes.md) | superseded | see Product Filter and Filter Pill Blocks |
 | [Admin Settings Information Architecture](2026-07-22-admin-settings-information-architecture.md) | ✅ implemented | PR #33 |
 | [50k Demo Product Generator Scaling](2026-07-27-50k-demo-product-generator-scaling.md) | ✅ implemented | issue #18 |
-| [Native WooCommerce Catalog Sorting Engine and Product Sort Block](2026-07-29-native-woocommerce-catalog-sorting.md) | 🚧 draft | — |
+| [Native WooCommerce Catalog Sorting Engine and Product Sort Block](2026-07-29-native-woocommerce-catalog-sorting.md) | ✅ implemented | PR #73 |
 | [Context-Aware Product Visibility in Redis Queries](2026-07-30-context-aware-product-visibility.md) | ✅ implemented | PR #46 |
 | [Licensing Attribution Correction](2026-07-30-licensing-attribution-correction.md) | ✅ implemented | PR #49 |
 | [readme.txt Publication Readiness](2026-07-30-readme-txt-publication-readiness.md) | ✅ implemented | PR #50 |
