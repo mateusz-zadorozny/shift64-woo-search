@@ -65,6 +65,13 @@ class Shift64_Woo_Search_Facet_Count_Provider {
 	private static $search_query = null;
 
 	/**
+	 * Whether the resolved source was a zero-result envelope.
+	 *
+	 * @var bool
+	 */
+	private static $zero_result = false;
+
+	/**
 	 * Buckets for one Redis facet field, or null when counts are unavailable
 	 * or that dimension degraded (renderers then omit counts, never invent them).
 	 *
@@ -73,8 +80,13 @@ class Shift64_Woo_Search_Facet_Count_Provider {
 	 */
 	public static function get_buckets( $redis_field ) {
 		$facets = self::resolve();
-		if ( ! is_array( $facets ) || ! isset( $facets[ $redis_field ] ) || ! is_array( $facets[ $redis_field ] ) ) {
+		if ( ! is_array( $facets ) ) {
 			return null;
+		}
+		if ( ! isset( $facets[ $redis_field ] ) || ! is_array( $facets[ $redis_field ] ) ) {
+			// On a zero-result page a dimension aggregates to nothing at all;
+			// that is a real "all counts are zero", not a degraded dimension.
+			return self::$zero_result ? array() : null;
 		}
 		return $facets[ $redis_field ];
 	}
@@ -111,7 +123,20 @@ class Shift64_Woo_Search_Facet_Count_Provider {
 		$visibility_policy = null,
 		array $filter_operators = array()
 	) {
-		$key = md5( wp_json_encode( array( $scope_filters, $active_user_filters, $terms, $visibility_policy, $filter_operators ) ) );
+		$encoded = wp_json_encode( array( $scope_filters, $active_user_filters, $terms, $visibility_policy, $filter_operators ) );
+		if ( false === $encoded ) {
+			// Unencodable state (invalid UTF-8): never let every distinct
+			// state collide on one memo slot — compute unmemoized.
+			return Shift64_Woo_Search_Facets::compute(
+				$search_query,
+				$scope_filters,
+				$active_user_filters,
+				$terms,
+				$visibility_policy,
+				$filter_operators
+			);
+		}
+		$key = md5( $encoded );
 		if ( ! isset( self::$memo[ $key ] ) ) {
 			self::$memo[ $key ] = Shift64_Woo_Search_Facets::compute(
 				$search_query,
@@ -142,6 +167,7 @@ class Shift64_Woo_Search_Facet_Count_Provider {
 		self::$status       = self::STATUS_NONE;
 		self::$memo         = array();
 		self::$search_query = null;
+		self::$zero_result  = false;
 	}
 
 	/**
@@ -157,7 +183,12 @@ class Shift64_Woo_Search_Facet_Count_Provider {
 		$envelope = Shift64_Woo_Search_Product_Collection_Results::first_redis();
 		if ( null !== $envelope ) {
 			self::$facets = $envelope->get_facets();
-			self::$status = self::STATUS_ENVELOPE;
+			// A zero-result envelope legitimately aggregates zero buckets in
+			// every dimension; get_buckets() then answers with an empty list
+			// rather than letting a missing key read as "counts unavailable"
+			// (which would flip hideEmpty off and render dead-end options).
+			self::$zero_result = 0 === $envelope->get_total();
+			self::$status      = self::STATUS_ENVELOPE;
 			return self::$facets;
 		}
 
@@ -177,6 +208,16 @@ class Shift64_Woo_Search_Facet_Count_Provider {
 		}
 
 		$state = Shift64_Woo_Search_Catalog_State::from_request( $context );
+
+		// Mirror the query service's sort ownership: for sorts the Redis path
+		// does not own, the collection will serve a native fallback, and
+		// Shift64 counts must not be claimed beside a grid Redis did not
+		// produce.
+		if ( ! in_array( $state->get_sort(), array( 'relevance', 'price', 'price-desc' ), true ) ) {
+			self::$facets = false;
+			self::$status = self::STATUS_UNAVAILABLE;
+			return self::$facets;
+		}
 
 		$scope = array();
 		$map   = Shift64_Woo_Search_Taxonomy_Archive::get_scope_map();

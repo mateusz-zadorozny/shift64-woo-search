@@ -206,8 +206,10 @@ test.describe('Product Filters without JavaScript', () => {
 		await page.locator(APPLY).first().click();
 
 		// The checkbox form submits filter_product_cat[]=slug; the server
-		// normalizes it to the same canonical selection and renders it checked.
-		await expect(page).toHaveURL(new RegExp(`filter_product_cat%5B%5D=${slug}|filter_product_cat\\[\\]=${slug}`));
+		// 302-redirects that array form to the canonical comma form, so the
+		// final URL matches what the JS path would have produced.
+		await expect(page).toHaveURL(new RegExp(`filter_product_cat=${slug}`));
+		await expect(page).not.toHaveURL(/%5B%5D|\[\]/);
 		await expect(page).toHaveURL(/s=series/);
 		await expect(productCards(page).first()).toBeVisible();
 		await page.locator(TRIGGER).first().click();

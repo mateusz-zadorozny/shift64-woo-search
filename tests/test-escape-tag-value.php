@@ -76,4 +76,18 @@ class Escape_Tag_Value_Test extends WP_UnitTestCase {
 		$this->assertSame( 'a\\{b\\}', Shift64_Woo_Search_Query::escape_tag_value( 'a{b}' ) );
 		$this->assertSame( 'a\\(b\\)', Shift64_Woo_Search_Query::escape_tag_value( 'a(b)' ) );
 	}
+
+	/**
+	 * Invalid UTF-8 (legacy latin1 imports) must never yield null — the /u
+	 * regex refuses such subjects, and a null poured into the query string
+	 * produced empty TAG clauses and a silent native fallback.
+	 */
+	public function test_invalid_utf8_falls_back_byte_safe() {
+		$latin1 = "caf\xE9 bar";
+
+		$escaped = Shift64_Woo_Search_Query::escape_tag_value( $latin1 );
+
+		$this->assertIsString( $escaped );
+		$this->assertSame( "caf\xE9\\ bar", $escaped );
+	}
 }

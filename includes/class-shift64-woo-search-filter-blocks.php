@@ -24,6 +24,69 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shift64_Woo_Search_Filter_Blocks {
 
 	/**
+	 * Hook the canonical-URL normalization for no-JS form submissions.
+	 */
+	public function __construct() {
+		add_action( 'template_redirect', array( $this, 'redirect_array_filter_params' ) );
+	}
+
+	/**
+	 * Redirect `filter_x[]=a&filter_x[]=b` (what a no-JS checkbox form
+	 * submits) to the canonical `filter_x=a,b` form.
+	 *
+	 * Only the two new parsers understand the array form; the taxonomy
+	 * archive interceptor, the legacy renderer, and WooCommerce layered nav
+	 * all silently drop it, so pills would show a selection the query never
+	 * applied. One early redirect converges every consumer — and shared
+	 * URLs/page caches — on the canonical scalar form.
+	 */
+	public function redirect_array_filter_params() {
+		if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return;
+		}
+		$canonical = $this->canonical_array_form_url();
+		if ( null === $canonical ) {
+			return;
+		}
+		wp_safe_redirect( $canonical );
+		exit;
+	}
+
+	/**
+	 * The canonical comma-form URL for a request carrying array-form filter
+	 * parameters, or null when the request is already canonical.
+	 *
+	 * @return string|null
+	 */
+	public function canonical_array_form_url() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public storefront state.
+		$request = wp_unslash( $_GET );
+		$changes = array();
+
+		foreach ( Shift64_Woo_Search_Facet_Eligibility::get_ready() as $entry ) {
+			$param = 'filter_' . $entry['taxonomy'];
+			if ( ! isset( $request[ $param ] ) || ! is_array( $request[ $param ] ) ) {
+				continue;
+			}
+			$slugs = array_values(
+				array_unique(
+					array_filter(
+						array_map( 'sanitize_title', array_filter( $request[ $param ], 'is_scalar' ) )
+					)
+				)
+			);
+			sort( $slugs, SORT_STRING );
+			$changes[ $param ] = empty( $slugs ) ? null : implode( ',', $slugs );
+		}
+
+		if ( empty( $changes ) ) {
+			return null;
+		}
+
+		return Shift64_Woo_Search_Catalog_State::build_url( $this->current_url(), $changes );
+	}
+
+	/**
 	 * Per-request cache of the validated current selections, keyed by facet.
 	 *
 	 * Static so tests can reset it between simulated requests; the render
@@ -33,13 +96,6 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 * @var array<string,array>|null
 	 */
 	private static $selections = null;
-
-	/**
-	 * Runtime id of the Product Filters parent currently rendering.
-	 *
-	 * @var string
-	 */
-	private static $parent_id = '';
 
 	/**
 	 * Per-request pill counter for unique interactivity ids.
@@ -61,9 +117,6 @@ class Shift64_Woo_Search_Filter_Blocks {
 		if ( '' === $runtime_id ) {
 			$runtime_id = 'shift64-woo-search-filters';
 		}
-
-		self::$parent_id     = $runtime_id;
-		self::$pill_sequence = 0;
 
 		$clear_all = '';
 		if ( ! empty( $attributes['showClearAll'] ) ) {
@@ -90,7 +143,6 @@ class Shift64_Woo_Search_Filter_Blocks {
 		$wrapper = get_block_wrapper_attributes(
 			array(
 				'class'                 => 'shift64-woo-search-product-filters',
-				'id'                    => $runtime_id,
 				'data-wp-interactive'   => 'shift64-woo-search/product-filters',
 				'data-wp-context'       => wp_json_encode( $context ),
 				'data-wp-router-region' => $runtime_id . '-region',
@@ -137,13 +189,17 @@ class Shift64_Woo_Search_Filter_Blocks {
 
 		$summary_count = count( $selected );
 
+		// One truth for AND support: the interactivity context and the no-JS
+		// hidden input must never disagree about the operator.
+		$operator_and = ! $single
+			&& 'and' === ( $attributes['queryType'] ?? 'or' )
+			&& in_array( 'and', $entry['operators'], true );
+
 		++self::$pill_sequence;
 		$pill_context = array(
 			'pillId'      => $taxonomy . '-' . self::$pill_sequence,
 			'taxonomy'    => $taxonomy,
-			'operatorAnd' => ! $single
-				&& 'and' === ( $attributes['queryType'] ?? 'or' )
-				&& in_array( 'and', $entry['operators'], true ),
+			'operatorAnd' => $operator_and,
 		);
 
 		$html  = '<details class="shift64-woo-search-pill__disclosure" data-wp-context="' . esc_attr( wp_json_encode( $pill_context ) ) . '" data-wp-bind--open="state.isPillOpen" data-wp-on--toggle="actions.pillToggled" data-wp-on--keydown="actions.panelKeydown">';
@@ -160,7 +216,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 		$html .= '<form class="shift64-woo-search-pill__form" method="get" action="' . esc_url( $this->form_action() ) . '" data-wp-on--submit="actions.apply">';
 		$html .= $this->hidden_state_inputs( $taxonomy );
 
-		if ( ! $single && 'and' === ( $attributes['queryType'] ?? 'or' ) && in_array( 'and', $entry['operators'], true ) ) {
+		if ( $operator_and ) {
 			$html .= '<input type="hidden" name="query_type_' . esc_attr( $taxonomy ) . '" value="and" />';
 		}
 
@@ -205,7 +261,6 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 */
 	public static function reset() {
 		self::$selections    = null;
-		self::$parent_id     = '';
 		self::$pill_sequence = 0;
 	}
 
@@ -320,7 +375,8 @@ class Shift64_Woo_Search_Filter_Blocks {
 		foreach ( Shift64_Woo_Search_Facet_Eligibility::get_ready() as $entry ) {
 			$taxonomy = $entry['taxonomy'];
 			$param    = 'filter_' . $taxonomy;
-			if ( empty( $request[ $param ] ) ) {
+			// isset, not empty: "0" is a legitimate term slug.
+			if ( ! isset( $request[ $param ] ) ) {
 				continue;
 			}
 			$raw = $request[ $param ];
@@ -330,7 +386,14 @@ class Shift64_Woo_Search_Filter_Blocks {
 			if ( ! is_scalar( $raw ) || '' === (string) $raw ) {
 				continue;
 			}
-			$slugs = array_values( array_unique( array_filter( array_map( 'sanitize_title', explode( ',', (string) $raw ) ) ) ) );
+			$slugs = array_values(
+				array_unique(
+					array_filter(
+						array_map( 'sanitize_title', explode( ',', (string) $raw ) ),
+						'strlen' // Not bare array_filter: "0" is a legitimate slug.
+					)
+				)
+			);
 			$valid = array();
 			foreach ( $slugs as $slug ) {
 				$term = get_term_by( 'slug', $slug, $taxonomy );
@@ -363,8 +426,13 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 */
 	private function pill_options( $entry, $attributes, $selected ) {
 		$hide_empty = ! empty( $attributes['hideEmpty'] );
+		$order_by   = (string) ( $attributes['orderBy'] ?? 'count-desc' );
 
-		$buckets     = Shift64_Woo_Search_Facet_Count_Provider::get_buckets( $entry['redis_field'] );
+		// Counts cost Redis aggregations; skip them entirely when nothing in
+		// this pill's configuration renders or sorts by them.
+		$needs_counts = ! empty( $attributes['showCounts'] ) || $hide_empty || 'count-desc' === $order_by;
+
+		$buckets     = $needs_counts ? Shift64_Woo_Search_Facet_Count_Provider::get_buckets( $entry['redis_field'] ) : null;
 		$have_counts = is_array( $buckets );
 		$counts      = array();
 		if ( $have_counts ) {
@@ -377,10 +445,11 @@ class Shift64_Woo_Search_Filter_Blocks {
 
 		$terms = get_terms(
 			array(
-				'taxonomy'   => $entry['taxonomy'],
+				'taxonomy'               => $entry['taxonomy'],
 				// With live counts the result set decides emptiness; without
 				// them the taxonomy's own assignment count is the fallback.
-				'hide_empty' => $have_counts ? false : $hide_empty,
+				'hide_empty'             => $have_counts ? false : $hide_empty,
+				'update_term_meta_cache' => false,
 			)
 		);
 		if ( is_wp_error( $terms ) ) {
@@ -420,7 +489,6 @@ class Shift64_Woo_Search_Filter_Blocks {
 			}
 		}
 
-		$order_by = (string) ( $attributes['orderBy'] ?? 'count-desc' );
 		usort(
 			$options,
 			static function ( $a, $b ) use ( $order_by ) {
@@ -437,7 +505,18 @@ class Shift64_Woo_Search_Filter_Blocks {
 
 		$max = absint( $attributes['maxOptions'] ?? 0 );
 		if ( $max > 0 ) {
-			$options = array_slice( $options, 0, min( 100, $max ) );
+			$max = min( 100, $max );
+			// The bound must never hide an active selection: an option cut
+			// from the panel would be silently dropped by the next Apply
+			// (the checkboxes are the draft state).
+			$kept    = array_slice( $options, 0, $max );
+			$dropped = array_slice( $options, $max );
+			foreach ( $dropped as $option ) {
+				if ( $option['selected'] ) {
+					$kept[] = $option;
+				}
+			}
+			$options = $kept;
 		}
 
 		return $options;
@@ -451,7 +530,13 @@ class Shift64_Woo_Search_Filter_Blocks {
 	private function current_url() {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Re-encoded by Catalog_State::build_url/esc_url before output.
 		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
-		return home_url( $request_uri );
+		// REQUEST_URI already contains any subdirectory the site lives in, so
+		// join it to the bare origin — home_url( $request_uri ) would double
+		// the path on subdirectory installs.
+		$home   = wp_parse_url( home_url() );
+		$origin = ( $home['scheme'] ?? 'http' ) . '://' . ( $home['host'] ?? 'localhost' )
+			. ( isset( $home['port'] ) ? ':' . $home['port'] : '' );
+		return $origin . $request_uri;
 	}
 
 	/**
@@ -479,16 +564,33 @@ class Shift64_Woo_Search_Filter_Blocks {
 		$request = wp_unslash( $_GET );
 		$html    = '';
 
+		// Preserve every unrelated safe scalar parameter (language switchers,
+		// WooCommerce price/rating widgets, plain-permalink archive scope…) —
+		// a GET form replaces the whole query string, and the JS path's
+		// buildCatalogUrl preserves these, so the no-JS submit must too.
+		// Facet parameters are re-emitted from validated state below; paging
+		// and private parameters are deliberately dropped.
+		$skip_exact  = array( 's', 'post_type', 'paged', 'query-page', '_wpnonce', '_wp_http_referer', 'preview', 'preview_id', 'preview_nonce', 'customize_changeset_uuid' );
+		$skip_prefix = array( 'filter_', 'query_type_' );
+		foreach ( $request as $key => $value ) {
+			$key = (string) $key;
+			if ( ! is_scalar( $value ) || in_array( $key, $skip_exact, true ) || preg_match( '/^query-\d+-page$/', $key ) ) {
+				continue;
+			}
+			foreach ( $skip_prefix as $prefix ) {
+				if ( 0 === strpos( $key, $prefix ) ) {
+					continue 2;
+				}
+			}
+			if ( '' === preg_replace( '/[^A-Za-z0-9_\-\[\]]/', '', $key ) || $key !== preg_replace( '/[^A-Za-z0-9_\-\[\]]/', '', $key ) ) {
+				continue;
+			}
+			$html .= '<input type="hidden" name="' . esc_attr( $key ) . '" value="' . esc_attr( sanitize_text_field( (string) $value ) ) . '" />';
+		}
+
 		if ( isset( $request['s'] ) && is_scalar( $request['s'] ) && '' !== (string) $request['s'] ) {
 			$html .= '<input type="hidden" name="s" value="' . esc_attr( sanitize_text_field( (string) $request['s'] ) ) . '" />';
 			$html .= '<input type="hidden" name="post_type" value="product" />';
-		}
-
-		if ( isset( $request['orderby'] ) && is_scalar( $request['orderby'] ) ) {
-			$orderby = sanitize_key( (string) $request['orderby'] );
-			if ( '' !== $orderby ) {
-				$html .= '<input type="hidden" name="orderby" value="' . esc_attr( $orderby ) . '" />';
-			}
 		}
 
 		foreach ( $this->current_selections() as $taxonomy => $slugs ) {

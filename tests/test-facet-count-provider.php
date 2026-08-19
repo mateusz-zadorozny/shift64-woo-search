@@ -264,4 +264,51 @@ class Facet_Count_Provider_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'value="chairs" checked=\'checked\'', $html );
 		$this->assertStringNotContainsString( 'value="desks"', $html );
 	}
+
+	/**
+	 * A zero-result envelope means every dimension legitimately has zero
+	 * buckets — an empty list, never "counts unavailable" (which would flip
+	 * hideEmpty off and render dead-end options).
+	 */
+	public function test_zero_result_envelope_yields_zero_counts_not_degraded() {
+		Shift64_Woo_Search_Product_Collection_Results::set(
+			new Shift64_Woo_Search_Product_Collection_Result(
+				'pc-7-scope-1',
+				array(),
+				0,
+				1,
+				12,
+				'relevance',
+				array( 'filter_product_cat' => array( 'lamps' ) ),
+				array(),
+				Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS
+			)
+		);
+
+		$this->assertSame( array(), Shift64_Woo_Search_Facet_Count_Provider::get_buckets( 'categories' ) );
+		$this->assertSame( array(), Shift64_Woo_Search_Facet_Count_Provider::get_buckets( 'attr_pa_material' ) );
+	}
+
+	/**
+	 * Sorts the Redis path does not own make the collection serve a native
+	 * fallback; the provider must not claim Shift64 counts beside that grid.
+	 */
+	public function test_on_demand_compute_respects_sort_ownership() {
+		update_option( 'shift64_woo_search_archive_enabled', 'yes' );
+		update_option( 'shift64_woo_search_filter_categories_enabled', 'yes' );
+
+		$query = $this->createMock( Shift64_Woo_Search_Query::class );
+		$query->expects( $this->never() )->method( 'build_facet_query' );
+		Shift64_Woo_Search_Facet_Count_Provider::set_search_query( $query );
+
+		$this->go_to( '/?s=lamp&post_type=product&orderby=popularity' );
+		// go_to() wipes $_GET; the sort is parsed from the request array.
+		$_GET['orderby'] = 'popularity';
+
+		$this->assertNull( Shift64_Woo_Search_Facet_Count_Provider::get_buckets( 'categories' ) );
+		$this->assertSame(
+			Shift64_Woo_Search_Facet_Count_Provider::STATUS_UNAVAILABLE,
+			Shift64_Woo_Search_Facet_Count_Provider::get_status()
+		);
+	}
 }

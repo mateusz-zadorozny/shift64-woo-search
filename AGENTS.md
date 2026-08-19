@@ -48,8 +48,9 @@ project REALLY switches the site to `E2E_CLASSIC_THEME` (default
 `storefront`) for the plugin-owned classic AJAX-swap journeys and restores
 the previous theme in the spec's `afterAll`. If a hard-killed run leaves the
 wrong theme active, run `wp theme activate twentytwentyfive`, and delete
-`wp-content/mu-plugins/shift64-e2e-force-page-reload.php` (a scenario fixture
-the `block-theme` project installs and removes around one describe block).
+`wp-content/mu-plugins/shift64-e2e-force-page-reload.php` and
+`wp-content/mu-plugins/shift64-e2e-product-filters.php` (scenario fixtures
+the `block-theme` project installs and removes around its spec files).
 
 The `block-theme` project encodes the **pagination ownership matrix** decided
 in #20, not "the plugin swaps everything": classic Woo markup / Kadence /
@@ -60,9 +61,11 @@ ownership assertions are marked `test.fail()` because #20 is decided but not
 yet implemented — the plugin still intercepts everywhere. **Do not "fix" them
 by relaxing the assertions**: a passing version would codify the opposite
 contract. When #20 lands they will start passing, which Playwright reports as
-a failure, and that is the signal to drop the markers. Keep this project's
-scope to pagination ownership — the Gutenberg filter-bar integration is
-separate work that goes through Woo's router. Never add Playwright to the agentic
+a failure, and that is the signal to drop the markers. `blockified.spec.ts`
+keeps its scope to pagination ownership; the Product Filters / Filter Pill
+journeys (which go through Woo's router as decided) live in their own
+`product-filters.spec.ts` within this project because they need the block
+theme active. Never add Playwright to the agentic
 validation gate (`.ai/agentic.config.json` `validation.commands`): the gate
 must stay hermetic, and the degraded project would corrupt the dev site.
 CI enforcement lives in `.github/workflows/release.yml` (`e2e` job;

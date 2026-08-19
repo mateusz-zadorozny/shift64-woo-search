@@ -15,7 +15,8 @@
  *
  * Readiness never derives from an incoming `filter_*` parameter — only from
  * settings, the index schema, and taxonomy existence. Attribute facets are
- * ready only when their `attr_{taxonomy}` TAG field exists in the live index,
+ * ready only when their `attr_{taxonomy}` TAG field exists in the live index
+ * (probed through the schema service),
  * which is the authoritative record of what the last completed rebuild
  * contains; category and brand TAG fields are part of every index build.
  *
@@ -50,6 +51,21 @@ class Shift64_Woo_Search_Facet_Eligibility {
 	private static $index_fields = null;
 
 	/**
+	 * Per-request memo of the computed entries (default connection only),
+	 * keyed by a fingerprint of the settings they derive from.
+	 *
+	 * The renderer, Clear all, and selection parsing all consult eligibility
+	 * several times per page render; without this memo every call re-resolves
+	 * taxonomy labels. The fingerprint keeps the memo honest when settings
+	 * change mid-request (tests, option updates), and the
+	 * `shift64_woo_search_facet_entries` filter is applied on every call so
+	 * runtime filters always see fresh dispatch.
+	 *
+	 * @var array{key:string,entries:array}|null
+	 */
+	private static $entries = null;
+
+	/**
 	 * All known facet entries keyed by facet key.
 	 *
 	 * The facet key equals the taxonomy slug — a closed set built from the
@@ -60,6 +76,23 @@ class Shift64_Woo_Search_Facet_Eligibility {
 	 * @return array<string,array{key:string,taxonomy:string,type:string,label:string,operators:array,status:string,redis_field:string}> Entries; redis_field is the aggregation bucket key (categories|brands|attr_{taxonomy}).
 	 */
 	public static function get_entries( $redis = null ) {
+		$fingerprint = null;
+		if ( null === $redis ) {
+			$fingerprint = md5(
+				wp_json_encode(
+					array(
+						get_option( 'shift64_woo_search_filter_categories_enabled', 'yes' ),
+						get_option( 'shift64_woo_search_filter_brands_enabled', 'no' ),
+						get_option( 'shift64_woo_search_filter_attributes', array() ),
+					)
+				)
+			);
+			if ( null !== self::$entries && self::$entries['key'] === $fingerprint ) {
+				/** This filter is documented below. */
+				return apply_filters( 'shift64_woo_search_facet_entries', self::$entries['entries'] );
+			}
+		}
+
 		$fields  = self::index_fields( $redis );
 		$entries = array();
 
@@ -70,7 +103,7 @@ class Shift64_Woo_Search_Facet_Eligibility {
 			'type'        => self::TYPE_CATEGORY,
 			'label'       => self::taxonomy_label( 'product_cat', __( 'Category', 'shift64-woo-search' ) ),
 			'operators'   => array( 'or' ),
-			'status'      => self::core_status( $categories_enabled, 'product_cat', $fields ),
+			'status'      => self::status( $categories_enabled, 'product_cat', $fields ),
 			'redis_field' => 'categories',
 		);
 
@@ -81,7 +114,7 @@ class Shift64_Woo_Search_Facet_Eligibility {
 			'type'        => self::TYPE_BRAND,
 			'label'       => self::taxonomy_label( 'product_brand', __( 'Brand', 'shift64-woo-search' ) ),
 			'operators'   => array( 'or' ),
-			'status'      => self::core_status( $brands_enabled, 'product_brand', $fields ),
+			'status'      => self::status( $brands_enabled, 'product_brand', $fields ),
 			'redis_field' => 'brands',
 		);
 
@@ -92,7 +125,7 @@ class Shift64_Woo_Search_Facet_Eligibility {
 				'type'        => self::TYPE_ATTRIBUTE,
 				'label'       => self::attribute_label( $taxonomy ),
 				'operators'   => array( 'or', 'and' ),
-				'status'      => self::attribute_status( $taxonomy, $selected, $fields ),
+				'status'      => self::status( $selected, $taxonomy, $fields, 'attr_' . $taxonomy ),
 				'redis_field' => 'attr_' . $taxonomy,
 			);
 		}
@@ -106,6 +139,13 @@ class Shift64_Woo_Search_Facet_Eligibility {
 		 *
 		 * @param array $entries Facet entries keyed by facet key.
 		 */
+		if ( null !== $fingerprint ) {
+			self::$entries = array(
+				'key'     => $fingerprint,
+				'entries' => $entries,
+			);
+		}
+
 		return apply_filters( 'shift64_woo_search_facet_entries', $entries );
 	}
 
@@ -141,45 +181,29 @@ class Shift64_Woo_Search_Facet_Eligibility {
 	 */
 	public static function reset() {
 		self::$index_fields = null;
+		self::$entries      = null;
 	}
 
 	/**
-	 * Status for category/brand facets, whose TAG fields exist in every index build.
+	 * Readiness for one facet: disabled wins, then taxonomy existence, then
+	 * the live index. Category/brand TAG fields exist in every index build,
+	 * so they pass `null` and only require a describable index; attributes
+	 * additionally require their own field in the live schema.
 	 *
-	 * @param bool        $enabled  Facet toggle from settings.
-	 * @param string      $taxonomy Taxonomy slug.
-	 * @param array|false $fields   Live index field names, or false when unavailable.
+	 * @param bool        $enabled        Facet toggle/selection from settings.
+	 * @param string      $taxonomy       Taxonomy slug.
+	 * @param array|false $fields         Live index field names, or false when unavailable.
+	 * @param string|null $required_field Schema field that must exist, if any.
 	 * @return string
 	 */
-	private static function core_status( $enabled, $taxonomy, $fields ) {
+	private static function status( $enabled, $taxonomy, $fields, $required_field = null ) {
 		if ( ! $enabled ) {
 			return self::STATUS_DISABLED;
 		}
 		if ( ! taxonomy_exists( $taxonomy ) ) {
 			return self::STATUS_TAXONOMY_MISSING;
 		}
-		if ( false === $fields ) {
-			return self::STATUS_REBUILD_REQUIRED;
-		}
-		return self::STATUS_READY;
-	}
-
-	/**
-	 * Status for an attribute facet.
-	 *
-	 * @param string      $taxonomy Attribute taxonomy slug (pa_*).
-	 * @param bool        $selected Whether the attribute is selected in settings.
-	 * @param array|false $fields   Live index field names, or false when unavailable.
-	 * @return string
-	 */
-	private static function attribute_status( $taxonomy, $selected, $fields ) {
-		if ( ! $selected ) {
-			return self::STATUS_DISABLED;
-		}
-		if ( ! taxonomy_exists( $taxonomy ) ) {
-			return self::STATUS_TAXONOMY_MISSING;
-		}
-		if ( false === $fields || ! in_array( 'attr_' . $taxonomy, $fields, true ) ) {
+		if ( false === $fields || ( null !== $required_field && ! in_array( $required_field, $fields, true ) ) ) {
 			return self::STATUS_REBUILD_REQUIRED;
 		}
 		return self::STATUS_READY;
@@ -270,9 +294,19 @@ class Shift64_Woo_Search_Facet_Eligibility {
 	 * @return array|false
 	 */
 	private static function fetch_index_fields( $redis ) {
-		if ( ! $redis->is_available() ) {
+		if ( ! $redis->is_available() || ! Shift64_Woo_Search_Schema::index_exists( $redis ) ) {
 			return false;
 		}
-		return Shift64_Woo_Search_Schema::get_index_field_names( $redis );
+		// Category and brand TAG fields are part of every index build; only
+		// per-attribute fields depend on what the last completed rebuild
+		// contained, so only the configured attributes are probed.
+		$fields = array( 'categories', 'brands' );
+		foreach ( Shift64_Woo_Search_Schema::get_filter_attributes() as $taxonomy ) {
+			$taxonomy = sanitize_key( $taxonomy );
+			if ( '' !== $taxonomy && Shift64_Woo_Search_Schema::index_field_exists( $redis, 'attr_' . $taxonomy ) ) {
+				$fields[] = 'attr_' . $taxonomy;
+			}
+		}
+		return $fields;
 	}
 }

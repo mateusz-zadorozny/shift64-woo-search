@@ -319,68 +319,31 @@ class Shift64_Woo_Search_Schema {
 	}
 
 	/**
-	 * List the field names present in the live RediSearch index schema.
+	 * Whether a field exists in the live RediSearch index schema.
 	 *
-	 * `get_index_info()` deliberately drops array values, so the `attributes`
-	 * reply (a list of per-field arrays) needs its own walk. The result is the
-	 * authoritative record of what the last completed FT.CREATE contains —
-	 * facet eligibility keys off it instead of a stored "rebuild generation".
+	 * FT.INFO cannot answer this reliably here: phpredis coerces the reply's
+	 * simple strings (including field names) to booleans on some RESP/version
+	 * combinations. A GROUPBY aggregation is authoritative instead — RediSearch
+	 * rejects a property that is not in the schema, and a known field answers
+	 * with a (possibly empty) result. Callers memoize per request.
 	 *
 	 * @param Shift64_Woo_Search_Redis $redis Redis connection instance.
-	 * @return array|false Field names (e.g. ['title', 'categories', 'attr_pa_kolor']),
-	 *                     or false when the index or its info is unavailable.
+	 * @param string                   $field Schema field name (e.g. attr_pa_color).
+	 * @return bool
 	 */
-	public static function get_index_field_names( $redis ) {
-		$index_name = $redis->get_index_name();
-		$result     = $redis->raw_command( 'FT.INFO', $index_name );
-
-		if ( false === $result || empty( $result ) || ! is_array( $result ) ) {
-			return false;
-		}
-
-		// Locate the attributes list: prefer the string key, fall back to the
-		// stable position (pair index 3) when RESP coerces keys to booleans.
-		$attributes   = null;
-		$result_count = count( $result );
-		for ( $i = 0; $i + 1 < $result_count; $i += 2 ) {
-			$key = $result[ $i ];
-			if ( ( is_string( $key ) && 'attributes' === $key ) || ( ! is_string( $key ) && 3 === intval( $i / 2 ) ) ) {
-				if ( is_array( $result[ $i + 1 ] ) ) {
-					$attributes = $result[ $i + 1 ];
-				}
-				break;
-			}
-		}
-
-		if ( ! is_array( $attributes ) ) {
-			return false;
-		}
-
-		$fields = array();
-		foreach ( $attributes as $attribute ) {
-			if ( ! is_array( $attribute ) ) {
-				continue;
-			}
-			// Each attribute is a flat [key, value, ...] list. The `attribute`
-			// alias is the queryable field name; `identifier` matches it for
-			// the HASH indexes this plugin creates and serves as fallback.
-			$identifier = '';
-			$alias      = '';
-			$pair_count = count( $attribute );
-			for ( $j = 0; $j + 1 < $pair_count; $j += 2 ) {
-				if ( 'identifier' === $attribute[ $j ] && is_string( $attribute[ $j + 1 ] ) ) {
-					$identifier = $attribute[ $j + 1 ];
-				} elseif ( 'attribute' === $attribute[ $j ] && is_string( $attribute[ $j + 1 ] ) ) {
-					$alias = $attribute[ $j + 1 ];
-				}
-			}
-			$name = '' !== $alias ? $alias : $identifier;
-			if ( '' !== $name ) {
-				$fields[] = $name;
-			}
-		}
-
-		return $fields;
+	public static function index_field_exists( $redis, $field ) {
+		$result = $redis->raw_command(
+			'FT.AGGREGATE',
+			$redis->get_index_name(),
+			'*',
+			'GROUPBY',
+			'1',
+			'@' . $field,
+			'LIMIT',
+			'0',
+			'1'
+		);
+		return false !== $result && is_array( $result );
 	}
 
 	/**

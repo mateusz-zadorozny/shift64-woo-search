@@ -368,4 +368,147 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		$selected = $state->get_selected_filters();
 		$this->assertSame( array( 'chairs', 'lamps' ), $selected['filter_product_cat'] );
 	}
+
+	/**
+	 * Term slug "0" is a legitimate selection — empty() must not discard it.
+	 */
+	public function test_zero_slug_selection_survives() {
+		// wp_insert_term() itself refuses a bare "0" slug, so force it the way
+		// imports and direct writes can: straight into the terms table.
+		global $wpdb;
+		$created = wp_insert_term( 'Zero', 'pa_material', array( 'slug' => 'zero-tmp' ) );
+		$wpdb->update( $wpdb->terms, array( 'slug' => '0' ), array( 'term_id' => $created['term_id'] ) );
+		clean_term_cache( $created['term_id'], 'pa_material' );
+
+		$_GET['filter_pa_material'] = '0';
+		$_SERVER['REQUEST_URI']     = '/shop/?filter_pa_material=0';
+
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","hideEmpty":false} /-->'
+		);
+
+		$this->assertStringContainsString( 'value="0" checked=\'checked\'', $html );
+		$this->assertStringContainsString( 'shift64-woo-search-pill__summary-count', $html );
+	}
+
+	/**
+	 * Subdirectory installs: REQUEST_URI already carries the subdirectory, so
+	 * canonical URLs must not double it.
+	 */
+	public function test_subdirectory_install_urls_are_not_doubled() {
+		update_option( 'home', 'http://example.org/store' );
+		$_SERVER['REQUEST_URI']     = '/store/shop/?filter_product_cat=lamps';
+		$_GET['filter_product_cat'] = 'lamps';
+
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","hideEmpty":false} /-->'
+		);
+
+		preg_match( '#class="shift64-woo-search-pill__clear" href="([^"]+)"#', $html, $matches );
+		$this->assertNotEmpty( $matches );
+		$this->assertStringStartsWith( 'http://example.org/store/shop/', html_entity_decode( $matches[1] ) );
+		$this->assertStringNotContainsString( '/store/store/', $matches[1] );
+	}
+
+	/**
+	 * The maxOptions bound never hides an active selection: a hidden checked
+	 * box would be silently dropped by the next Apply.
+	 */
+	public function test_max_options_keeps_selected_options_visible() {
+		$_GET['filter_pa_material'] = 'wool';
+		$_SERVER['REQUEST_URI']     = '/shop/?filter_pa_material=wool';
+
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","hideEmpty":false,"orderBy":"name-asc","maxOptions":1} /-->'
+		);
+
+		// Cotton wins the name-asc bound; selected Wool must survive anyway.
+		$this->assertStringContainsString( 'value="cotton"', $html );
+		$this->assertStringContainsString( 'value="wool" checked=\'checked\'', $html );
+		$this->assertStringNotContainsString( 'value="linen"', $html );
+	}
+
+	/**
+	 * Unrelated safe scalar parameters (language switchers, WooCommerce price
+	 * widgets, plain-permalink scope) survive a no-JS submit as hidden inputs;
+	 * paging and private parameters never do.
+	 */
+	public function test_hidden_inputs_preserve_unrelated_safe_params() {
+		$_SERVER['REQUEST_URI'] = '/shop/?min_price=10&lang=en&product_cat=lamps&paged=3&_wpnonce=abc';
+		$_GET                   = array(
+			'min_price'   => '10',
+			'lang'        => 'en',
+			'product_cat' => 'lamps',
+			'paged'       => '3',
+			'_wpnonce'    => 'abc',
+		);
+
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","hideEmpty":false} /-->'
+		);
+
+		$this->assertStringContainsString( 'name="min_price" value="10"', $html );
+		$this->assertStringContainsString( 'name="lang" value="en"', $html );
+		$this->assertStringContainsString( 'name="product_cat" value="lamps"', $html );
+		$this->assertStringNotContainsString( 'name="paged"', $html );
+		$this->assertStringNotContainsString( 'name="_wpnonce"', $html );
+	}
+
+	/**
+	 * Array-form filter parameters (a no-JS checkbox submit) canonicalize to
+	 * one comma-form redirect URL; canonical requests produce none.
+	 */
+	public function test_array_form_params_canonicalize_to_redirect_url() {
+		$_SERVER['REQUEST_URI'] = '/shop/?s=lamp&post_type=product';
+		$_GET                   = array(
+			's'                  => 'lamp',
+			'post_type'          => 'product',
+			'filter_product_cat' => array( 'lamps', 'chairs', 'lamps' ),
+		);
+		$blocks                 = new Shift64_Woo_Search_Filter_Blocks();
+
+		$canonical = $blocks->canonical_array_form_url();
+
+		$this->assertIsString( $canonical );
+		$this->assertStringContainsString( 'filter_product_cat=chairs%2Clamps', $canonical );
+		$this->assertStringContainsString( 's=lamp', $canonical );
+
+		$_GET['filter_product_cat'] = 'lamps';
+		$this->assertNull( $blocks->canonical_array_form_url() );
+	}
+
+	/**
+	 * Preserved query values are re-encoded: a literal ampersand in the search
+	 * term must not split into a stray parameter in Clear URLs.
+	 */
+	public function test_build_url_reencodes_preserved_values() {
+		$url = Shift64_Woo_Search_Catalog_State::build_url(
+			'http://example.org/shop/?s=black%20%26%20decker&post_type=product&filter_product_cat=lamps',
+			array( 'filter_product_cat' => null )
+		);
+
+		$this->assertStringContainsString( '%26', $url );
+		$this->assertStringNotContainsString( '& decker', $url );
+		$this->assertStringNotContainsString( 'decker=', $url );
+	}
+
+	/**
+	 * A facet that is enabled in settings but absent from the live index is
+	 * not ready, so its URL parameter is dropped from parsed state instead of
+	 * building a Redis field expression that cannot exist.
+	 */
+	public function test_non_ready_facet_params_are_dropped_from_state() {
+		remove_filter( 'shift64_woo_search_facet_entries', array( $this, 'force_ready' ) );
+		Shift64_Woo_Search_Facet_Eligibility::reset();
+
+		$context = new Shift64_Woo_Search_Product_Collection_Context( 7, 'pc-test', 1, 12, '', '', '', 'catalog' );
+		$state   = Shift64_Woo_Search_Catalog_State::from_request(
+			$context,
+			array( 'filter_pa_material' => 'wool' ),
+			'/shop/'
+		);
+
+		$this->assertSame( array(), $state->get_selected_filters() );
+		$this->assertSame( array(), $state->get_redis_filters() );
+	}
 }

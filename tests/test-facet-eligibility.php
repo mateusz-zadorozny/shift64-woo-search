@@ -43,42 +43,32 @@ class Facet_Eligibility_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Build a Redis mock whose FT.INFO reply advertises the given schema fields.
+	 * Build a Redis mock advertising a live index containing the given fields.
+	 *
+	 * Field existence is answered the way the schema service asks for it: a
+	 * GROUPBY probe on a known field returns an (empty) aggregation; an
+	 * unknown field errors (false).
 	 *
 	 * @param array $fields    Field names in the live index.
 	 * @param bool  $available Whether the connection reports available.
-	 * @param bool  $string_keys Whether FT.INFO keys arrive as strings (RESP2) or
-	 *                           are coerced away (positional fallback path).
 	 * @return Shift64_Woo_Search_Redis
 	 */
-	private function mock_redis( array $fields, $available = true, $string_keys = true ) {
+	private function mock_redis( array $fields, $available = true ) {
 		$redis = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
 			->disableOriginalConstructor()
 			->getMock();
 		$redis->method( 'is_available' )->willReturn( $available );
 		$redis->method( 'get_index_name' )->willReturn( 'shift64_woo_search_product_idx' );
-
-		$attributes = array();
-		foreach ( $fields as $field ) {
-			$attributes[] = array( 'identifier', $field, 'attribute', $field, 'type', 'TAG', 'SEPARATOR', '|' );
-		}
-
-		$reply = array(
-			$string_keys ? 'index_name' : true,
-			'shift64_woo_search_product_idx',
-			$string_keys ? 'index_options' : true,
-			array(),
-			$string_keys ? 'index_definition' : true,
-			array( 'key_type', 'HASH' ),
-			$string_keys ? 'attributes' : true,
-			$attributes,
-			$string_keys ? 'num_docs' : true,
-			'42',
-		);
-
 		$redis->method( 'raw_command' )->willReturnCallback(
-			function ( ...$args ) use ( $reply ) {
-				return 'FT.INFO' === ( $args[0] ?? '' ) ? $reply : false;
+			function ( ...$args ) use ( $fields ) {
+				if ( 'FT.INFO' === ( $args[0] ?? '' ) ) {
+					return array( 'index_name', 'shift64_woo_search_product_idx' );
+				}
+				if ( 'FT.AGGREGATE' === ( $args[0] ?? '' ) ) {
+					$field = ltrim( (string) ( $args[5] ?? '' ), '@' );
+					return in_array( $field, $fields, true ) ? array( 0 ) : false;
+				}
+				return false;
 			}
 		);
 
@@ -240,27 +230,19 @@ class Facet_Eligibility_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * FT.INFO parsing extracts field names from string-keyed replies.
+	 * The schema field probe distinguishes known fields from unknown ones.
 	 */
-	public function test_schema_field_names_parsed_from_string_keys() {
-		$fields = Shift64_Woo_Search_Schema::get_index_field_names( $this->mock_redis( array( 'title', 'categories', 'attr_pa_kolor' ) ) );
+	public function test_schema_field_probe_distinguishes_fields() {
+		$redis = $this->mock_redis( array( 'attr_pa_kolor' ) );
 
-		$this->assertSame( array( 'title', 'categories', 'attr_pa_kolor' ), $fields );
+		$this->assertTrue( Shift64_Woo_Search_Schema::index_field_exists( $redis, 'attr_pa_kolor' ) );
+		$this->assertFalse( Shift64_Woo_Search_Schema::index_field_exists( $redis, 'attr_pa_missing' ) );
 	}
 
 	/**
-	 * FT.INFO parsing falls back to the stable position when RESP coerces keys.
+	 * A missing index means no field exists.
 	 */
-	public function test_schema_field_names_parsed_from_positional_fallback() {
-		$fields = Shift64_Woo_Search_Schema::get_index_field_names( $this->mock_redis( array( 'attr_pa_material' ), true, false ) );
-
-		$this->assertSame( array( 'attr_pa_material' ), $fields );
-	}
-
-	/**
-	 * A failed FT.INFO yields false, not an empty field list.
-	 */
-	public function test_schema_field_names_false_on_failure() {
-		$this->assertFalse( Shift64_Woo_Search_Schema::get_index_field_names( $this->mock_redis_without_index() ) );
+	public function test_schema_field_probe_false_without_index() {
+		$this->assertFalse( Shift64_Woo_Search_Schema::index_field_exists( $this->mock_redis_without_index(), 'attr_pa_kolor' ) );
 	}
 }

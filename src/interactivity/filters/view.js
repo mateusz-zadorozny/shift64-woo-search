@@ -21,6 +21,10 @@ import {
 
 const NAMESPACE = 'shift64-woo-search/product-filters';
 const TRAY_MEDIA = '(max-width: 782px)';
+const trayQuery =
+	typeof window !== 'undefined' && window.matchMedia
+		? window.matchMedia( TRAY_MEDIA )
+		: null;
 const FOCUSABLE =
 	'summary, a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -44,10 +48,6 @@ const { state, actions } = store( NAMESPACE, {
 		get isPillOpen() {
 			const context = getContext();
 			return state.open[ context.parentId ] === context.pillId;
-		},
-
-		get isPillClosed() {
-			return ! state.isPillOpen;
 		},
 
 		get pillExpanded() {
@@ -82,10 +82,7 @@ const { state, actions } = store( NAMESPACE, {
 				actions.closeOpenPill();
 				return;
 			}
-			if (
-				event.key === 'Tab' &&
-				window.matchMedia( TRAY_MEDIA ).matches
-			) {
+			if ( event.key === 'Tab' && trayQuery && trayQuery.matches ) {
 				const details = pillRoot( event.target );
 				if ( ! details ) {
 					return;

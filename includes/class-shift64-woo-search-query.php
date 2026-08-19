@@ -1406,7 +1406,14 @@ class Shift64_Woo_Search_Query {
 	 * @return string
 	 */
 	public static function escape_tag_value( $value ) {
-		return preg_replace( '/([^\p{L}\p{N}_])/u', '\\\\$1', (string) $value );
+		$escaped = preg_replace( '/([^\p{L}\p{N}_])/u', '\\\\$1', (string) $value );
+		if ( null === $escaped ) {
+			// Invalid UTF-8 (legacy latin1 imports): /u refuses the subject.
+			// Fall back to a byte-safe pass that escapes ASCII specials and
+			// leaves high bytes untouched — never return null into a query.
+			$escaped = preg_replace( '/([^A-Za-z0-9_\x80-\xFF])/', '\\\\$1', (string) $value );
+		}
+		return null === $escaped ? '' : $escaped;
 	}
 
 	/**
