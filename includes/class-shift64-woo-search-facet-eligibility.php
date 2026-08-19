@@ -97,7 +97,16 @@ class Shift64_Woo_Search_Facet_Eligibility {
 			);
 		}
 
-		return $entries;
+		/**
+		 * Filter the computed facet eligibility entries.
+		 *
+		 * Statuses may be adjusted (e.g. forced ready in isolated tests), but
+		 * the key set stays closed: consumers ignore entries whose key does
+		 * not match their saved facet configuration.
+		 *
+		 * @param array $entries Facet entries keyed by facet key.
+		 */
+		return apply_filters( 'shift64_woo_search_facet_entries', $entries );
 	}
 
 	/**

@@ -124,11 +124,22 @@ final class Shift64_Woo_Search_Catalog_State {
 		$operators = array();
 		foreach ( self::filter_taxonomies() as $taxonomy => $filter_key ) {
 			$param = 'filter_' . $taxonomy;
-			if ( empty( $request[ $param ] ) || ! is_scalar( $request[ $param ] ) ) {
+			if ( empty( $request[ $param ] ) ) {
 				continue;
 			}
 
-			$slugs = array_filter( array_map( 'sanitize_title', explode( ',', (string) $request[ $param ] ) ) );
+			// The canonical form is one comma-separated scalar; a no-JS Filter
+			// Pill checkbox form submits `filter_x[]=a&filter_x[]=b` instead,
+			// so normalize an array of scalars to the same comma form.
+			$raw = $request[ $param ];
+			if ( is_array( $raw ) ) {
+				$raw = implode( ',', array_map( 'strval', array_filter( $raw, 'is_scalar' ) ) );
+			}
+			if ( ! is_scalar( $raw ) || '' === (string) $raw ) {
+				continue;
+			}
+
+			$slugs = array_filter( array_map( 'sanitize_title', explode( ',', (string) $raw ) ) );
 			$slugs = array_values( array_unique( $slugs ) );
 			sort( $slugs, SORT_STRING );
 			$names = array();
