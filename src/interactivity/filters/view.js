@@ -161,11 +161,9 @@ const { state, actions } = store( NAMESPACE, {
 // A viewport change while a surface is open would swap disclosure and tray
 // presentation under the user: close everything and return focus first.
 if ( typeof window !== 'undefined' && window.matchMedia ) {
-	window
-		.matchMedia( TRAY_MEDIA )
-		.addEventListener( 'change', () => {
-			Object.keys( state.open ).forEach( ( parentId ) => {
-				state.open[ parentId ] = '';
-			} );
+	window.matchMedia( TRAY_MEDIA ).addEventListener( 'change', () => {
+		Object.keys( state.open ).forEach( ( parentId ) => {
+			state.open[ parentId ] = '';
 		} );
+	} );
 }

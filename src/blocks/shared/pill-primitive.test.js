@@ -64,9 +64,12 @@ describe( 'pill primitive contract', () => {
 		);
 	} );
 
-	it.each( PILL_ELEMENTS )( '%s appears in the visual fixture', ( selector ) => {
-		expect( FIXTURE ).toContain( selector.replace( /^\./, '' ) );
-	} );
+	it.each( PILL_ELEMENTS )(
+		'%s appears in the visual fixture',
+		( selector ) => {
+			expect( FIXTURE ).toContain( selector.replace( /^\./, '' ) );
+		}
+	);
 
 	it.each( PILL_ELEMENTS )( '%s is documented', ( selector ) => {
 		expect( DOC ).toContain( selector );
@@ -80,7 +83,10 @@ describe( 'pill primitive contract', () => {
 		}
 	);
 
-	it.each( STACKING_TOKENS )( 'stacking token %s stays documented', ( token ) => {
-		expect( DOC ).toContain( token );
-	} );
+	it.each( STACKING_TOKENS )(
+		'stacking token %s stays documented',
+		( token ) => {
+			expect( DOC ).toContain( token );
+		}
+	);
 } );

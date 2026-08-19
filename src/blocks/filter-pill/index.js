@@ -50,7 +50,7 @@ function facetChoices( facets ) {
 	return choices;
 }
 
-function PillPreview( { attributes, entry, termNames } ) {
+function PillPreview( { attributes, entry, instanceId, termNames } ) {
 	const { label, selectionMode, showCounts, orderBy, maxOptions } =
 		attributes;
 	const heading = label || ( entry ? entry.label : '' );
@@ -77,39 +77,43 @@ function PillPreview( { attributes, entry, termNames } ) {
 			<div className="shift64-woo-search-pill__panel is-open">
 				<p className="shift64-woo-search-pill__heading">{ heading }</p>
 				<ul className="shift64-woo-search-pill__options">
-					{ options.map( ( option ) => (
-						<li
-							key={ option.name }
-							className="shift64-woo-search-pill__option"
-						>
-							<label>
-								<input
-									type={
-										selectionMode === 'single'
-											? 'radio'
-											: 'checkbox'
-									}
-									disabled
-									readOnly
-								/>
-								<span className="shift64-woo-search-pill__option-label">
-									{ option.name }
-								</span>
-								{ showCounts && (
-									<span className="shift64-woo-search-pill__count">
-										{ option.count }
+					{ options.map( ( option, index ) => {
+						const optionId = `${ instanceId }-option-${ index }`;
+						return (
+							<li
+								key={ option.name }
+								className="shift64-woo-search-pill__option"
+							>
+								<label htmlFor={ optionId }>
+									<input
+										id={ optionId }
+										type={
+											selectionMode === 'single'
+												? 'radio'
+												: 'checkbox'
+										}
+										disabled
+										readOnly
+									/>
+									<span className="shift64-woo-search-pill__option-label">
+										{ option.name }
 									</span>
-								) }
-							</label>
-						</li>
-					) ) }
+									{ showCounts && (
+										<span className="shift64-woo-search-pill__count">
+											{ option.count }
+										</span>
+									) }
+								</label>
+							</li>
+						);
+					} ) }
 				</ul>
 			</div>
 		</div>
 	);
 }
 
-function Edit( { attributes, setAttributes } ) {
+function Edit( { attributes, clientId, setAttributes } ) {
 	const {
 		facet,
 		label,
@@ -186,9 +190,7 @@ function Edit( { attributes, setAttributes } ) {
 					) }
 				</PanelBody>
 				{ entry && (
-					<PanelBody
-						title={ __( 'Behavior', 'shift64-woo-search' ) }
-					>
+					<PanelBody title={ __( 'Behavior', 'shift64-woo-search' ) }>
 						<TextControl
 							label={ __( 'Label', 'shift64-woo-search' ) }
 							value={ label }
@@ -273,7 +275,10 @@ function Edit( { attributes, setAttributes } ) {
 							}
 						/>
 						<SelectControl
-							label={ __( 'Order options by', 'shift64-woo-search' ) }
+							label={ __(
+								'Order options by',
+								'shift64-woo-search'
+							) }
 							value={ orderBy }
 							options={ [
 								{
@@ -367,6 +372,7 @@ function Edit( { attributes, setAttributes } ) {
 					<PillPreview
 						attributes={ attributes }
 						entry={ entry }
+						instanceId={ `s64ws-pill-${ clientId }` }
 						termNames={ termNames }
 					/>
 				) }

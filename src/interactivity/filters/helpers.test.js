@@ -36,12 +36,12 @@ describe( 'selectionChanges', () => {
 	} );
 
 	it( 'omits the operator for OR pills', () => {
-		expect(
-			selectionChanges( 'product_cat', [ 'lamps' ], false )
-		).toEqual( {
-			filter_product_cat: 'lamps',
-			query_type_product_cat: null,
-		} );
+		expect( selectionChanges( 'product_cat', [ 'lamps' ], false ) ).toEqual(
+			{
+				filter_product_cat: 'lamps',
+				query_type_product_cat: null,
+			}
+		);
 	} );
 
 	it( 'removes both parameters for an empty selection', () => {
@@ -54,9 +54,7 @@ describe( 'selectionChanges', () => {
 
 describe( 'clearAllChanges', () => {
 	it( 'nulls exactly the represented taxonomies', () => {
-		expect(
-			clearAllChanges( [ 'product_cat', 'pa_material' ] )
-		).toEqual( {
+		expect( clearAllChanges( [ 'product_cat', 'pa_material' ] ) ).toEqual( {
 			filter_product_cat: null,
 			query_type_product_cat: null,
 			filter_pa_material: null,

@@ -37,9 +37,7 @@ export function selectionFromInputs( inputs ) {
  */
 export function selectionChanges( taxonomy, slugs, operatorAnd ) {
 	const changes = {};
-	changes[ `filter_${ taxonomy }` ] = slugs.length
-		? slugs.join( ',' )
-		: null;
+	changes[ `filter_${ taxonomy }` ] = slugs.length ? slugs.join( ',' ) : null;
 	changes[ `query_type_${ taxonomy }` ] =
 		slugs.length && operatorAnd ? 'and' : null;
 	return changes;

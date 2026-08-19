@@ -106,4 +106,3 @@ export function clampMaxOptions( value ) {
 	}
 	return Math.min( 100, Math.max( 1, Math.round( numeric ) ) );
 }
-

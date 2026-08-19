@@ -26,8 +26,7 @@ function Edit( { attributes, clientId, setAttributes } ) {
 	const { showClearAll, clearAllLabel, instanceId } = attributes;
 	const { replaceInnerBlocks } = useDispatch( 'core/block-editor' );
 	const pillCount = useSelect(
-		( select ) =>
-			select( 'core/block-editor' ).getBlockCount( clientId ),
+		( select ) => select( 'core/block-editor' ).getBlockCount( clientId ),
 		[ clientId ]
 	);
 	const { payload, isLoading, error } = useEditorFacets();
@@ -70,8 +69,7 @@ function Edit( { attributes, clientId, setAttributes } ) {
 		renderAppender: InnerBlocks.ButtonBlockAppender,
 	} );
 
-	const showSetupGuidance =
-		! isLoading && ! error && ready.length === 0;
+	const showSetupGuidance = ! isLoading && ! error && ready.length === 0;
 
 	return (
 		<>
@@ -93,9 +91,15 @@ function Edit( { attributes, clientId, setAttributes } ) {
 					/>
 					{ showClearAll && (
 						<TextControl
-							label={ __( 'Clear all label', 'shift64-woo-search' ) }
+							label={ __(
+								'Clear all label',
+								'shift64-woo-search'
+							) }
 							value={ clearAllLabel }
-							placeholder={ __( 'Clear all', 'shift64-woo-search' ) }
+							placeholder={ __(
+								'Clear all',
+								'shift64-woo-search'
+							) }
 							onChange={ ( next ) =>
 								setAttributes( { clearAllLabel: next } )
 							}
@@ -118,7 +122,10 @@ function Edit( { attributes, clientId, setAttributes } ) {
 					</p>
 					{ payload.settingsUrl && (
 						<ExternalLink href={ payload.settingsUrl }>
-							{ __( 'Open Facets settings', 'shift64-woo-search' ) }
+							{ __(
+								'Open Facets settings',
+								'shift64-woo-search'
+							) }
 						</ExternalLink>
 					) }
 				</Notice>

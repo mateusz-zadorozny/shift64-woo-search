@@ -83,12 +83,12 @@ describe( 'orderPreviewOptions', () => {
 	} );
 
 	it( 'bounds the list through the maxOptions clamp', () => {
-		expect(
-			orderPreviewOptions( options, 'count-desc', 2 )
-		).toHaveLength( 2 );
-		expect(
-			orderPreviewOptions( options, 'count-desc', 0 )
-		).toHaveLength( 3 );
+		expect( orderPreviewOptions( options, 'count-desc', 2 ) ).toHaveLength(
+			2
+		);
+		expect( orderPreviewOptions( options, 'count-desc', 0 ) ).toHaveLength(
+			3
+		);
 	} );
 } );
 
