@@ -224,8 +224,9 @@ class Facet_Eligibility_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * get_ready() returns only ready entries; get_entry() outside the closed
-	 * set returns null — an arriving filter_* parameter can never mint one.
+	 * The ready subset and the closed key set: get_ready() returns only ready
+	 * entries, and get_entry() outside the closed set returns null — an
+	 * arriving filter_* parameter can never mint one.
 	 */
 	public function test_ready_subset_and_closed_key_set() {
 		update_option( 'shift64_woo_search_filter_attributes', array( 'pa_material' ) );
