@@ -14,6 +14,10 @@
 #   2. RUN_DIR must never be anchored to $TMPDIR: agent harnesses recycle it
 #      while the environment is still running, leaving `wp server` and `mysqld`
 #      alive on top of a deleted docroot.
+#   3. WORKTREE_HASH must be the same eight hex characters whichever SHA-1
+#      binary the host has (issue #68). It keys $RUN_DIR, $MYSQL_SOCK and both
+#      database names, so a digest that shifts with the implementation orphans
+#      every environment a previous `up` provisioned.
 
 set -euo pipefail
 
@@ -54,10 +58,11 @@ chmod +x "$FIXTURES/bin-unfit/php"
 # --- PHP discovery -------------------------------------------------------
 
 # Fixtures are PREPENDED to the caller's PATH rather than replacing it: the
-# script needs coreutils (dirname, sha1sum) at source time, and hard-coding
-# where those live is exactly the portability assumption this suite exists to
-# avoid. php_candidates scans PATH in order, so a fixture still outranks any
-# real PHP on the box.
+# script needs coreutils (dirname, and a SHA-1 binary) at source time, and
+# hard-coding where those live is exactly the portability assumption this suite
+# exists to avoid. php_candidates scans PATH in order, so a fixture still
+# outranks any real PHP on the box. (The worktree-hash section below is the one
+# place that *does* build a PATH from scratch — that is its whole point.)
 SAFE_PATH="$PATH"
 
 run_select_php() { # run_select_php <PATH-prefix>
@@ -115,6 +120,64 @@ case "$run_dir" in
 	*"$FIXTURES/scratch"*) fail "RUN_DIR is anchored to \$TMPDIR: '$run_dir'" ;;
 	"$FIXTURES/cache/shift64-test-env"/*) ok "RUN_DIR defaults under \$XDG_CACHE_HOME, not \$TMPDIR" ;;
 	*) fail "unexpected default RUN_DIR: '$run_dir'" ;;
+esac
+
+# --- Worktree hash (SHA-1 portability) -----------------------------------
+
+# The launcher's top level needs these before it ever reaches the SHA-1 call
+# (plus `bash` itself, looked up under the fake PATH); a fake PATH that omitted
+# them would fail for the wrong reason.
+BASE_TOOLS="bash dirname basename tr cut id"
+
+make_fakebin() { # make_fakebin <name> [sha1-tool...]  -> prints the dir
+	local dir="$FIXTURES/fakebin-$1" tool real
+	shift
+	mkdir -p "$dir"
+	for tool in $BASE_TOOLS "$@"; do
+		real="$(command -v "$tool" || true)"
+		[ -n "$real" ] || { echo "missing host tool: $tool" >&2; exit 1; }
+		ln -sf "$real" "$dir/$tool"
+	done
+	printf '%s' "$dir"
+}
+
+hash_under() { # hash_under <PATH>
+	PATH="$1" bash -c '
+		set -euo pipefail
+		. "$1"
+		printf "%s" "${WORKTREE_HASH:-}"
+	' _ "$REPO_ROOT/bin/test-env.sh"
+}
+
+native_hash="$(hash_under "$SAFE_PATH")"
+case "$native_hash" in
+	[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
+		ok "WORKTREE_HASH is 8 lowercase hex chars ($native_hash)" ;;
+	*)  fail "WORKTREE_HASH is 8 lowercase hex chars (got '$native_hash')" ;;
+esac
+
+for impl in sha1sum shasum openssl; do
+	if ! command -v "$impl" >/dev/null 2>&1; then
+		echo "skip - $impl branch ($impl not installed on this host)"
+		continue
+	fi
+	# openssl without -r prints "SHA1(stdin)= …", which cut -c1-8 would turn
+	# into the same constant hash for every worktree — a far worse bug than the
+	# missing binary this helper exists to survive. This is the assertion that
+	# catches it, and any future change of algorithm or hashed input.
+	assert_eq "the $impl branch reproduces the host digest" \
+		"$native_hash" "$(hash_under "$(make_fakebin "only-$impl" "$impl")")"
+done
+
+set +e
+out="$(PATH="$(make_fakebin none)" bash -c '. "$1"' _ "$REPO_ROOT/bin/test-env.sh" 2>&1)"
+rc=$?
+set -e
+assert_eq "a host with no SHA-1 binary at all exits 2" "2" "$rc"
+case "$out" in
+	*"need one of sha1sum, shasum or openssl"*)
+		ok "that failure names the three acceptable binaries" ;;
+	*)  fail "that failure names the three acceptable binaries (got: $out)" ;;
 esac
 
 echo "# $PASS passed, $FAIL failed"

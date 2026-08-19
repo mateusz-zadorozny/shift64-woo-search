@@ -31,7 +31,26 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-WORKTREE_HASH="$(printf '%s' "$REPO_ROOT" | sha1sum | cut -c1-8)"
+# macOS ships `shasum`, not GNU coreutils' `sha1sum`. All three branches print
+# the digest first (SHA-1 is shasum's default; `openssl dgst -r` is the
+# reversed format that leads with the hash), so `cut -c1-8` yields the same
+# eight characters either way — which matters: WORKTREE_HASH keys $RUN_DIR,
+# $MYSQL_SOCK and both database names, so a different digest would orphan every
+# environment provisioned before this. This runs above preflight(), so it
+# reports its own missing-dependency failure instead of `command not found`.
+sha1_hex() { # sha1_hex <string>
+	if command -v sha1sum >/dev/null 2>&1; then
+		printf '%s' "$1" | sha1sum
+	elif command -v shasum >/dev/null 2>&1; then
+		printf '%s' "$1" | shasum -a 1
+	elif command -v openssl >/dev/null 2>&1; then
+		printf '%s' "$1" | openssl dgst -sha1 -r
+	else
+		printf 'FATAL: need one of sha1sum, shasum or openssl to identify this worktree.\n' >&2
+		exit 2
+	fi
+}
+WORKTREE_HASH="$(sha1_hex "$REPO_ROOT" | cut -c1-8)"
 RUN_ID="s64-$(basename "$REPO_ROOT" | tr -cd 'a-zA-Z0-9-' | cut -c1-24)-${WORKTREE_HASH}"
 # The run directory holds the WordPress docroot, the MySQL datadir and
 # wordpress-tests-lib for the entire life of the environment, so it must NOT
