@@ -143,9 +143,9 @@ trigger/panel visual primitive that Product Sort will later consume.
 
 ### Phase 2: Redis counts and interactive pill surfaces
 
-- [ ] 2.1 Add request-scoped facet provider with memoized counts
-- [ ] 2.2 Implement Interactivity store and shared pill primitive
-- [ ] 2.3 Connect router navigation and add Playwright coverage
+- [x] 2.1 Add request-scoped facet provider with memoized counts — 739c9b5
+- [x] 2.2 Implement Interactivity store and shared pill primitive — f71ffdc
+- [x] 2.3 Connect router navigation and add Playwright coverage — 8516cfa
 
 ### Phase 3: Shared visual-contract hardening and docs
 
