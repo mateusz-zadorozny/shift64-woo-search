@@ -1394,19 +1394,19 @@ class Shift64_Woo_Search_Query {
 	/**
 	 * Escape a value for use in a TAG filter.
 	 *
-	 * Comma is escaped because inside a TAG query `@field:{a,b}` it is the
-	 * OR alternation separator — Polish decimals like "26,5" (used for
-	 * gramatura) would otherwise parse as `{26} OR {5}` and match nothing.
+	 * Every character outside letters, numbers, and underscore is escaped —
+	 * RediSearch query syntax reserves most ASCII punctuation, and a partial
+	 * list keeps regressing: `,` is the TAG alternation separator (bug #4,
+	 * Polish decimals like "26,5"), and `&`/`;` broke every term name stored
+	 * entity-encoded by WordPress ("Beauty &amp; Care" raised SEARCH_SYNTAX,
+	 * turning the whole filtered query into a native fallback). Multibyte
+	 * letters (Polish diacritics) are left untouched.
 	 *
 	 * @param string $value Tag value to escape.
 	 * @return string
 	 */
 	public static function escape_tag_value( $value ) {
-		return str_replace(
-			array( ' ', '-', '.', ',' ),
-			array( '\\ ', '\\-', '\\.', '\\,' ),
-			$value
-		);
+		return preg_replace( '/([^\p{L}\p{N}_])/u', '\\\\$1', (string) $value );
 	}
 
 	/**

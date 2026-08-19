@@ -126,6 +126,11 @@ trigger/panel visual primitive that Product Sort will later consume.
 - Desktop disclosure + narrow tray focus semantics can regress accessibility;
   Playwright covers keyboard/Escape/backdrop, and the primitive keeps native
   checkbox/radio inputs.
+- Disjunctive counts can slightly exceed filtered membership: the search
+  membership path trims low-score matches that FT.AGGREGATE keeps (observed
+  12 vs 10 on the demo catalog). Accepted for this spec — options never
+  under-count and the discrepancy needs score-aware aggregation to close;
+  noted for a follow-up.
 - The blocks ship alongside the legacy hook bar until the legacy-removal spec
   lands; CSS namespaces are kept distinct (`shift64-woo-search-product-filters*`
   vs legacy `shift64-woo-search-filter*`).

@@ -98,6 +98,18 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		await page.locator(TRIGGER).first().click();
 		const firstInput = page.locator(OPTION_INPUT).first();
 		const slug = await firstInput.getAttribute('value');
+		// The disjunctive count of the option we are about to apply — the
+		// filtered collection must narrow to exactly this membership. This
+		// caught the escape_tag_value SEARCH_SYNTAX regression, where the URL
+		// changed but the collection silently fell back to unfiltered results.
+		const optionCount = Number(
+			await page
+				.locator(`${PILL} .shift64-woo-search-pill__option`)
+				.first()
+				.locator('.shift64-woo-search-pill__count')
+				.innerText()
+		);
+		expect(optionCount).toBeGreaterThan(0);
 		await firstInput.check();
 		await page.locator(APPLY).first().click();
 
@@ -105,6 +117,14 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		await expect(page).toHaveURL(/s=series/);
 		await expect(page).not.toHaveURL(PAGE_2);
 		await expect(productCards(page).first()).toBeVisible();
+		// The collection really narrowed: bounded by the option's disjunctive
+		// count (which may slightly exceed membership — the search path trims
+		// low-score matches that aggregations keep) and strictly below the
+		// unfiltered page size.
+		const filteredCount = await productCards(page).count();
+		expect(filteredCount).toBeGreaterThan(0);
+		expect(filteredCount).toBeLessThanOrEqual(optionCount);
+		expect(filteredCount).toBeLessThan(16);
 
 		const noFullReload = await page.evaluate(
 			() => (window as unknown as Record<string, unknown>).__e2eNoReload === true
