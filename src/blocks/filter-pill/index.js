@@ -132,19 +132,20 @@ function Edit( { attributes, clientId, setAttributes } ) {
 		entry && entry.operators && entry.operators.includes( 'and' )
 	);
 	const isReady = Boolean( entry && entry.status === 'ready' );
+	const entryTaxonomy = entry ? entry.taxonomy : '';
 
 	const terms = useSelect(
 		( select ) => {
-			if ( ! entry || ! isReady ) {
+			if ( ! entryTaxonomy || ! isReady ) {
 				return null;
 			}
 			return select( 'core' ).getEntityRecords(
 				'taxonomy',
-				entry.taxonomy,
+				entryTaxonomy,
 				{ per_page: 8, hide_empty: false, context: 'view' }
 			);
 		},
-		[ entry ? entry.taxonomy : '', isReady ]
+		[ entryTaxonomy, isReady ]
 	);
 	const termNames =
 		terms && terms.length

@@ -377,6 +377,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		// imports and direct writes can: straight into the terms table.
 		global $wpdb;
 		$created = wp_insert_term( 'Zero', 'pa_material', array( 'slug' => 'zero-tmp' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Forcing a "0" slug that the terms API refuses to create.
 		$wpdb->update( $wpdb->terms, array( 'slug' => '0' ), array( 'term_id' => $created['term_id'] ) );
 		clean_term_cache( $created['term_id'], 'pa_material' );
 

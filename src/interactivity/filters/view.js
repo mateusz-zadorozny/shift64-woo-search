@@ -104,7 +104,6 @@ const { state, actions } = store( NAMESPACE, {
 
 		async apply( event ) {
 			event.preventDefault();
-			const context = getContext();
 			const form =
 				event.target.tagName === 'FORM'
 					? event.target
@@ -112,6 +111,7 @@ const { state, actions } = store( NAMESPACE, {
 			if ( ! form ) {
 				return;
 			}
+			const context = getContext();
 			const slugs = selectionFromInputs( [
 				...form.querySelectorAll(
 					'input[type="checkbox"], input[type="radio"]'
