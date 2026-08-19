@@ -5,6 +5,7 @@
 	var Fragment = wp.element.Fragment;
 	var InspectorControls = wp.blockEditor.InspectorControls;
 	var ColorPaletteControl = wp.blockEditor.ColorPaletteControl;
+	var useBlockProps = wp.blockEditor.useBlockProps;
 	var Disabled = wp.components.Disabled;
 	var useDisabled = wp.compose && wp.compose.useDisabled;
 	var Button = wp.components.Button;
