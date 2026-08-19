@@ -1625,13 +1625,25 @@ body.shift64-woo-search-modal-open {
     position: relative;
     display: inline-block;
     box-sizing: border-box;
+    font-size: var(--wp--preset--font-size--small, 14px);
+    line-height: 1.2;
 }
 
 .shift64-woo-search-product-sort__pill {
     position: relative;
     display: inline-flex;
     align-items: center;
-    border-radius: 9999px;
+    border-radius: var(--s64ws-sort-radius, 9999px);
+    background-color: var(--s64ws-sort-bg, #f3f4f6);
+    color: var(--s64ws-sort-text, #111827);
+    border: var(--s64ws-sort-border-width, 1px) solid var(--s64ws-sort-border, transparent);
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shift64-woo-search-product-sort__pill:hover {
+    background-color: var(--s64ws-sort-bg-hover, var(--s64ws-sort-bg, #e5e7eb));
+    color: var(--s64ws-sort-text-hover, var(--s64ws-sort-text, #111827));
+    border-color: var(--s64ws-sort-border-hover, var(--s64ws-sort-border, transparent));
 }
 
 .shift64-woo-search-product-sort__trigger {
@@ -1641,29 +1653,25 @@ body.shift64-woo-search-modal-open {
     margin: 0;
     padding: 8px 16px;
     font-family: inherit;
-    font-size: var(--wp--preset--font-size--small, 14px);
+    font-size: inherit;
     font-weight: 500;
-    line-height: 1.4;
+    line-height: inherit;
     color: inherit;
     background-color: transparent;
-    border: 1px solid transparent;
+    border: none;
     border-radius: inherit;
     cursor: pointer;
     text-align: left;
     white-space: nowrap;
     outline: none;
     box-shadow: none;
-    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Default pill trigger colors when no custom block background/text is set */
-:where(.shift64-woo-search-product-sort:not(.has-background):not([style*="background"])) .shift64-woo-search-product-sort__pill {
-    background-color: #f3f4f6;
-    color: #111827;
-}
-
-:where(.shift64-woo-search-product-sort:not(.has-background):not([style*="background"])) .shift64-woo-search-product-sort__pill:hover {
-    background-color: #e5e7eb;
+.shift64-woo-search-product-sort__label {
+    font-size: inherit;
+    font-weight: 500;
+    line-height: inherit;
+    color: inherit;
 }
 
 .shift64-woo-search-product-sort__trigger:focus-visible {

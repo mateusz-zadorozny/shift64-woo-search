@@ -479,6 +479,106 @@
 									} )
 								);
 							} )
+						),
+						createElement(
+							PanelBody,
+							{
+								title: __( 'Pill style', 'shift64-woo-search' ),
+								initialOpen: true,
+							},
+							createElement(
+								'p',
+								{ style: { fontWeight: 600, marginBottom: '8px' } },
+								__( 'Text colors', 'shift64-woo-search' )
+							),
+							createElement(
+								'div',
+								{ style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' } },
+								colorControl(
+									__( 'Normal', 'shift64-woo-search' ),
+									attributes.text_color,
+									function ( value ) {
+										setAttribute( 'text_color', value || '' );
+									}
+								),
+								colorControl(
+									__( 'Hover', 'shift64-woo-search' ),
+									attributes.text_hover_color,
+									function ( value ) {
+										setAttribute( 'text_hover_color', value || '' );
+									}
+								)
+							),
+							createElement(
+								'p',
+								{ style: { fontWeight: 600, marginBottom: '8px' } },
+								__( 'Background colors', 'shift64-woo-search' )
+							),
+							createElement(
+								'div',
+								{ style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' } },
+								colorControl(
+									__( 'Normal', 'shift64-woo-search' ),
+									attributes.background_color,
+									function ( value ) {
+										setAttribute( 'background_color', value || '' );
+									},
+									true
+								),
+								colorControl(
+									__( 'Hover', 'shift64-woo-search' ),
+									attributes.background_hover_color,
+									function ( value ) {
+										setAttribute( 'background_hover_color', value || '' );
+									},
+									true
+								)
+							),
+							createElement(
+								'p',
+								{ style: { fontWeight: 600, marginBottom: '8px' } },
+								__( 'Border colors', 'shift64-woo-search' )
+							),
+							createElement(
+								'div',
+								{ style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' } },
+								colorControl(
+									__( 'Normal', 'shift64-woo-search' ),
+									attributes.border_color,
+									function ( value ) {
+										setAttribute( 'border_color', value || '' );
+									}
+								),
+								colorControl(
+									__( 'Hover', 'shift64-woo-search' ),
+									attributes.border_hover_color,
+									function ( value ) {
+										setAttribute( 'border_hover_color', value || '' );
+									}
+								)
+							),
+							createElement( RangeControl, {
+								label: __( 'Border radius (px)', 'shift64-woo-search' ),
+								value: attributes.border_radius !== undefined ? attributes.border_radius : 9999,
+								min: 0,
+								max: 50,
+								step: 1,
+								onChange: function ( value ) {
+									setAttribute( 'border_radius', value );
+								},
+								__nextHasNoMarginBottom: true,
+							} ),
+							createElement( RangeControl, {
+								label: __( 'Border width (px)', 'shift64-woo-search' ),
+								value: attributes.border_width !== undefined ? attributes.border_width : 1,
+								min: 0,
+								max: 10,
+								step: 1,
+								onChange: function ( value ) {
+									setAttribute( 'border_width', value );
+								},
+								__nextHasNoMarginBottom: true,
+							} )
 						)
 					),
 					createElement( ServerSideEdit, props )

@@ -116,18 +116,50 @@ class Shift64_Woo_Search_Blocks {
 				),
 				'textdomain'      => 'shift64-woo-search',
 				'attributes'      => array(
-					'orderedOptions' => array(
+					'orderedOptions'         => array(
 						'type'    => 'array',
 						'items'   => array( 'type' => 'string' ),
 						'default' => array( 'menu_order', 'popularity', 'rating', 'date', 'price', 'price-desc' ),
 					),
-					'labels'         => array(
+					'labels'                 => array(
 						'type'    => 'object',
 						'default' => array(),
 					),
-					'className'      => array(
+					'className'              => array(
 						'type'    => 'string',
 						'default' => '',
+					),
+					'text_color'             => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'text_hover_color'       => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'background_color'       => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'background_hover_color' => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'border_color'           => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'border_hover_color'     => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'border_radius'          => array(
+						'type'    => 'number',
+						'default' => 9999,
+					),
+					'border_width'           => array(
+						'type'    => 'number',
+						'default' => 1,
 					),
 				),
 				'supports'        => $this->get_sort_block_supports(),
@@ -153,10 +185,16 @@ class Shift64_Woo_Search_Blocks {
 			'color'         => array(
 				'text'       => true,
 				'background' => true,
+				'gradients'  => true,
+			),
+			'border'        => array(
+				'color'  => true,
+				'radius' => true,
+				'style'  => true,
+				'width'  => true,
 			),
 			'typography'    => array(
-				'fontSize'   => true,
-				'lineHeight' => true,
+				'fontSize' => true,
 			),
 			'spacing'       => array(
 				'margin'  => true,
@@ -179,7 +217,7 @@ class Shift64_Woo_Search_Blocks {
 	}
 
 	/**
-	 * Keep custom modal design attributes out of WordPress' generic controls.
+	 * Keep custom design attributes out of WordPress' generic controls.
 	 *
 	 * WordPress 7 marks every primitive PHP attribute for automatic controls.
 	 * These attributes use purpose-built color, range, and select controls from
@@ -190,35 +228,50 @@ class Shift64_Woo_Search_Blocks {
 	 * @return array<string, mixed>
 	 */
 	public function configure_modal_editor_controls( $args, $block_name ) {
-		if ( 'shift64-woo-search/modal-search' !== $block_name || empty( $args['attributes'] ) ) {
-			return $args;
+		if ( 'shift64-woo-search/modal-search' === $block_name && ! empty( $args['attributes'] ) ) {
+			$custom_controls = array(
+				'icon',
+				'preview',
+				'trigger_style',
+				'trigger_icon_color',
+				'trigger_icon_hover_color',
+				'trigger_surface_color',
+				'trigger_surface_hover_color',
+				'trigger_border_radius',
+				'trigger_icon_size',
+				'trigger_padding',
+				'trigger_outline_width',
+				'modal_search_style',
+				'modal_background_color',
+				'modal_background_transparency',
+				'search_input_text_color',
+				'search_input_background_color',
+				'search_button_color',
+				'search_button_background_color',
+				'search_button_hover_color',
+				'search_button_background_hover_color',
+			);
+
+			foreach ( $custom_controls as $attribute ) {
+				unset( $args['attributes'][ $attribute ]['autoGenerateControl'] );
+			}
 		}
 
-		$custom_controls = array(
-			'icon',
-			'preview',
-			'trigger_style',
-			'trigger_icon_color',
-			'trigger_icon_hover_color',
-			'trigger_surface_color',
-			'trigger_surface_hover_color',
-			'trigger_border_radius',
-			'trigger_icon_size',
-			'trigger_padding',
-			'trigger_outline_width',
-			'modal_search_style',
-			'modal_background_color',
-			'modal_background_transparency',
-			'search_input_text_color',
-			'search_input_background_color',
-			'search_button_color',
-			'search_button_background_color',
-			'search_button_hover_color',
-			'search_button_background_hover_color',
-		);
+		if ( 'shift64-woo-search/product-sort' === $block_name && ! empty( $args['attributes'] ) ) {
+			$custom_controls = array(
+				'text_color',
+				'text_hover_color',
+				'background_color',
+				'background_hover_color',
+				'border_color',
+				'border_hover_color',
+				'border_radius',
+				'border_width',
+			);
 
-		foreach ( $custom_controls as $attribute ) {
-			unset( $args['attributes'][ $attribute ]['autoGenerateControl'] );
+			foreach ( $custom_controls as $attribute ) {
+				unset( $args['attributes'][ $attribute ]['autoGenerateControl'] );
+			}
 		}
 
 		return $args;
@@ -849,15 +902,47 @@ class Shift64_Woo_Search_Blocks {
 			'activeLabel' => $active_label,
 		);
 
-		$wrapper_attrs = get_block_wrapper_attributes(
-			array(
-				'class'                      => 'shift64-woo-search-product-sort',
-				'data-wp-interactive'        => 'shift64/woo-search-product-sort',
-				'data-wp-context'            => wp_json_encode( $context ),
-				'data-wp-on-window--click'   => 'actions.onClickOutside',
-				'data-wp-on-window--keydown' => 'actions.onKeyDown',
-			)
+		$css_vars = array();
+
+		if ( ! empty( $attributes['text_color'] ) ) {
+			$css_vars[] = '--s64ws-sort-text: ' . esc_attr( $attributes['text_color'] );
+		}
+		if ( ! empty( $attributes['text_hover_color'] ) ) {
+			$css_vars[] = '--s64ws-sort-text-hover: ' . esc_attr( $attributes['text_hover_color'] );
+		}
+		if ( ! empty( $attributes['background_color'] ) ) {
+			$css_vars[] = '--s64ws-sort-bg: ' . esc_attr( $attributes['background_color'] );
+		}
+		if ( ! empty( $attributes['background_hover_color'] ) ) {
+			$css_vars[] = '--s64ws-sort-bg-hover: ' . esc_attr( $attributes['background_hover_color'] );
+		}
+		if ( ! empty( $attributes['border_color'] ) ) {
+			$css_vars[] = '--s64ws-sort-border: ' . esc_attr( $attributes['border_color'] );
+		}
+		if ( ! empty( $attributes['border_hover_color'] ) ) {
+			$css_vars[] = '--s64ws-sort-border-hover: ' . esc_attr( $attributes['border_hover_color'] );
+		}
+		if ( isset( $attributes['border_radius'] ) && '' !== $attributes['border_radius'] ) {
+			$css_vars[] = '--s64ws-sort-radius: ' . esc_attr( absint( $attributes['border_radius'] ) ) . 'px';
+		}
+		if ( isset( $attributes['border_width'] ) && '' !== $attributes['border_width'] ) {
+			$css_vars[] = '--s64ws-sort-border-width: ' . esc_attr( absint( $attributes['border_width'] ) ) . 'px';
+		}
+
+		$style_vars = ! empty( $css_vars ) ? implode( '; ', $css_vars ) . ';' : '';
+
+		$wrapper_args = array(
+			'class'                      => 'shift64-woo-search-product-sort',
+			'data-wp-interactive'        => 'shift64/woo-search-product-sort',
+			'data-wp-context'            => wp_json_encode( $context ),
+			'data-wp-on-window--click'   => 'actions.onClickOutside',
+			'data-wp-on-window--keydown' => 'actions.onKeyDown',
 		);
+		if ( ! empty( $style_vars ) ) {
+			$wrapper_args['style'] = $style_vars;
+		}
+
+		$wrapper_attrs = get_block_wrapper_attributes( $wrapper_args );
 
 		ob_start();
 		?>
