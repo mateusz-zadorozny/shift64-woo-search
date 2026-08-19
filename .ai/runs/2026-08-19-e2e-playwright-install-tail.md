@@ -127,6 +127,8 @@ The change itself is verified by the workflow it edits, on this PR's own `e2e` j
 
 ## Progress
 
+PR: #71
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Bound and cache the Playwright browser install
@@ -137,3 +139,6 @@ The change itself is verified by the workflow it edits, on this PR's own `e2e` j
 ### Phase 2: Validation
 
 - [x] 2.1 Run the full validation gate — see "Validation results" below
+- [x] Post-review fix: key the Playwright cache on the resolved `@playwright/test` version
+      instead of `hashFiles('package-lock.json')`, which semantic-release invalidates on
+      every release — 935ec11
