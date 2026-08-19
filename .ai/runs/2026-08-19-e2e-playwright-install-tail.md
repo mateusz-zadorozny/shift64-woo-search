@@ -102,6 +102,29 @@ the whole job budget, a red required check on an unrelated PR, and a manual re-r
   rejected: the job also needs PHP 8.3, wp-cli and a live `wp server`, all runner-provided today.
 - Adding Playwright to the agentic validation gate — forbidden by `AGENTS.md`.
 
+## Validation results
+
+Ran against the worktree's real isolated environment provisioned by `bin/test-env.sh up`
+(dedicated MariaDB on `127.0.0.1:63119`, dedicated RediSearch-capable Redis on `:63120`, and the
+real WordPress PHPUnit library) — not a stub or scratchpad harness:
+
+| Command | Result |
+|---------|--------|
+| `composer validate --strict` | ✅ `./composer.json is valid` |
+| `vendor/bin/phpcs` | ✅ 8/8 files clean |
+| `vendor/bin/phpunit` | ✅ OK — 560 tests, 7903 assertions |
+
+The PHP gate cannot exercise this change (the diff is GitHub Actions YAML and contains no PHP);
+it was run because the gate is unconditional, and it confirms the change breaks nothing else.
+The change itself is verified by the workflow it edits, on this PR's own `e2e` job, plus:
+
+| Check | Result |
+|-------|--------|
+| Workflow YAML parses; `e2e` step order correct | ✅ `Cache Playwright browsers` sits directly before `Install Playwright Chromium` |
+| `bash -n` on the extracted `run:` block | ✅ syntactically valid |
+| Retry-loop success path simulated under `bash -e` | ✅ exits 0 on first attempt, no further attempts |
+| Retry-loop exhaustion path simulated under `bash -e` | ✅ three attempts, then exit 1 with the diagnostic on stderr |
+
 ## Progress
 
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
@@ -113,4 +136,4 @@ the whole job budget, a red required check on an unrelated PR, and a manual re-r
 
 ### Phase 2: Validation
 
-- [ ] 2.1 Run the full validation gate
+- [x] 2.1 Run the full validation gate — see "Validation results" below
