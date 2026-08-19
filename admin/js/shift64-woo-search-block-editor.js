@@ -25,6 +25,17 @@
 		'shift64-woo-search/product-sort',
 	];
 
+	var colorControl = function ( label, value, onChange, enableAlpha ) {
+		return createElement( ColorPaletteControl, {
+			label: label,
+			value: value,
+			onChange: onChange,
+			clearable: true,
+			enableAlpha: Boolean( enableAlpha ),
+			__experimentalIsRenderedInSidebar: true,
+		} );
+	};
+
 	/**
 	 * Render the editor preview through a POST request instead of a GET request.
 	 *
@@ -84,16 +95,6 @@
 					var update = {};
 					update[ attribute ] = value;
 					props.setAttributes( update );
-				};
-				var colorControl = function ( label, value, onChange, enableAlpha ) {
-					return createElement( ColorPaletteControl, {
-						label: label,
-						value: value,
-						onChange: onChange,
-						clearable: true,
-						enableAlpha: Boolean( enableAlpha ),
-						__experimentalIsRenderedInSidebar: true,
-					} );
 				};
 				var style = attributes.style || {};
 				var searchBoxColors = style.color || {};
