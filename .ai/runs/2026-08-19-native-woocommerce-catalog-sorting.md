@@ -54,16 +54,16 @@ Add a context-agnostic Redis sorting engine for WooCommerce's native catalog mod
 
 ### Phase 1: Engine and Product Sort Block
 
-- [ ] 1.1 `Shift64_Woo_Search_Sort` service
-- [ ] 1.2 Generalize candidate-set pass-through (`wc` mode)
-- [ ] 1.3 Wire `redis` mode for `popularity` and `rating`
-- [ ] 1.4 `menu_order` composite sort via `FT.AGGREGATE`
-- [ ] 1.5 Adapt Product Collection query integration
-- [ ] 1.6 Register `shift64-woo-search/product-sort` block
-- [ ] 1.7 Interactivity API script module for Product Sort
+- [x] 1.1 `Shift64_Woo_Search_Sort` service — 6962ba6
+- [x] 1.2 Generalize candidate-set pass-through (`wc` mode) — 79def0f
+- [x] 1.3 Wire `redis` mode for `popularity` and `rating` — 79def0f
+- [x] 1.4 `menu_order` composite sort via `FT.AGGREGATE` — 79def0f
+- [x] 1.5 Adapt Product Collection query integration — 79def0f
+- [x] 1.6 Register `shift64-woo-search/product-sort` block — 3d360ac
+- [x] 1.7 Interactivity API script module for Product Sort — 3d360ac
 
 ### Phase 2: `date` Field and Finalization
 
-- [ ] 2.1 Schema + indexer `date` field
-- [ ] 2.2 Migration, health check, and dynamic mode flipping
-- [ ] 2.3 Documentation, spec lifecycle, and changelog update
+- [x] 2.1 Schema + indexer `date` field — 46f9bcf
+- [x] 2.2 Migration, health check, and dynamic mode flipping — 46f9bcf
+- [x] 2.3 Documentation, spec lifecycle, and changelog update — 46f9bcf
