@@ -11,9 +11,8 @@ const { state } = store('shift64/woo-search-product-sort', {
 	state: {
 		get isSelected() {
 			const context = getContext();
-			const element = getElement();
-			const slug = element?.attributes?.['data-slug']?.value || element?.ref?.dataset?.slug;
-			return Boolean(context?.activeSort && context.activeSort === slug);
+			const slug = context?.slug || '';
+			return Boolean(context?.activeSort && slug && context.activeSort === slug);
 		},
 		get isChevronOpen() {
 			const context = getContext();

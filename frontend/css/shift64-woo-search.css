@@ -1763,8 +1763,7 @@ body.shift64-woo-search-modal-open {
     color: #111827;
 }
 
-.shift64-woo-search-product-sort__option.is-selected,
-.shift64-woo-search-product-sort__option[aria-selected="true"] {
+.shift64-woo-search-product-sort__option.is-selected {
     background-color: #f0fdf4;
     color: #15803d;
     font-weight: 600;
@@ -1779,8 +1778,7 @@ body.shift64-woo-search-modal-open {
     flex-shrink: 0;
 }
 
-.shift64-woo-search-product-sort__option.is-selected .shift64-woo-search-product-sort__option-check,
-.shift64-woo-search-product-sort__option[aria-selected="true"] .shift64-woo-search-product-sort__option-check {
+.shift64-woo-search-product-sort__option.is-selected .shift64-woo-search-product-sort__option-check {
     display: inline-flex;
 }
 

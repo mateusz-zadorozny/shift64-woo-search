@@ -889,9 +889,21 @@ class Shift64_Woo_Search_Blocks {
 					hidden
 				>
 					<ul class="shift64-woo-search-product-sort__list" role="presentation">
-						<?php foreach ( $rendered_options as $slug => $label ) : ?>
-							<?php $is_selected = ( $effective_sort === $slug ); ?>
-							<li class="shift64-woo-search-product-sort__item" role="presentation">
+						<?php
+						foreach ( $rendered_options as $slug => $label ) :
+							$is_selected  = ( $effective_sort === $slug );
+							$item_context = wp_json_encode(
+								array(
+									'slug'  => $slug,
+									'label' => $label,
+								)
+							);
+							?>
+							<li
+								class="shift64-woo-search-product-sort__item"
+								role="presentation"
+								data-wp-context="<?php echo esc_attr( $item_context ); ?>"
+							>
 								<button
 									type="button"
 									role="option"
@@ -900,6 +912,7 @@ class Shift64_Woo_Search_Blocks {
 									data-label="<?php echo esc_attr( $label ); ?>"
 									data-wp-on--click="actions.selectOption"
 									data-wp-class--is-selected="state.isSelected"
+									data-wp-bind--aria-selected="state.isSelected"
 									aria-selected="<?php echo $is_selected ? 'true' : 'false'; ?>"
 								>
 									<span class="shift64-woo-search-product-sort__option-label">
