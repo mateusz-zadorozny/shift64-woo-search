@@ -14,7 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Shift64_Woo_Search_Catalog_Navigation {
 
-	const MODULE_ID = 'shift64-woo-search/catalog-navigation';
+	const MODULE_ID              = 'shift64-woo-search/catalog-navigation';
+	const PRODUCT_SORT_MODULE_ID = 'shift64-woo-search/product-sort';
 
 	/**
 	 * Register the script module on init.
@@ -47,10 +48,21 @@ final class Shift64_Woo_Search_Catalog_Navigation {
 			SHIFT64_WOO_SEARCH_VERSION
 		);
 
+		wp_register_script_module(
+			self::PRODUCT_SORT_MODULE_ID,
+			SHIFT64_WOO_SEARCH_URL . 'frontend/js/shift64-woo-search-product-sort.js',
+			array(
+				'@wordpress/interactivity',
+				self::MODULE_ID,
+			),
+			SHIFT64_WOO_SEARCH_VERSION
+		);
+
 		if ( function_exists( 'wp_interactivity' ) ) {
 			$interactivity = wp_interactivity();
 			if ( is_object( $interactivity ) && method_exists( $interactivity, 'add_client_navigation_support_to_script_module' ) ) {
 				$interactivity->add_client_navigation_support_to_script_module( self::MODULE_ID );
+				$interactivity->add_client_navigation_support_to_script_module( self::PRODUCT_SORT_MODULE_ID );
 			}
 		}
 	}

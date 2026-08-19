@@ -5,12 +5,14 @@
 	var Fragment = wp.element.Fragment;
 	var InspectorControls = wp.blockEditor.InspectorControls;
 	var ColorPaletteControl = wp.blockEditor.ColorPaletteControl;
-	var useBlockProps = wp.blockEditor.useBlockProps;
 	var Disabled = wp.components.Disabled;
 	var useDisabled = wp.compose && wp.compose.useDisabled;
+	var Button = wp.components.Button;
+	var CheckboxControl = wp.components.CheckboxControl;
 	var PanelBody = wp.components.PanelBody;
 	var RangeControl = wp.components.RangeControl;
 	var SelectControl = wp.components.SelectControl;
+	var TextControl = wp.components.TextControl;
 	var ToggleControl = wp.components.ToggleControl;
 	var addFilter = wp.hooks.addFilter;
 	var __ = wp.i18n.__;
@@ -19,6 +21,7 @@
 	var previewBlocks = [
 		'shift64-woo-search/search',
 		'shift64-woo-search/modal-search',
+		'shift64-woo-search/product-sort',
 	];
 
 	/**
@@ -335,5 +338,157 @@
 		'blocks.registerBlockType',
 		'shift64-woo-search/modal-search-controls',
 		addModalSearchControls
+	);
+
+	var addProductSortControls = function ( settings, name ) {
+		if ( name !== 'shift64-woo-search/product-sort' ) {
+			return settings;
+		}
+
+		var ServerSideEdit = settings.edit;
+
+		var canonicalOptions = [
+			{ key: 'menu_order', defaultLabel: __( 'Default sorting', 'shift64-woo-search' ) },
+			{ key: 'popularity', defaultLabel: __( 'Sort by popularity', 'shift64-woo-search' ) },
+			{ key: 'rating', defaultLabel: __( 'Sort by average rating', 'shift64-woo-search' ) },
+			{ key: 'date', defaultLabel: __( 'Sort by latest', 'shift64-woo-search' ) },
+			{ key: 'price', defaultLabel: __( 'Sort by price: low to high', 'shift64-woo-search' ) },
+			{ key: 'price-desc', defaultLabel: __( 'Sort by price: high to low', 'shift64-woo-search' ) },
+		];
+
+		return Object.assign( {}, settings, {
+			edit: function ( props ) {
+				var attributes = props.attributes;
+				var orderedOptions = Array.isArray( attributes.orderedOptions ) && attributes.orderedOptions.length > 0
+					? attributes.orderedOptions
+					: [ 'menu_order', 'popularity', 'rating', 'date', 'price', 'price-desc' ];
+				var labels = Object.assign( {}, attributes.labels || {} );
+
+				var setOrderedOptions = function ( newOptions ) {
+					props.setAttributes( { orderedOptions: newOptions } );
+				};
+
+				var setLabel = function ( key, val ) {
+					var nextLabels = Object.assign( {}, labels );
+					if ( val && val.trim() ) {
+						nextLabels[ key ] = val;
+					} else {
+						delete nextLabels[ key ];
+					}
+					props.setAttributes( { labels: nextLabels } );
+				};
+
+				var toggleOption = function ( key ) {
+					var index = orderedOptions.indexOf( key );
+					var next = orderedOptions.slice();
+					if ( index > -1 ) {
+						next.splice( index, 1 );
+					} else {
+						next.push( key );
+					}
+					setOrderedOptions( next );
+				};
+
+				var moveOption = function ( index, direction ) {
+					var targetIndex = index + direction;
+					if ( targetIndex < 0 || targetIndex >= orderedOptions.length ) {
+						return;
+					}
+					var next = orderedOptions.slice();
+					var item = next.splice( index, 1 )[ 0 ];
+					next.splice( targetIndex, 0, item );
+					setOrderedOptions( next );
+				};
+
+				return createElement(
+					Fragment,
+					null,
+					createElement(
+						InspectorControls,
+						null,
+						createElement(
+							PanelBody,
+							{
+								title: __( 'Sort options', 'shift64-woo-search' ),
+								initialOpen: true,
+							},
+							canonicalOptions.map( function ( item ) {
+								var isChecked = orderedOptions.indexOf( item.key ) > -1;
+								var currentIndex = orderedOptions.indexOf( item.key );
+								var customLabel = labels[ item.key ] || '';
+
+								return createElement(
+									'div',
+									{
+										key: item.key,
+										style: {
+											marginBottom: '16px',
+											paddingBottom: '12px',
+											borderBottom: '1px solid #e0e0e0',
+										},
+									},
+									createElement(
+										'div',
+										{
+											style: {
+												display: 'flex',
+												alignItems: 'center',
+												justifyContent: 'space-between',
+											},
+										},
+										createElement( CheckboxControl, {
+											label: item.defaultLabel,
+											checked: isChecked,
+											onChange: function () {
+												toggleOption( item.key );
+											},
+											__nextHasNoMarginBottom: true,
+										} ),
+										isChecked && createElement(
+											'div',
+											{ style: { display: 'flex', gap: '4px' } },
+											createElement( Button, {
+												icon: 'arrow-up-alt2',
+												label: __( 'Move up', 'shift64-woo-search' ),
+												disabled: currentIndex <= 0,
+												isSmall: true,
+												onClick: function () {
+													moveOption( currentIndex, -1 );
+												},
+											} ),
+											createElement( Button, {
+												icon: 'arrow-down-alt2',
+												label: __( 'Move down', 'shift64-woo-search' ),
+												disabled: currentIndex >= orderedOptions.length - 1,
+												isSmall: true,
+												onClick: function () {
+													moveOption( currentIndex, 1 );
+												},
+											} )
+										)
+									),
+									isChecked && createElement( TextControl, {
+										label: __( 'Custom label', 'shift64-woo-search' ),
+										value: customLabel,
+										placeholder: item.defaultLabel,
+										onChange: function ( val ) {
+											setLabel( item.key, val );
+										},
+										__nextHasNoMarginBottom: true,
+									} )
+								);
+							} )
+						)
+					),
+					createElement( ServerSideEdit, props )
+				);
+			},
+		} );
+	};
+
+	addFilter(
+		'blocks.registerBlockType',
+		'shift64-woo-search/product-sort-controls',
+		addProductSortControls
 	);
 }( window.wp ) );
