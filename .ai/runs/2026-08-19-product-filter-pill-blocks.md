@@ -136,8 +136,8 @@ trigger/panel visual primitive that Product Sort will later consume.
 
 ### Phase 1: Facet eligibility, blocks, and progressive rendering
 
-- [ ] 1.1 Add facet eligibility service and schema field helper
-- [ ] 1.2 Add capability-gated editor facets REST route
+- [x] 1.1 Add facet eligibility service and schema field helper — 76abec8
+- [x] 1.2 Add capability-gated editor facets REST route — 0f49742
 - [ ] 1.3 Register Product Filters and Filter Pill metadata blocks with editor UI
 - [ ] 1.4 Implement progressive server rendering and canonical URL forms
 
