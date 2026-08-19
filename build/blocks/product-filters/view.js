@@ -1,0 +1,1 @@
+import{store as t}from"@wordpress/interactivity";t("shift64-woo-search/product-filters",{state:{},actions:{}});

@@ -1,0 +1,34 @@
+/*
+ * Product Filters parent — layout and the Clear all control.
+ * Pill trigger/panel styles live with the Filter Pill child.
+ */
+.shift64-woo-search-product-filters {
+	// The flex layout itself comes from the block's layout support; this is
+	// only the fallback gap for themes without blockGap output.
+	&:not(.is-layout-flex) {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	&__clear-all {
+		align-self: center;
+		background: none;
+		border: 0;
+		color: currentColor;
+		cursor: pointer;
+		font-size: 0.875em;
+		padding: 0.25em 0.5em;
+		text-decoration: underline;
+
+		&:hover,
+		&:focus-visible {
+			text-decoration: none;
+		}
+
+		&:focus-visible {
+			outline: 2px solid currentColor;
+			outline-offset: 2px;
+		}
+	}
+}

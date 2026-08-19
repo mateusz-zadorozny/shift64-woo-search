@@ -1,0 +1,71 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "shift64-woo-search/product-filters",
+  "version": "0.1.0",
+  "title": "Product Filters (Shift64)",
+  "category": "woocommerce",
+  "icon": "filter",
+  "description": "Composable Redis-backed product filters for an inherited Product Collection.",
+  "keywords": [
+    "Shift64",
+    "filters",
+    "facets",
+    "WooCommerce"
+  ],
+  "textdomain": "shift64-woo-search",
+  "attributes": {
+    "instanceId": {
+      "type": "string",
+      "default": ""
+    },
+    "runtimeId": {
+      "type": "string",
+      "default": ""
+    },
+    "showClearAll": {
+      "type": "boolean",
+      "default": true
+    },
+    "clearAllLabel": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "providesContext": {
+    "shift64WooSearch/filterInstanceId": "instanceId",
+    "shift64WooSearch/filterRuntimeId": "runtimeId"
+  },
+  "supports": {
+    "align": [
+      "wide",
+      "full"
+    ],
+    "anchor": true,
+    "html": false,
+    "interactivity": true,
+    "layout": {
+      "allowSwitching": false,
+      "allowInheriting": false,
+      "allowEditing": true,
+      "default": {
+        "type": "flex",
+        "flexWrap": "wrap"
+      }
+    },
+    "spacing": {
+      "margin": true,
+      "padding": true,
+      "blockGap": true
+    },
+    "color": {
+      "background": true,
+      "text": true,
+      "gradients": false
+    }
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScriptModule": "file:./view.js"
+}
