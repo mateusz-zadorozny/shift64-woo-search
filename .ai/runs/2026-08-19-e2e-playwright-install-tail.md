@@ -108,8 +108,8 @@ the whole job budget, a red required check on an unrelated PR, and a manual re-r
 
 ### Phase 1: Bound and cache the Playwright browser install
 
-- [ ] 1.1 Cache the browser binary
-- [ ] 1.2 Remove apt from the hot path and bound the step
+- [x] 1.1 Cache the browser binary — 6175e7a
+- [x] 1.2 Remove apt from the hot path and bound the step — 6175e7a
 
 ### Phase 2: Validation
 
