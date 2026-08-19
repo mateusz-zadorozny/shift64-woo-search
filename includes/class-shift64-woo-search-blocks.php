@@ -840,41 +840,100 @@ class Shift64_Woo_Search_Blocks {
 		++$instance_count;
 		$select_id = 'shift64-sort-' . $instance_count;
 
+		$active_label = $rendered_options[ $effective_sort ] ?? reset( $rendered_options );
+
+		$context = array(
+			'isOpen'      => false,
+			'queryId'     => $query_id,
+			'activeSort'  => $effective_sort,
+			'activeLabel' => $active_label,
+		);
+
 		$wrapper_attrs = get_block_wrapper_attributes(
 			array(
-				'class'               => 'shift64-woo-search-product-sort',
-				'data-wp-interactive' => 'shift64/woo-search-product-sort',
-				'data-wp-context'     => wp_json_encode( array( 'queryId' => $query_id ) ),
+				'class'                      => 'shift64-woo-search-product-sort',
+				'data-wp-interactive'        => 'shift64/woo-search-product-sort',
+				'data-wp-context'            => wp_json_encode( $context ),
+				'data-wp-on-window--click'   => 'actions.onClickOutside',
+				'data-wp-on-window--keydown' => 'actions.onKeyDown',
 			)
 		);
 
 		ob_start();
 		?>
 		<div <?php echo $wrapper_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
-			<form class="woocommerce-ordering shift64-woo-search-product-sort__form" method="get">
-				<label for="<?php echo esc_attr( $select_id ); ?>" class="screen-reader-text">
-					<?php esc_html_e( 'Sort by', 'shift64-woo-search' ); ?>
-				</label>
-				<div class="shift64-woo-search-product-sort__control">
-					<select
-						id="<?php echo esc_attr( $select_id ); ?>"
-						name="orderby"
-						class="orderby shift64-woo-search-product-sort__select"
-						aria-label="<?php esc_attr_e( 'Shop order', 'shift64-woo-search' ); ?>"
-						data-wp-on--change="actions.onSortChange"
-					>
-						<?php foreach ( $rendered_options as $slug => $label ) : ?>
-							<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $effective_sort, $slug ); ?>>
-								<?php echo esc_html( $label ); ?>
-							</option>
-						<?php endforeach; ?>
-					</select>
-					<span class="shift64-woo-search-product-sort__chevron" aria-hidden="true">
+			<div class="shift64-woo-search-product-sort__pill">
+				<button
+					type="button"
+					class="shift64-woo-search-product-sort__trigger"
+					data-wp-on--click="actions.toggleDropdown"
+					data-wp-bind--aria-expanded="context.isOpen"
+					aria-haspopup="listbox"
+					aria-label="<?php esc_attr_e( 'Sort products by', 'shift64-woo-search' ); ?>"
+				>
+					<span class="shift64-woo-search-product-sort__label" data-wp-text="context.activeLabel">
+						<?php echo esc_html( $active_label ); ?>
+					</span>
+					<span class="shift64-woo-search-product-sort__chevron" data-wp-class--is-open="context.isOpen" aria-hidden="true">
 						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
 							<polyline points="6 9 12 15 18 9"></polyline>
 						</svg>
 					</span>
+				</button>
+
+				<div
+					class="shift64-woo-search-product-sort__tray"
+					data-wp-bind--hidden="!context.isOpen"
+					role="listbox"
+					aria-label="<?php esc_attr_e( 'Sort options', 'shift64-woo-search' ); ?>"
+					hidden
+				>
+					<ul class="shift64-woo-search-product-sort__list" role="presentation">
+						<?php foreach ( $rendered_options as $slug => $label ) : ?>
+							<?php $is_selected = ( $effective_sort === $slug ); ?>
+							<li class="shift64-woo-search-product-sort__item" role="presentation">
+								<button
+									type="button"
+									role="option"
+									class="shift64-woo-search-product-sort__option<?php echo $is_selected ? ' is-selected' : ''; ?>"
+									data-slug="<?php echo esc_attr( $slug ); ?>"
+									data-label="<?php echo esc_attr( $label ); ?>"
+									data-wp-on--click="actions.selectOption"
+									data-wp-class--is-selected="state.isSelected"
+									aria-selected="<?php echo $is_selected ? 'true' : 'false'; ?>"
+								>
+									<span class="shift64-woo-search-product-sort__option-label">
+										<?php echo esc_html( $label ); ?>
+									</span>
+									<span class="shift64-woo-search-product-sort__option-check" aria-hidden="true">
+										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+											<polyline points="20 6 9 17 4 12"></polyline>
+										</svg>
+									</span>
+								</button>
+							</li>
+						<?php endforeach; ?>
+					</ul>
 				</div>
+			</div>
+
+			<form class="woocommerce-ordering shift64-woo-search-product-sort__fallback" method="get">
+				<label for="<?php echo esc_attr( $select_id ); ?>" class="screen-reader-text">
+					<?php esc_html_e( 'Sort by', 'shift64-woo-search' ); ?>
+				</label>
+				<select
+					id="<?php echo esc_attr( $select_id ); ?>"
+					name="orderby"
+					class="orderby shift64-woo-search-product-sort__select"
+					aria-label="<?php esc_attr_e( 'Shop order', 'shift64-woo-search' ); ?>"
+					data-wp-on--change="actions.onSortChange"
+				>
+					<?php foreach ( $rendered_options as $slug => $label ) : ?>
+						<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $effective_sort, $slug ); ?>>
+							<?php echo esc_html( $label ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
 				<?php
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				foreach ( $_GET as $key => $val ) {
