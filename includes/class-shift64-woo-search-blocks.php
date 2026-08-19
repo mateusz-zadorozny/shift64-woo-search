@@ -130,28 +130,45 @@ class Shift64_Woo_Search_Blocks {
 						'default' => '',
 					),
 				),
-				'supports'        => array(
-					'html'          => false,
-					'interactivity' => true,
-					'inserter'      => true,
-					'color'         => array(
-						'text'       => true,
-						'background' => true,
-					),
-					'typography'    => array(
-						'fontSize'   => true,
-						'lineHeight' => true,
-					),
-					'spacing'       => array(
-						'margin'  => true,
-						'padding' => true,
-					),
-				),
+				'supports'        => $this->get_sort_block_supports(),
 				'style'           => 'shift64-woo-search',
 				'render_callback' => array( $this, 'render_product_sort_block' ),
 				'uses_context'    => array( 'query', 'queryId' ),
 			)
 		);
+	}
+
+	/**
+	 * Block supports for the Product Sort block.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function get_sort_block_supports() {
+		global $wp_version;
+
+		$supports = array(
+			'html'          => false,
+			'interactivity' => true,
+			'inserter'      => true,
+			'color'         => array(
+				'text'       => true,
+				'background' => true,
+			),
+			'typography'    => array(
+				'fontSize'   => true,
+				'lineHeight' => true,
+			),
+			'spacing'       => array(
+				'margin'  => true,
+				'padding' => true,
+			),
+		);
+
+		if ( version_compare( $wp_version, '7.0', '>=' ) ) {
+			$supports['autoRegister'] = true;
+		}
+
+		return $supports;
 	}
 
 	/**
