@@ -154,11 +154,11 @@ class Shift64_Woo_Search_Blocks {
 						'default' => '',
 					),
 					'border_radius'          => array(
-						'type'    => 'number',
+						'type'    => array( 'number', 'string' ),
 						'default' => 9999,
 					),
 					'border_width'           => array(
-						'type'    => 'number',
+						'type'    => array( 'number', 'string' ),
 						'default' => 1,
 					),
 				),

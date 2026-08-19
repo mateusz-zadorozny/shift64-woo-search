@@ -559,23 +559,23 @@
 							),
 							createElement( RangeControl, {
 								label: __( 'Border radius (px)', 'shift64-woo-search' ),
-								value: attributes.border_radius !== undefined ? attributes.border_radius : 9999,
+								value: attributes.border_radius !== undefined && attributes.border_radius !== '' ? Number( attributes.border_radius ) : 9999,
 								min: 0,
 								max: 50,
 								step: 1,
 								onChange: function ( value ) {
-									setAttribute( 'border_radius', value );
+									setAttribute( 'border_radius', value !== undefined && value !== null && value !== '' ? Number( value ) : 9999 );
 								},
 								__nextHasNoMarginBottom: true,
 							} ),
 							createElement( RangeControl, {
 								label: __( 'Border width (px)', 'shift64-woo-search' ),
-								value: attributes.border_width !== undefined ? attributes.border_width : 1,
+								value: attributes.border_width !== undefined && attributes.border_width !== '' ? Number( attributes.border_width ) : 1,
 								min: 0,
 								max: 10,
 								step: 1,
 								onChange: function ( value ) {
-									setAttribute( 'border_width', value );
+									setAttribute( 'border_width', value !== undefined && value !== null && value !== '' ? Number( value ) : 1 );
 								},
 								__nextHasNoMarginBottom: true,
 							} )
