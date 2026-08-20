@@ -137,6 +137,8 @@ trigger/panel visual primitive that Product Sort will later consume.
 
 ## Progress
 
+PR: #72
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Facet eligibility, blocks, and progressive rendering
@@ -156,3 +158,4 @@ trigger/panel visual primitive that Product Sort will later consume.
 
 - [x] 3.1 Extract and document the reusable pill primitive with visual fixture — 7204659
 - [x] 3.2 Update docs and flip the spec lifecycle status — 10b15f3
+- [x] Post-review fixes: TAG escaping for entity-encoded names, canonical no-JS redirect, eligibility-gated request parsing, FT.AGGREGATE schema probe, URL/param preservation hardening, count-provider gates, CI lint alignment — 5d143f4, 9ce4e36, 5796522, 3e9dee9, f4f5bb7
