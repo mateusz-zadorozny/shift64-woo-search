@@ -16,6 +16,7 @@ import {
 	clearAllChanges,
 	selectionChanges,
 	selectionFromInputs,
+	shouldLockScroll,
 	trapTabIndex,
 } from './helpers';
 
@@ -27,9 +28,30 @@ const trayQuery =
 		: null;
 const FOCUSABLE =
 	'summary, a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const SCROLL_LOCK_CLASS = 'shift64-woo-search-has-open-filter';
 
 function pillRoot( element ) {
 	return element ? element.closest( 'details' ) : null;
+}
+
+/**
+ * Hold the page still while a tray is open.
+ *
+ * The tray is a modal surface: a touch drag that misses the option list must
+ * not scroll the catalog out from under it. Only the tray presentation locks —
+ * the desktop dropdown is an inline panel and locking there would freeze a page
+ * the shopper can still see all of. The stylesheet scopes the lock to the same
+ * media query, so a stale class can never strand a wide viewport.
+ */
+function syncScrollLock() {
+	if ( typeof document === 'undefined' ) {
+		return;
+	}
+	const locked = shouldLockScroll(
+		trayQuery && trayQuery.matches,
+		state.open
+	);
+	document.documentElement.classList.toggle( SCROLL_LOCK_CLASS, locked );
 }
 
 function focusTrigger( element ) {
@@ -44,6 +66,11 @@ const { state, actions } = store( NAMESPACE, {
 	state: {
 		// Open pill per Product Filters parent: parentId -> pillId | ''.
 		open: {},
+
+		// Progressive-enhancement flag: the server renders JavaScript-only
+		// controls hidden, and binding against this unhides them once the
+		// store is running.
+		enhanced: true,
 
 		get isPillOpen() {
 			const context = getContext();
@@ -68,10 +95,21 @@ const { state, actions } = store( NAMESPACE, {
 			} else if ( state.open[ context.parentId ] === context.pillId ) {
 				state.open[ context.parentId ] = '';
 			}
+			syncScrollLock();
 		},
 
 		closeOpenPill() {
 			state.open[ getContext().parentId ] = '';
+			syncScrollLock();
+		},
+
+		// The tray's own close button. Dismissing a modal surface has to put
+		// focus back where it came from, exactly as Escape does — otherwise
+		// focus falls to the document and a keyboard shopper has to tab in
+		// from the top of the page again.
+		dismissTray( event ) {
+			focusTrigger( event.target );
+			actions.closeOpenPill();
 		},
 
 		panelKeydown( event ) {
@@ -162,5 +200,6 @@ if ( typeof window !== 'undefined' && window.matchMedia ) {
 		Object.keys( state.open ).forEach( ( parentId ) => {
 			state.open[ parentId ] = '';
 		} );
+		syncScrollLock();
 	} );
 }

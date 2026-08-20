@@ -179,3 +179,41 @@ core opens the allowlist.
       `typography` supports, Product Filters gains `pillStyle` plus a
       Default/Hover tabbed panel, the primitive reads the token contract, and
       hover tokens fall back to their default-state counterparts — 18facb9
+
+### Phase 5: QA follow-up — narrow-screen tray hardening
+
+Raised in manual QA of PR #72: the filters still did not behave on a phone.
+Reproduced on the isolated worktree environment (Twenty Twenty-Five, 390×844):
+the tray did open and filtering did apply, but every part of the surface around
+that was wrong for touch.
+
+What was actually broken, and why each one matters:
+
+- **Stacking.** `--s64ws-pill-backdrop-z: 40` / `--s64ws-pill-tray-z: 50` only
+  clear the catalog. A modal tray has to clear the *theme*, and sticky headers,
+  mobile bars, and cart drawers routinely sit at 100–9999 — so on any such theme
+  the tray opens underneath the chrome. Raised to 99998/99999, still below the
+  core navigation overlay (100000) and still tunable through the properties.
+- **Two scrollbars.** The option list kept its desktop `16rem` cap inside a
+  `70vh` scrolling panel, so the tray nested one scroll region in another and a
+  drag hit whichever the browser guessed. The tray is now a flex column whose
+  option list is the single scroll region, with the heading and the Apply/Clear
+  row pinned.
+- **`vh` on a phone.** `70vh` measures the viewport with the address bar
+  collapsed, which is exactly how an action row ends up under the toolbar. Now
+  `70dvh` with the static value as the fallback, plus
+  `env(safe-area-inset-bottom)` padding and an explicit `border-box` so the cap
+  is the real height.
+- **The page scrolled behind the tray.** Nothing held the catalog still, so a
+  touch drag that missed the list scrolled the results away under the open
+  filter. The store now locks scrolling for the tray presentation only.
+- **No way out.** The backdrop covers the trigger, so tapping the pill again
+  did nothing — the only dismissal was tapping the dimmed area. The tray now
+  carries a close button that returns focus to its trigger like Escape does;
+  it ships `hidden` and the store unhides it, so the no-JS disclosure never
+  renders a dead control.
+
+- [x] 5.1 Harden the narrow-screen tray: stacking tokens, single scroll region,
+      dynamic viewport units and safe-area padding, page scroll lock, and a
+      focus-returning close button — with three new Playwright journeys and a
+      `shouldLockScroll` unit contract

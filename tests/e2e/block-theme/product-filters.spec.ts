@@ -32,6 +32,8 @@ const PANEL = `${PILL} .shift64-woo-search-pill__panel`;
 const OPTION_INPUT = `${PILL} .shift64-woo-search-pill__option input`;
 const APPLY = `${PILL} .shift64-woo-search-pill__apply`;
 const BACKDROP = '.shift64-woo-search-product-filters__backdrop';
+const CLOSE = `${PILL} .shift64-woo-search-pill__close`;
+const ACTIONS = `${PILL} .shift64-woo-search-pill__actions`;
 
 let originalTheme = '';
 let installedMuPath = '';
@@ -188,6 +190,59 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		await expect(backdrop).toBeHidden();
 		await expect(page.locator(PANEL).first()).toBeHidden();
 	});
+
+	test('the tray keeps Apply reachable and holds the catalog still', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 800 });
+		await page.goto(BROAD_QUERY);
+
+		await page.locator(TRIGGER).first().click();
+
+		const geometry = await page.evaluate(() => {
+			const panel = document.querySelector('.shift64-woo-search-pill__panel');
+			const actions = document.querySelector('.shift64-woo-search-pill__actions');
+			return {
+				trayBottom: panel ? panel.getBoundingClientRect().bottom : NaN,
+				trayHeight: panel ? panel.getBoundingClientRect().height : NaN,
+				actionsBottom: actions ? actions.getBoundingClientRect().bottom : NaN,
+				viewport: window.innerHeight,
+			};
+		});
+
+		// The tray is anchored to the bottom of the visible viewport and is
+		// capped there, so the browser toolbar can never hide its action row.
+		expect(geometry.trayBottom).toBeLessThanOrEqual(geometry.viewport + 1);
+		expect(geometry.trayHeight).toBeLessThanOrEqual(geometry.viewport * 0.71);
+		// Apply is on screen without scrolling the tray, however long the facet.
+		expect(geometry.actionsBottom).toBeLessThanOrEqual(geometry.viewport);
+		await expect(page.locator(ACTIONS).first()).toBeInViewport();
+
+		// A drag that misses the option list must not scroll the catalog away.
+		await expect(page.locator('html')).toHaveClass(/shift64-woo-search-has-open-filter/);
+		expect(
+			await page.evaluate(
+				() => window.getComputedStyle(document.body).overflow
+			)
+		).toBe('hidden');
+	});
+
+	test('the tray close button dismisses it and returns focus', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 800 });
+		await page.goto(BROAD_QUERY);
+
+		const trigger = page.locator(TRIGGER).first();
+		await trigger.click();
+
+		const close = page.locator(CLOSE).first();
+		await expect(close).toBeVisible();
+		await close.click();
+
+		await expect(page.locator(PANEL).first()).toBeHidden();
+		await expect(trigger).toBeFocused();
+		// The lock is released with the surface, not left behind.
+		await expect(page.locator('html')).not.toHaveClass(
+			/shift64-woo-search-has-open-filter/
+		);
+	});
 });
 
 test.describe('Product Filters without JavaScript', () => {
@@ -214,5 +269,21 @@ test.describe('Product Filters without JavaScript', () => {
 		await expect(productCards(page).first()).toBeVisible();
 		await page.locator(TRIGGER).first().click();
 		await expect(page.locator(OPTION_INPUT).first()).toBeChecked();
+	});
+
+	test('the tray close button never appears without the store', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 800 });
+		await page.goto(BROAD_QUERY);
+
+		await page.locator(TRIGGER).first().click();
+
+		// The close button only works through the interactivity store, so
+		// without it the shopper must see the native disclosure alone rather
+		// than a button that does nothing.
+		await expect(page.locator(CLOSE).first()).toBeHidden();
+		await expect(page.locator(BACKDROP).first()).toBeHidden();
+		await expect(page.locator('html')).not.toHaveClass(
+			/shift64-woo-search-has-open-filter/
+		);
 	});
 });

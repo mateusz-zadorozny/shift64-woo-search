@@ -2,6 +2,7 @@ import {
 	clearAllChanges,
 	selectionChanges,
 	selectionFromInputs,
+	shouldLockScroll,
 	trapTabIndex,
 } from './helpers';
 
@@ -60,6 +61,37 @@ describe( 'clearAllChanges', () => {
 			filter_pa_material: null,
 			query_type_pa_material: null,
 		} );
+	} );
+} );
+
+describe( 'shouldLockScroll', () => {
+	it( 'locks while a tray is open on a narrow viewport', () => {
+		expect( shouldLockScroll( true, { filters: 'product_cat-1' } ) ).toBe(
+			true
+		);
+	} );
+
+	it( 'leaves the desktop dropdown scrollable', () => {
+		expect( shouldLockScroll( false, { filters: 'product_cat-1' } ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'releases the lock once every surface is closed', () => {
+		expect( shouldLockScroll( true, { filters: '', other: '' } ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'stays unlocked when no parent has ever opened', () => {
+		expect( shouldLockScroll( true, {} ) ).toBe( false );
+		expect( shouldLockScroll( true, undefined ) ).toBe( false );
+	} );
+
+	it( 'locks when any one of several parents is open', () => {
+		expect(
+			shouldLockScroll( true, { first: '', second: 'pa_material-2' } )
+		).toBe( true );
 	} );
 } );
 

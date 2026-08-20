@@ -122,6 +122,36 @@
 		margin: 0 0 0.5rem;
 	}
 
+	/*
+	 * Tray dismissal. The tray covers the trigger with its backdrop, so the
+	 * pill itself can no longer be tapped to close — this button is the
+	 * explicit affordance. It is a JavaScript-only control: the server renders
+	 * it `hidden` and the store unhides it on hydration, so the no-JS
+	 * disclosure never shows a dead button.
+	 */
+	&__close {
+		background: none;
+		border: 0;
+		color: inherit;
+		cursor: pointer;
+		display: none;
+		font-size: 1.5em;
+		line-height: 1;
+		padding: 0 0.25em;
+		position: absolute;
+		right: 0.5rem;
+		top: 0.5rem;
+
+		&[hidden] {
+			display: none;
+		}
+
+		&:focus-visible {
+			outline: 2px solid currentColor;
+			outline-offset: 2px;
+		}
+	}
+
 	&__options {
 		list-style: none;
 		margin: 0;
@@ -189,13 +219,64 @@
 		&__panel {
 			border-radius: 12px 12px 0 0;
 			bottom: 0;
+			// Themes do not all set a global border-box; without this the
+			// padding and border are added on top of the cap and the tray
+			// overshoots the height it was told to respect.
+			box-sizing: border-box;
+			display: flex;
+			flex-direction: column;
 			left: 0;
+			/*
+			 * Static viewport units first, dynamic ones where the engine has
+			 * them: a phone browser's collapsing address bar changes `vh`
+			 * without changing the visible area, which is what pushes the
+			 * Apply row under the toolbar. `dvh` tracks the area the shopper
+			 * can actually see.
+			 */
 			max-height: 70vh;
-			overflow: auto;
+			// The tray itself never scrolls — its option list does (below), so
+			// the heading and the Apply/Clear row stay reachable.
+			overflow: hidden;
+			// Respect the home indicator / gesture bar on modern phones.
+			padding-bottom: max(1rem, env(safe-area-inset-bottom));
 			position: fixed;
 			right: 0;
 			top: auto;
 			z-index: var(--s64ws-pill-tray-z, 50);
+
+			@supports (max-height: 70dvh) {
+				max-height: 70dvh;
+			}
+		}
+
+		// Leave room for the close button in the tray's top-right corner.
+		&__heading {
+			padding-right: 2.5rem;
+		}
+
+		/*
+		 * One scroll region instead of two. On the desktop dropdown the list
+		 * is capped so the panel stays a panel; in the tray that cap produces
+		 * a scrollbar inside a scrollbar, and shoppers get stuck dragging the
+		 * wrong one. The form has to become a column too — it sits between the
+		 * tray and the list, so without it the flex chain breaks and the
+		 * Apply row is pushed off the bottom of a long facet.
+		 */
+		&__form {
+			display: flex;
+			flex: 1 1 auto;
+			flex-direction: column;
+			min-height: 0;
+		}
+
+		&__options {
+			flex: 1 1 auto;
+			max-height: none;
+			min-height: 0;
+		}
+
+		&__close {
+			display: inline-flex;
 		}
 	}
 

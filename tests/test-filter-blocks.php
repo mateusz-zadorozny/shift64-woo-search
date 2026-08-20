@@ -143,6 +143,26 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The narrow-screen tray covers its own trigger with the backdrop, so the
+	 * panel carries an explicit close button. It must ship hidden and be
+	 * unhidden by the store: a shopper without JavaScript closes the native
+	 * disclosure from its summary and must never see a button that does
+	 * nothing.
+	 */
+	public function test_tray_close_button_is_javascript_only() {
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->'
+		);
+
+		$this->assertStringContainsString( 'shift64-woo-search-pill__close', $html );
+		$this->assertMatchesRegularExpression(
+			'/<button type="button" class="shift64-woo-search-pill__close" hidden data-wp-bind--hidden="!state\.enhanced" data-wp-on--click="actions\.dismissTray"/',
+			$html
+		);
+		$this->assertStringContainsString( 'aria-label="Close filter options"', $html );
+	}
+
+	/**
 	 * A saved facet outside the ready set renders no storefront control while
 	 * the parent wrapper (router region) stays.
 	 */

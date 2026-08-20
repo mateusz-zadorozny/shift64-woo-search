@@ -370,6 +370,13 @@ class Shift64_Woo_Search_Filter_Blocks {
 		$html .= '</summary>';
 
 		$html .= '<div class="shift64-woo-search-pill__panel">';
+
+		// On a narrow screen the panel becomes a tray whose backdrop covers the
+		// pill, so tapping the trigger again can no longer close it. This is the
+		// explicit dismissal; it stays hidden until the store unhides it, so the
+		// no-JS disclosure — which closes from its own summary — never renders a
+		// button that would do nothing.
+		$html .= '<button type="button" class="shift64-woo-search-pill__close" hidden data-wp-bind--hidden="!state.enhanced" data-wp-on--click="actions.dismissTray" aria-label="' . esc_attr__( 'Close filter options', 'shift64-woo-search' ) . '"><span aria-hidden="true">&times;</span></button>';
 		$html .= '<p class="shift64-woo-search-pill__heading">' . esc_html( $label ) . '</p>';
 		$html .= '<form class="shift64-woo-search-pill__form" method="get" action="' . esc_url( $this->form_action() ) . '" data-wp-on--submit="actions.apply">';
 		$html .= $this->hidden_state_inputs( $taxonomy );

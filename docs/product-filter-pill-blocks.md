@@ -77,7 +77,7 @@ Sources:
   Pill's stylesheet; import the same partial from new consumers).
 - Action helpers: `src/interactivity/filters/helpers.js` — pure
   `selectionFromInputs`, `selectionChanges`, `clearAllChanges`,
-  `trapTabIndex` — plus the shared catalog navigation utility
+  `shouldLockScroll`, `trapTabIndex` — plus the shared catalog navigation utility
   `frontend/js/shift64-woo-search-catalog-navigation.js`
   (`buildCatalogUrl`, `navigate`).
 - Visual fixture: `src/blocks/shared/pill-primitive-fixture.html` renders the
@@ -99,6 +99,7 @@ Treat renames as breaking changes for every consumer:
 | `.shift64-woo-search-pill__chevron` | Expanded-state chevron |
 | `.shift64-woo-search-pill__panel` | Option panel (desktop popover / narrow tray) |
 | `.shift64-woo-search-pill__heading` | Panel heading |
+| `.shift64-woo-search-pill__close` | Tray dismissal button (narrow screens, JavaScript only) |
 | `.shift64-woo-search-pill__form` | Progressive GET form |
 | `.shift64-woo-search-pill__options` | Option list |
 | `.shift64-woo-search-pill__option` | One option row (native checkbox/radio) |
@@ -115,9 +116,44 @@ Treat renames as breaking changes for every consumer:
 Custom properties guarantee the backdrop stacks above page controls and the
 tray above the backdrop:
 
-- `--s64ws-pill-panel-z` (default 30) — desktop popover panel.
-- `--s64ws-pill-backdrop-z` (default 40) — narrow-screen backdrop.
-- `--s64ws-pill-tray-z` (default 50) — narrow-screen tray.
+- `--s64ws-pill-panel-z` (default 30) — desktop popover panel, which only has
+  to clear the catalog it sits above.
+- `--s64ws-pill-backdrop-z` (default 99998) — narrow-screen backdrop.
+- `--s64ws-pill-tray-z` (default 99999) — narrow-screen tray.
+
+The narrow-screen defaults are deliberately high. The tray is a modal surface,
+so it has to clear whatever the *theme* stacks over the catalog: sticky
+headers, mobile bars, and cart drawers commonly sit anywhere from 100 to 9999,
+and a two-digit token disappears behind them. Both stay below the core block
+navigation overlay (100000), so an open mobile menu still covers the tray, and
+a theme that needs different numbers can retune the properties on the parent
+wrapper.
+
+Because the tray is `position: fixed`, a theme ancestor that establishes a
+containing block for fixed descendants — anything with `transform`, `filter`,
+`backdrop-filter`, `perspective`, `contain: paint`, or `will-change` on those —
+will pull the tray inside that ancestor instead of the viewport. That is a
+theme-side constraint the tokens cannot fix; place Product Filters outside such
+containers.
+
+### Narrow-screen tray
+
+Below 782px the panel becomes a bottom tray:
+
+- It is capped at `70dvh` rather than `70vh` (with a `70vh` fallback), so a
+  phone browser's collapsing address bar cannot push the Apply row under the
+  toolbar, and it carries `env(safe-area-inset-bottom)` padding for the home
+  indicator.
+- The tray is a flex column with a single scroll region — the option list — so
+  the heading and the Apply/Clear row stay put. The desktop `16rem` option cap
+  is lifted there, because a scrollbar inside a scrollbar is unusable on touch.
+- The store locks page scrolling (`html.shift64-woo-search-has-open-filter`)
+  while a tray is open, so a drag that misses the option list cannot scroll the
+  catalog out from under it. The lock is scoped to the same media query and
+  never applies to the desktop dropdown or the no-JS disclosure.
+- `.shift64-woo-search-pill__close` is the explicit dismissal, since the
+  backdrop covers the trigger. It is rendered `hidden` and unhidden by the
+  store, so it never appears without JavaScript.
 
 ### Style tokens
 
@@ -177,6 +213,8 @@ declaration looks hostile.
 - `Escape` closes the open surface and returns focus to its trigger; the
   narrow-screen tray contains Tab focus; a viewport change across the tray
   breakpoint (782px) closes open surfaces before the presentation swaps.
+- The tray closes from its own close button, the backdrop, or `Escape`; each
+  path releases the scroll lock.
 - Apply reads the checked inputs (the draft state), builds a canonical URL,
   and upgrades navigation to the router only when a compatible Product
   Collection region is present — otherwise it falls back to a full page

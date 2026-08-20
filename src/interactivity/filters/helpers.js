@@ -63,6 +63,25 @@ export function clearAllChanges( taxonomies ) {
 }
 
 /**
+ * Whether the page behind the surfaces should be held still.
+ *
+ * Only the narrow-screen tray is modal: it covers the catalog, so a touch drag
+ * that misses the option list must not scroll the results out from under it.
+ * The desktop dropdown is an inline panel over a page the shopper can still
+ * see all of, and locking there would freeze scrolling for no reason.
+ *
+ * @param {boolean}                isTrayViewport Whether the tray media query matches.
+ * @param {Record<string, string>} openByParent   Open pill per parent id.
+ * @return {boolean} Whether page scrolling should be locked.
+ */
+export function shouldLockScroll( isTrayViewport, openByParent ) {
+	return (
+		Boolean( isTrayViewport ) &&
+		Object.values( openByParent || {} ).some( Boolean )
+	);
+}
+
+/**
  * The index Tab focus should wrap to inside a contained tray.
  *
  * @param {number}  count    Number of focusable elements.

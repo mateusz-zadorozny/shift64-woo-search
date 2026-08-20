@@ -54,6 +54,7 @@ describe( 'pill primitive contract', () => {
 				'.shift64-woo-search-pill__chevron',
 				'.shift64-woo-search-pill__panel',
 				'.shift64-woo-search-pill__heading',
+				'.shift64-woo-search-pill__close',
 				'.shift64-woo-search-pill__options',
 				'.shift64-woo-search-pill__option',
 				'.shift64-woo-search-pill__option-label',

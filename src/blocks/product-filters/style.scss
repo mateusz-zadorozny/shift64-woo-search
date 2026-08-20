@@ -3,9 +3,16 @@
  * Pill trigger/panel styles live with the Filter Pill child.
  */
 .shift64-woo-search-product-filters {
-	// Stacking tokens: backdrop above page controls, tray above backdrop.
-	--s64ws-pill-backdrop-z: 40;
-	--s64ws-pill-tray-z: 50;
+	/*
+	 * Stacking tokens: backdrop above page controls, tray above backdrop.
+	 * The tray is a modal surface, so it has to clear whatever the theme
+	 * stacks over the catalog — sticky headers and mobile bars routinely sit
+	 * at 100–9999, which a two-digit token disappears behind. These stay
+	 * below the block-navigation overlay (100000) so an open mobile menu
+	 * still wins, and a theme can retune both through the properties.
+	 */
+	--s64ws-pill-backdrop-z: 99998;
+	--s64ws-pill-tray-z: 99999;
 
 	// The flex layout itself comes from the block's layout support; this is
 	// only the fallback gap for themes without blockGap output.
@@ -52,5 +59,19 @@
 			outline: 2px solid currentColor;
 			outline-offset: 2px;
 		}
+	}
+}
+
+/*
+ * Scroll lock while a narrow-screen tray is open. Without it the catalog
+ * scrolls away underneath the tray on every touch drag that misses the option
+ * list, which reads as the filter having lost its place. The store adds the
+ * class only while the tray presentation is live, so the desktop dropdown and
+ * the no-JS disclosure never lock the page.
+ */
+@media (max-width: 782px) {
+	html.shift64-woo-search-has-open-filter,
+	html.shift64-woo-search-has-open-filter body {
+		overflow: hidden;
 	}
 }
