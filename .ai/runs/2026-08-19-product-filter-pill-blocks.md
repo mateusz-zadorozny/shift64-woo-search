@@ -178,4 +178,4 @@ core opens the allowlist.
 - [x] 4.1 Move pill styling to the parent: Filter Pill drops `color`/`border`/
       `typography` supports, Product Filters gains `pillStyle` plus a
       Default/Hover tabbed panel, the primitive reads the token contract, and
-      hover tokens fall back to their default-state counterparts
+      hover tokens fall back to their default-state counterparts — 18facb9
