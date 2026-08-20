@@ -4,11 +4,8 @@ import {
 	ExternalLink,
 	Notice,
 	PanelBody,
-	RadioControl,
-	RangeControl,
 	SelectControl,
 	TextControl,
-	ToggleControl,
 } from '@wordpress/components';
 import { useSelect } from '@wordpress/data';
 import { __, sprintf } from '@wordpress/i18n';
@@ -20,6 +17,7 @@ import {
 	statusReason,
 	useEditorFacets,
 } from '../shared/facets';
+import { pillSettings } from '../shared/pill-settings';
 import './style.scss';
 
 const FALLBACK_TERM_NAMES = [ 'Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo' ];
@@ -50,9 +48,8 @@ function facetChoices( facets ) {
 	return choices;
 }
 
-function PillPreview( { attributes, entry, instanceId, termNames } ) {
-	const { label, selectionMode, showCounts, orderBy, maxOptions } =
-		attributes;
+function PillPreview( { label, entry, instanceId, settings, termNames } ) {
+	const { selectionMode, showCounts, orderBy, maxOptions } = settings;
 	const heading = label || ( entry ? entry.label : '' );
 	const options = orderPreviewOptions(
 		termNames.map( ( name, index ) => ( {
@@ -113,19 +110,11 @@ function PillPreview( { attributes, entry, instanceId, termNames } ) {
 	);
 }
 
-function Edit( { attributes, clientId, setAttributes } ) {
-	const {
-		facet,
-		label,
-		selectionMode,
-		queryType,
-		showCounts,
-		hideEmpty,
-		orderBy,
-		maxOptions,
-		applyLabel,
-		clearLabel,
-	} = attributes;
+function Edit( { attributes, clientId, context, setAttributes } ) {
+	const { facet, label, queryType } = attributes;
+	// Option-list behavior is the parent's to own: one setting, every pill.
+	const settings = pillSettings( context );
+	const { selectionMode } = settings;
 	const { payload, isLoading } = useEditorFacets();
 	const entry = payload.facets.find( ( item ) => item.key === facet );
 	const supportsAnd = Boolean(
@@ -200,29 +189,6 @@ function Edit( { attributes, clientId, setAttributes } ) {
 								setAttributes( { label: next } )
 							}
 						/>
-						<RadioControl
-							label={ __( 'Selection', 'shift64-woo-search' ) }
-							selected={ selectionMode }
-							options={ [
-								{
-									label: __(
-										'Multiple choices',
-										'shift64-woo-search'
-									),
-									value: 'multiple',
-								},
-								{
-									label: __(
-										'Single choice',
-										'shift64-woo-search'
-									),
-									value: 'single',
-								},
-							] }
-							onChange={ ( next ) =>
-								setAttributes( { selectionMode: next } )
-							}
-						/>
 						{ supportsAnd && selectionMode === 'multiple' && (
 							<SelectControl
 								label={ __(
@@ -251,91 +217,12 @@ function Edit( { attributes, clientId, setAttributes } ) {
 								}
 							/>
 						) }
-						<ToggleControl
-							label={ __(
-								'Show result counts',
+						<p className="shift64-woo-search-pill__settings-hint">
+							{ __(
+								'Selection, counts, ordering, and button labels are set once on the Product Filters block and apply to every pill.',
 								'shift64-woo-search'
 							) }
-							checked={ Boolean( showCounts ) }
-							onChange={ ( next ) =>
-								setAttributes( { showCounts: next } )
-							}
-						/>
-						<ToggleControl
-							label={ __(
-								'Hide options without results',
-								'shift64-woo-search'
-							) }
-							help={ __(
-								'Selected options always stay visible.',
-								'shift64-woo-search'
-							) }
-							checked={ Boolean( hideEmpty ) }
-							onChange={ ( next ) =>
-								setAttributes( { hideEmpty: next } )
-							}
-						/>
-						<SelectControl
-							label={ __(
-								'Order options by',
-								'shift64-woo-search'
-							) }
-							value={ orderBy }
-							options={ [
-								{
-									label: __(
-										'Result count (descending)',
-										'shift64-woo-search'
-									),
-									value: 'count-desc',
-								},
-								{
-									label: __(
-										'Name (A → Z)',
-										'shift64-woo-search'
-									),
-									value: 'name-asc',
-								},
-								{
-									label: __(
-										'Name (Z → A)',
-										'shift64-woo-search'
-									),
-									value: 'name-desc',
-								},
-							] }
-							onChange={ ( next ) =>
-								setAttributes( { orderBy: next } )
-							}
-						/>
-						<RangeControl
-							label={ __(
-								'Maximum options (0 shows all)',
-								'shift64-woo-search'
-							) }
-							value={ maxOptions }
-							min={ 0 }
-							max={ 100 }
-							onChange={ ( next ) =>
-								setAttributes( { maxOptions: next } )
-							}
-						/>
-						<TextControl
-							label={ __( 'Apply label', 'shift64-woo-search' ) }
-							value={ applyLabel }
-							placeholder={ __( 'Apply', 'shift64-woo-search' ) }
-							onChange={ ( next ) =>
-								setAttributes( { applyLabel: next } )
-							}
-						/>
-						<TextControl
-							label={ __( 'Clear label', 'shift64-woo-search' ) }
-							value={ clearLabel }
-							placeholder={ __( 'Clear', 'shift64-woo-search' ) }
-							onChange={ ( next ) =>
-								setAttributes( { clearLabel: next } )
-							}
-						/>
+						</p>
 					</PanelBody>
 				) }
 			</InspectorControls>
@@ -371,9 +258,10 @@ function Edit( { attributes, clientId, setAttributes } ) {
 				) }
 				{ entry && (
 					<PillPreview
-						attributes={ attributes }
+						label={ label }
 						entry={ entry }
 						instanceId={ `s64ws-pill-${ clientId }` }
+						settings={ settings }
 						termNames={ termNames }
 					/>
 				) }

@@ -22,17 +22,46 @@
 		}
 	}
 
+	/*
+	 * Style tokens. The Product Filters parent writes these as inline custom
+	 * properties from its `pillStyle` attribute, so one parent styles every
+	 * pill it contains and each token falls back to the unstyled default.
+	 * Hover tokens fall back to their own default-state token, which is what
+	 * makes "set only a hover background" behave the way a merchant expects.
+	 */
 	&__trigger {
 		align-items: center;
-		background: transparent;
-		border: 1px solid currentColor;
-		border-radius: 999px;
+		background: var(--s64ws-pill-bg, transparent);
+		border: var(--s64ws-pill-border-width, 1px) solid
+			var(--s64ws-pill-border-color, currentColor);
+		border-radius: var(--s64ws-pill-radius, 999px);
+		color: var(--s64ws-pill-color, inherit);
 		cursor: pointer;
 		display: inline-flex;
 		gap: 0.4em;
 		line-height: 1.2;
 		padding: 0.45em 1em;
 		user-select: none;
+
+		/*
+		 * Keyboard focus gets the same treatment as the pointer: a merchant
+		 * setting a hover look must not leave keyboard users without one.
+		 */
+		&:hover,
+		&:focus-visible {
+			background: var(
+				--s64ws-pill-bg-hover,
+				var(--s64ws-pill-bg, transparent)
+			);
+			border-color: var(
+				--s64ws-pill-border-color-hover,
+				var(--s64ws-pill-border-color, currentColor)
+			);
+			color: var(
+				--s64ws-pill-color-hover,
+				var(--s64ws-pill-color, inherit)
+			);
+		}
 
 		&:focus-visible {
 			outline: 2px solid currentColor;

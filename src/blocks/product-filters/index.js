@@ -1,4 +1,5 @@
 import {
+	ColorPalette,
 	InnerBlocks,
 	InspectorControls,
 	useBlockProps,
@@ -6,24 +7,297 @@ import {
 } from '@wordpress/block-editor';
 import { createBlock, registerBlockType } from '@wordpress/blocks';
 import {
+	BaseControl,
 	ExternalLink,
 	Notice,
 	PanelBody,
+	RadioControl,
+	RangeControl,
+	SelectControl,
+	TabPanel,
 	TextControl,
 	ToggleControl,
+	useBaseControlProps,
 } from '@wordpress/components';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import metadata from './block.json';
 import { groupFacets, useEditorFacets } from '../shared/facets';
+import { pillStyleToVars, setPillStyleValue } from '../shared/pill-style';
 import './editor.scss';
 import './style.scss';
 
 const PILL_BLOCK = 'shift64-woo-search/filter-pill';
 
+// Core's own States UI is closed to third-party blocks in WP 7.1, so the pill
+// exposes the same two states core surfaces for buttons — the default one and
+// the pointer/keyboard one — as tabs over a single set of controls.
+const STATE_TABS = [
+	{ name: 'default', title: __( 'Default', 'shift64-woo-search' ) },
+	{ name: 'hover', title: __( 'Hover', 'shift64-woo-search' ) },
+];
+
+// One filter row, one behavior: these settings describe how every pill in this
+// container presents its options, so they live here and reach the pills as
+// block context rather than being retyped per pill.
+function PillOptionsPanel( { attributes, setAttributes } ) {
+	const {
+		selectionMode,
+		showCounts,
+		hideEmpty,
+		orderBy,
+		maxOptions,
+		applyLabel,
+		clearLabel,
+	} = attributes;
+
+	return (
+		<PanelBody
+			title={ __( 'Filter options', 'shift64-woo-search' ) }
+			initialOpen
+		>
+			<RadioControl
+				label={ __( 'Selection', 'shift64-woo-search' ) }
+				selected={ selectionMode }
+				options={ [
+					{
+						label: __( 'Multiple choices', 'shift64-woo-search' ),
+						value: 'multiple',
+					},
+					{
+						label: __( 'Single choice', 'shift64-woo-search' ),
+						value: 'single',
+					},
+				] }
+				onChange={ ( next ) =>
+					setAttributes( { selectionMode: next } )
+				}
+			/>
+			<ToggleControl
+				__nextHasNoMarginBottom
+				label={ __( 'Show result counts', 'shift64-woo-search' ) }
+				checked={ Boolean( showCounts ) }
+				onChange={ ( next ) => setAttributes( { showCounts: next } ) }
+			/>
+			<ToggleControl
+				__nextHasNoMarginBottom
+				label={ __(
+					'Hide options without results',
+					'shift64-woo-search'
+				) }
+				help={ __(
+					'Selected options always stay visible.',
+					'shift64-woo-search'
+				) }
+				checked={ Boolean( hideEmpty ) }
+				onChange={ ( next ) => setAttributes( { hideEmpty: next } ) }
+			/>
+			<SelectControl
+				__nextHasNoMarginBottom
+				__next40pxDefaultSize
+				label={ __( 'Order options by', 'shift64-woo-search' ) }
+				value={ orderBy }
+				options={ [
+					{
+						label: __(
+							'Result count (descending)',
+							'shift64-woo-search'
+						),
+						value: 'count-desc',
+					},
+					{
+						label: __( 'Name (A → Z)', 'shift64-woo-search' ),
+						value: 'name-asc',
+					},
+					{
+						label: __( 'Name (Z → A)', 'shift64-woo-search' ),
+						value: 'name-desc',
+					},
+				] }
+				onChange={ ( next ) => setAttributes( { orderBy: next } ) }
+			/>
+			<RangeControl
+				__nextHasNoMarginBottom
+				__next40pxDefaultSize
+				label={ __(
+					'Maximum options (0 shows all)',
+					'shift64-woo-search'
+				) }
+				value={ maxOptions }
+				min={ 0 }
+				max={ 100 }
+				onChange={ ( next ) => setAttributes( { maxOptions: next } ) }
+			/>
+			<TextControl
+				__nextHasNoMarginBottom
+				__next40pxDefaultSize
+				label={ __( 'Apply label', 'shift64-woo-search' ) }
+				value={ applyLabel }
+				placeholder={ __( 'Apply', 'shift64-woo-search' ) }
+				onChange={ ( next ) => setAttributes( { applyLabel: next } ) }
+			/>
+			<TextControl
+				__nextHasNoMarginBottom
+				__next40pxDefaultSize
+				label={ __( 'Clear label', 'shift64-woo-search' ) }
+				value={ clearLabel }
+				placeholder={ __( 'Clear', 'shift64-woo-search' ) }
+				onChange={ ( next ) => setAttributes( { clearLabel: next } ) }
+			/>
+		</PanelBody>
+	);
+}
+
+// A px integer round-trips through the stored CSS length without a unit
+// control, and matches the border widths core's own controls offer.
+function pxToNumber( value ) {
+	const parsed = parseInt( value, 10 );
+	return Number.isNaN( parsed ) ? undefined : parsed;
+}
+
+function PillColorControl( { label, value, onChange } ) {
+	const { baseControlProps, controlProps } = useBaseControlProps( { label } );
+
+	return (
+		<BaseControl { ...baseControlProps } __nextHasNoMarginBottom>
+			<ColorPalette
+				{ ...controlProps }
+				value={ value }
+				clearable
+				onChange={ ( next ) => onChange( next ) }
+			/>
+		</BaseControl>
+	);
+}
+
+function PillStylePanel( { pillStyle, setAttributes } ) {
+	const write = ( path, value ) =>
+		setAttributes( {
+			pillStyle: setPillStyleValue( pillStyle, path, value ),
+		} );
+
+	const read = ( path ) =>
+		path.reduce(
+			( carry, key ) =>
+				carry && typeof carry === 'object' ? carry[ key ] : undefined,
+			pillStyle
+		);
+
+	return (
+		<PanelBody title={ __( 'Pills', 'shift64-woo-search' ) } initialOpen>
+			<TabPanel tabs={ STATE_TABS }>
+				{ ( tab ) => {
+					const prefix = 'hover' === tab.name ? [ ':hover' ] : [];
+
+					return (
+						<>
+							<PillColorControl
+								label={ __( 'Text', 'shift64-woo-search' ) }
+								value={ read( [ ...prefix, 'color', 'text' ] ) }
+								onChange={ ( next ) =>
+									write(
+										[ ...prefix, 'color', 'text' ],
+										next
+									)
+								}
+							/>
+							<PillColorControl
+								label={ __(
+									'Background',
+									'shift64-woo-search'
+								) }
+								value={ read( [
+									...prefix,
+									'color',
+									'background',
+								] ) }
+								onChange={ ( next ) =>
+									write(
+										[ ...prefix, 'color', 'background' ],
+										next
+									)
+								}
+							/>
+							<PillColorControl
+								label={ __( 'Border', 'shift64-woo-search' ) }
+								value={ read( [
+									...prefix,
+									'border',
+									'color',
+								] ) }
+								onChange={ ( next ) =>
+									write(
+										[ ...prefix, 'border', 'color' ],
+										next
+									)
+								}
+							/>
+							{ 'hover' === tab.name ? (
+								<p className="shift64-woo-search-pill-style__hint">
+									{ __(
+										'Hover styles also apply on keyboard focus. Anything left empty falls back to the default state.',
+										'shift64-woo-search'
+									) }
+								</p>
+							) : (
+								<>
+									<RangeControl
+										__nextHasNoMarginBottom
+										__next40pxDefaultSize
+										label={ __(
+											'Border width',
+											'shift64-woo-search'
+										) }
+										value={ pxToNumber(
+											read( [ 'border', 'width' ] )
+										) }
+										min={ 0 }
+										max={ 8 }
+										allowReset
+										onChange={ ( next ) =>
+											write(
+												[ 'border', 'width' ],
+												undefined === next
+													? ''
+													: `${ next }px`
+											)
+										}
+									/>
+									<RangeControl
+										__nextHasNoMarginBottom
+										__next40pxDefaultSize
+										label={ __(
+											'Border radius',
+											'shift64-woo-search'
+										) }
+										value={ pxToNumber(
+											read( [ 'border', 'radius' ] )
+										) }
+										min={ 0 }
+										max={ 50 }
+										allowReset
+										onChange={ ( next ) =>
+											write(
+												[ 'border', 'radius' ],
+												undefined === next
+													? ''
+													: `${ next }px`
+											)
+										}
+									/>
+								</>
+							) }
+						</>
+					);
+				} }
+			</TabPanel>
+		</PanelBody>
+	);
+}
+
 function Edit( { attributes, clientId, setAttributes } ) {
-	const { showClearAll, clearAllLabel, instanceId } = attributes;
+	const { showClearAll, clearAllLabel, instanceId, pillStyle } = attributes;
 	const { replaceInnerBlocks } = useDispatch( 'core/block-editor' );
 	const pillCount = useSelect(
 		( select ) => select( 'core/block-editor' ).getBlockCount( clientId ),
@@ -63,6 +337,10 @@ function Edit( { attributes, clientId, setAttributes } ) {
 
 	const blockProps = useBlockProps( {
 		className: 'shift64-woo-search-product-filters is-editor-preview',
+		// The pill tokens ride on the parent wrapper in the editor exactly as
+		// they do on the frontend, so the preview and the storefront resolve
+		// the same custom properties.
+		style: pillStyleToVars( pillStyle ),
 	} );
 	const innerBlocksProps = useInnerBlocksProps( blockProps, {
 		allowedBlocks: [ PILL_BLOCK ],
@@ -74,6 +352,10 @@ function Edit( { attributes, clientId, setAttributes } ) {
 	return (
 		<>
 			<InspectorControls>
+				<PillOptionsPanel
+					attributes={ attributes }
+					setAttributes={ setAttributes }
+				/>
 				<PanelBody title={ __( 'Clear all', 'shift64-woo-search' ) }>
 					<ToggleControl
 						label={ __(
@@ -106,6 +388,14 @@ function Edit( { attributes, clientId, setAttributes } ) {
 						/>
 					) }
 				</PanelBody>
+			</InspectorControls>
+			{ /* Appearance belongs in the Styles tab next to the container's
+			     own design tools, not split across two tabs. */ }
+			<InspectorControls group="styles">
+				<PillStylePanel
+					pillStyle={ pillStyle }
+					setAttributes={ setAttributes }
+				/>
 			</InspectorControls>
 			{ showSetupGuidance && (
 				<Notice status="info" isDismissible={ false }>

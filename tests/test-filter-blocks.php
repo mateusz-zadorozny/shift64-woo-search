@@ -93,15 +93,21 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 	/**
 	 * Render a parent with the given serialized pill fragments.
 	 *
-	 * @param string $pills Serialized pill block comments.
-	 * @param string $parent_attrs Optional parent attribute JSON.
+	 * Option-list settings live on the parent and reach pills as block
+	 * context, so tests configure them here. `hideEmpty` defaults to false
+	 * because the fixture terms have no products attached.
+	 *
+	 * @param string              $pills Serialized pill block comments.
+	 * @param array<string,mixed> $parent_attrs Optional parent attributes.
 	 * @return string
 	 */
-	private function render_filters( $pills, $parent_attrs = '' ) {
+	private function render_filters( $pills, $parent_attrs = array() ) {
 		Shift64_Woo_Search_Filter_Blocks::reset();
-		$attrs = '' !== $parent_attrs ? ' ' . $parent_attrs : '';
+		$parent_attrs = array_merge( array( 'hideEmpty' => false ), $parent_attrs );
 		return do_blocks(
-			'<!-- wp:shift64-woo-search/product-filters' . $attrs . ' -->' . $pills . '<!-- /wp:shift64-woo-search/product-filters -->'
+			'<!-- wp:shift64-woo-search/product-filters ' . wp_json_encode( $parent_attrs ) . ' -->' .
+			$pills .
+			'<!-- /wp:shift64-woo-search/product-filters -->'
 		);
 	}
 
@@ -120,7 +126,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 	 */
 	public function test_pill_renders_progressive_form() {
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->'
 		);
 
 		$this->assertStringContainsString( 'shift64-woo-search-product-filters', $html );
@@ -160,7 +166,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		$_GET['filter_product_cat'] = 'lamps,<script>alert(1)</script>,unknown-term';
 
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->'
 		);
 
 		$this->assertStringContainsString( 'value="lamps" checked=\'checked\'', $html );
@@ -176,7 +182,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		wp_insert_term( 'Weird "<em>name</em>"', 'product_cat', array( 'slug' => 'weird' ) );
 
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->'
 		);
 
 		// wp_insert_term strips the tags; the surviving quotes must leave the
@@ -201,7 +207,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		);
 
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->'
 		);
 
 		$this->assertMatchesRegularExpression(
@@ -233,7 +239,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		);
 
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material"} /-->'
 		);
 
 		$this->assertStringContainsString( 'name="s" value="lamp"', $html );
@@ -251,7 +257,8 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 	 */
 	public function test_single_mode_renders_radios() {
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","selectionMode":"single","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->',
+			array( 'selectionMode' => 'single' )
 		);
 
 		$this->assertStringContainsString( 'type="radio"', $html );
@@ -264,10 +271,10 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 	 */
 	public function test_query_type_hidden_input_follows_operator_support() {
 		$attribute_html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","queryType":"and","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","queryType":"and"} /-->'
 		);
 		$category_html  = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","queryType":"and","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","queryType":"and"} /-->'
 		);
 
 		$this->assertStringContainsString( 'name="query_type_pa_material" value="and"', $attribute_html );
@@ -280,7 +287,11 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 	 */
 	public function test_option_ordering_and_max_options() {
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","orderBy":"name-desc","maxOptions":2,"hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material"} /-->',
+			array(
+				'orderBy'    => 'name-desc',
+				'maxOptions' => 2,
+			)
 		);
 
 		$this->assertStringContainsString( 'Wool', $html );
@@ -300,7 +311,8 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		$_GET['filter_pa_material'] = 'wool';
 
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material"} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material"} /-->',
+			array( 'hideEmpty' => true )
 		);
 
 		$this->assertStringContainsString( 'value="wool" checked=\'checked\'', $html );
@@ -312,8 +324,8 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 	 * represented parameters, and preserves search and sorting.
 	 */
 	public function test_clear_all_scope_and_visibility() {
-		$pills = '<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","hideEmpty":false} /-->' .
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","hideEmpty":false} /-->';
+		$pills = '<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->' .
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material"} /-->';
 
 		$idle = $this->render_filters( $pills );
 		$this->assertStringNotContainsString( '__clear-all', $idle );
@@ -339,7 +351,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		// Unrepresented direct URL state is not this block's to erase.
 		$this->assertStringContainsString( 'filter_pa_brandless=x', $clear_all_url );
 
-		$disabled = $this->render_filters( $pills, '{"showClearAll":false}' );
+		$disabled = $this->render_filters( $pills, array( 'showClearAll' => false ) );
 		$this->assertStringNotContainsString( '__clear-all', $disabled );
 	}
 
@@ -385,7 +397,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		$_SERVER['REQUEST_URI']     = '/shop/?filter_pa_material=0';
 
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material"} /-->'
 		);
 
 		$this->assertStringContainsString( 'value="0" checked=\'checked\'', $html );
@@ -402,7 +414,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		$_GET['filter_product_cat'] = 'lamps';
 
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->'
 		);
 
 		preg_match( '#class="shift64-woo-search-pill__clear" href="([^"]+)"#', $html, $matches );
@@ -420,7 +432,11 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		$_SERVER['REQUEST_URI']     = '/shop/?filter_pa_material=wool';
 
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","hideEmpty":false,"orderBy":"name-asc","maxOptions":1} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material"} /-->',
+			array(
+				'orderBy'    => 'name-asc',
+				'maxOptions' => 1,
+			)
 		);
 
 		// Cotton wins the name-asc bound; selected Wool must survive anyway.
@@ -445,7 +461,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		);
 
 		$html = $this->render_filters(
-			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material","hideEmpty":false} /-->'
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material"} /-->'
 		);
 
 		$this->assertStringContainsString( 'name="min_price" value="10"', $html );
@@ -511,5 +527,171 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 
 		$this->assertSame( array(), $state->get_selected_filters() );
 		$this->assertSame( array(), $state->get_redis_filters() );
+	}
+
+	/**
+	 * One parent setting reaches every pill, so a row of pills cannot drift
+	 * into inconsistent option lists.
+	 */
+	public function test_parent_option_settings_reach_every_pill() {
+		// Both facets active so each pill renders its Clear control.
+		$_GET['filter_product_cat'] = 'lamps';
+		$_GET['filter_pa_material'] = 'wool';
+
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->' .
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"pa_material"} /-->',
+			array(
+				'selectionMode' => 'single',
+				'applyLabel'    => 'Use these',
+				'clearLabel'    => 'Reset',
+			)
+		);
+
+		$this->assertSame( 2, substr_count( $html, 'shift64-woo-search-pill__trigger' ) );
+		$this->assertSame( 2, substr_count( $html, '>Use these</button>' ) );
+		$this->assertSame( 2, substr_count( $html, '>Reset</a>' ) );
+		$this->assertSame( 0, substr_count( $html, 'type="checkbox"' ) );
+		$this->assertStringContainsString( 'name="filter_product_cat"', $html );
+		$this->assertStringContainsString( 'name="filter_pa_material"', $html );
+	}
+
+	/**
+	 * A pill that somehow renders without parent context still falls back to
+	 * the documented defaults rather than emitting a broken option list.
+	 */
+	public function test_pill_settings_fall_back_without_context() {
+		$settings = new ReflectionMethod( 'Shift64_Woo_Search_Filter_Blocks', 'pill_settings' );
+
+		$expected = array(
+			'selectionMode' => 'multiple',
+			'showCounts'    => true,
+			'hideEmpty'     => true,
+			'orderBy'       => 'count-desc',
+			'maxOptions'    => 0,
+			'applyLabel'    => '',
+			'clearLabel'    => '',
+		);
+
+		$this->assertSame( $expected, $settings->invoke( null, null ) );
+
+		// An out-of-range ordering must not reach the sort comparator.
+		$block = new WP_Block(
+			array(
+				'blockName' => 'shift64-woo-search/filter-pill',
+				'attrs'     => array( 'facet' => 'product_cat' ),
+				'innerHTML' => '',
+			),
+			array( 'shift64WooSearch/orderBy' => 'not-a-mode' )
+		);
+
+		$this->assertSame( 'count-desc', $settings->invoke( null, $block )['orderBy'] );
+	}
+
+	/**
+	 * The parent resolves pillStyle into custom properties on its own wrapper,
+	 * which is the only element every pill inside it can inherit from.
+	 */
+	public function test_pill_style_renders_custom_properties_on_the_parent() {
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->',
+			array(
+				'pillStyle' => array(
+					'color'  => array(
+						'text'       => '#111111',
+						'background' => '#ffffff',
+					),
+					'border' => array(
+						'color'  => '#cccccc',
+						'width'  => '2px',
+						'radius' => '8px',
+					),
+					':hover' => array(
+						'color'  => array( 'background' => '#503aa8' ),
+						'border' => array( 'color' => '#2f2166' ),
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( '--s64ws-pill-color:#111111', $html );
+		$this->assertStringContainsString( '--s64ws-pill-bg:#ffffff', $html );
+		$this->assertStringContainsString( '--s64ws-pill-border-color:#cccccc', $html );
+		$this->assertStringContainsString( '--s64ws-pill-border-width:2px', $html );
+		$this->assertStringContainsString( '--s64ws-pill-radius:8px', $html );
+		$this->assertStringContainsString( '--s64ws-pill-bg-hover:#503aa8', $html );
+		$this->assertStringContainsString( '--s64ws-pill-border-color-hover:#2f2166', $html );
+
+		// Unset tokens must stay unset so the stylesheet fallbacks apply.
+		$this->assertStringNotContainsString( '--s64ws-pill-color-hover', $html );
+	}
+
+	/**
+	 * An unstyled parent emits no style attribute of its own.
+	 */
+	public function test_unstyled_parent_emits_no_pill_tokens() {
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->'
+		);
+
+		$this->assertStringNotContainsString( '--s64ws-pill-', $html );
+	}
+
+	/**
+	 * Preset references resolve to the theme's custom property, mirroring
+	 * core's wp_normalize_state_preset_vars().
+	 */
+	public function test_pill_style_expands_theme_presets() {
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->',
+			array(
+				'pillStyle' => array(
+					'color' => array( 'background' => 'var:preset|color|accent-3' ),
+				),
+			)
+		);
+
+		$this->assertStringContainsString(
+			'--s64ws-pill-bg:var(--wp--preset--color--accent-3)',
+			$html
+		);
+	}
+
+	/**
+	 * Core drops the whole style attribute when any single declaration looks
+	 * hostile, so a bad value must be filtered per token rather than taking
+	 * every sibling token down with it.
+	 */
+	public function test_hostile_pill_style_value_drops_only_itself() {
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->',
+			array(
+				'pillStyle' => array(
+					'color' => array(
+						'text'       => 'url(javascript:alert(1))',
+						'background' => '#ffffff',
+					),
+				),
+			)
+		);
+
+		$this->assertStringNotContainsString( 'javascript:', $html );
+		$this->assertStringNotContainsString( '--s64ws-pill-color:', $html );
+		$this->assertStringContainsString( '--s64ws-pill-bg:#ffffff', $html );
+	}
+
+	/**
+	 * Filter Pill dropped its colour/border supports: a wrapper background
+	 * paints the box around the control instead of the control, so saved
+	 * colour styles must not be serialized onto the pill any more.
+	 */
+	public function test_pill_does_not_serialize_wrapper_colours() {
+		$html = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","style":{"color":{"background":"#ff0000"}}} /-->'
+		);
+
+		$this->assertStringContainsString( 'shift64-woo-search-pill__trigger', $html );
+		$this->assertStringNotContainsString( '#ff0000', $html );
+		$this->assertStringNotContainsString( 'has-background', $html );
 	}
 }

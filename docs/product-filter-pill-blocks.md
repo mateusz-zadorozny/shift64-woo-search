@@ -26,9 +26,22 @@ Archive template
 3. Add one **Filter Pill** per facet. Each pill's inspector offers only ready
    facets; disabled or rebuild-pending facets are listed with the reason they
    cannot be used yet.
-4. Style the parent (layout, wrapping, gap) and each pill (colors, typography,
-   spacing, border) with the normal block design tools. There are no plugin
+
+   How the option lists behave — selection mode, result counts, hiding empty
+   options, ordering, the maximum option count, and the Apply / Clear labels —
+   is set once in the parent's **Filter options** panel and reaches every pill
+   as block context. A pill owns only its facet, its own label, and the AND/OR
+   operator, which is meaningless for facets whose index field cannot do AND.
+4. Style everything from the parent's **Styles** tab: layout, wrapping, gap,
+   container background and typography use the normal block design tools, and
+   the **Pills** panel styles the pill controls themselves under a **Default** /
+   **Hover** tab pair. Individual pills expose only margin. There are no plugin
    appearance settings in WP Admin.
+
+   The parent has no text-colour control of its own: container text colour and
+   pill text colour would be the same visible change on the same elements, so
+   pill text lives in the **Pills** panel only. Container background stays,
+   because it paints the strip behind the pills rather than the pills.
 
 A pill whose saved facet later becomes ineligible (setting disabled, index
 rebuilt without it, taxonomy removed) keeps its configuration, shows an editor
@@ -105,6 +118,57 @@ tray above the backdrop:
 - `--s64ws-pill-panel-z` (default 30) — desktop popover panel.
 - `--s64ws-pill-backdrop-z` (default 40) — narrow-screen backdrop.
 - `--s64ws-pill-tray-z` (default 50) — narrow-screen tray.
+
+### Style tokens
+
+The pill's own block wrapper is the box *around* the control — the `<div>` that
+holds `<details>` — so a background applied there paints a slab behind and
+below the pill instead of colouring the pill. Filter Pill therefore declares
+`"color": false` / `"border": false` / `"typography": false`, and the Product
+Filters parent owns the whole style surface through a `pillStyle` attribute
+resolved to custom properties on the parent wrapper:
+
+| Token | Styles |
+| --- | --- |
+| `--s64ws-pill-color` | Pill text |
+| `--s64ws-pill-bg` | Pill background |
+| `--s64ws-pill-border-color` | Pill border colour |
+| `--s64ws-pill-border-width` | Pill border width |
+| `--s64ws-pill-radius` | Pill border radius |
+| `--s64ws-pill-color-hover` | Pill text on hover/keyboard focus |
+| `--s64ws-pill-bg-hover` | Pill background on hover/keyboard focus |
+| `--s64ws-pill-border-color-hover` | Pill border colour on hover/keyboard focus |
+
+Each hover token falls back to its default-state counterpart, so setting only a
+hover background leaves everything else alone. Hover styles apply to
+`:focus-visible` as well: a merchant who designs a hover state must not leave
+keyboard users without one.
+
+`pillStyle` is stored in core's own `style` shape, `:hover` key included:
+
+```json
+{
+	"color": { "text": "#111", "background": "#fff" },
+	"border": { "color": "#ccc", "width": "2px", "radius": "8px" },
+	":hover": { "color": { "background": "#503aa8" } }
+}
+```
+
+That mirroring is deliberate. WordPress 7.1 added per-block interactive states
+(`:hover`, `:focus`, `:focus-visible`, `:active`) but gates them on a hardcoded
+core allowlist — `core/button` and `core/navigation-link` only, in both
+`WP_Theme_JSON::VALID_BLOCK_PSEUDO_SELECTORS` and the editor bundle's
+`VALID_BLOCK_PSEUDO_STATES` — with no filter on either. A third-party block
+cannot opt in. Storing the data in core's shape means that when the allowlist
+opens up, the saved content already matches and the custom control is a
+deletion rather than a migration.
+
+Preset references (`var:preset|color|accent-3`) are expanded to
+`var(--wp--preset--color--accent-3)` on both sides, mirroring core's
+`wp_normalize_state_preset_vars()` (7.1-only; this plugin still supports 6.0).
+Values are validated against colour and length shapes before rendering, because
+`safecss_filter_attr()` drops the entire style attribute when any one
+declaration looks hostile.
 
 ### Interaction contract
 

@@ -13,11 +13,34 @@
 		"instanceId": { "type": "string", "default": "" },
 		"runtimeId": { "type": "string", "default": "" },
 		"showClearAll": { "type": "boolean", "default": true },
-		"clearAllLabel": { "type": "string", "default": "" }
+		"clearAllLabel": { "type": "string", "default": "" },
+		"pillStyle": { "type": "object", "default": {} },
+		"selectionMode": {
+			"type": "string",
+			"enum": [ "multiple", "single" ],
+			"default": "multiple"
+		},
+		"showCounts": { "type": "boolean", "default": true },
+		"hideEmpty": { "type": "boolean", "default": true },
+		"orderBy": {
+			"type": "string",
+			"enum": [ "count-desc", "name-asc", "name-desc" ],
+			"default": "count-desc"
+		},
+		"maxOptions": { "type": "integer", "default": 0 },
+		"applyLabel": { "type": "string", "default": "" },
+		"clearLabel": { "type": "string", "default": "" }
 	},
 	"providesContext": {
 		"shift64WooSearch/filterInstanceId": "instanceId",
-		"shift64WooSearch/filterRuntimeId": "runtimeId"
+		"shift64WooSearch/filterRuntimeId": "runtimeId",
+		"shift64WooSearch/selectionMode": "selectionMode",
+		"shift64WooSearch/showCounts": "showCounts",
+		"shift64WooSearch/hideEmpty": "hideEmpty",
+		"shift64WooSearch/orderBy": "orderBy",
+		"shift64WooSearch/maxOptions": "maxOptions",
+		"shift64WooSearch/applyLabel": "applyLabel",
+		"shift64WooSearch/clearLabel": "clearLabel"
 	},
 	"supports": {
 		"align": [ "wide", "full" ],
@@ -40,8 +63,14 @@
 		},
 		"color": {
 			"background": true,
-			"text": true,
+			"text": false,
 			"gradients": false
+		},
+		"typography": {
+			"fontSize": true,
+			"lineHeight": true,
+			"__experimentalFontWeight": true,
+			"__experimentalFontStyle": true
 		}
 	},
 	"editorScript": "file:./index.js",

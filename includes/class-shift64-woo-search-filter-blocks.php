@@ -105,6 +105,120 @@ class Shift64_Woo_Search_Filter_Blocks {
 	private static $pill_sequence = 0;
 
 	/**
+	 * Pill style tokens, mirroring src/blocks/shared/pill-style.js.
+	 *
+	 * WordPress 7.1's per-block interactive states are gated on a hardcoded
+	 * core allowlist (WP_Theme_JSON::VALID_BLOCK_PSEUDO_SELECTORS, and the
+	 * matching VALID_BLOCK_PSEUDO_STATES in the editor bundle), so a
+	 * third-party block cannot register for the native States UI. The parent
+	 * therefore stores one `pillStyle` attribute in core's own `style` shape —
+	 * `:hover` key included — and resolves it to custom properties the shared
+	 * pill primitive consumes. Styling belongs to the parent because the
+	 * pill's own block wrapper is the box *around* the control.
+	 *
+	 * @var array<string,array<int,string>>
+	 */
+	private const PILL_STYLE_VARS = array(
+		'--s64ws-pill-color'              => array( 'color', 'text' ),
+		'--s64ws-pill-bg'                 => array( 'color', 'background' ),
+		'--s64ws-pill-border-color'       => array( 'border', 'color' ),
+		'--s64ws-pill-border-width'       => array( 'border', 'width' ),
+		'--s64ws-pill-radius'             => array( 'border', 'radius' ),
+		'--s64ws-pill-color-hover'        => array( ':hover', 'color', 'text' ),
+		'--s64ws-pill-bg-hover'           => array( ':hover', 'color', 'background' ),
+		'--s64ws-pill-border-color-hover' => array( ':hover', 'border', 'color' ),
+	);
+
+	/**
+	 * Resolve a theme preset reference to a CSS custom property reference.
+	 *
+	 * Mirrors core's wp_normalize_state_preset_vars(), which is 7.1-only while
+	 * this plugin still supports WordPress 6.0.
+	 *
+	 * @param string $value Stored style value.
+	 * @return string CSS-ready value.
+	 */
+	private static function normalize_preset_value( $value ) {
+		if ( ! str_starts_with( $value, 'var:preset|' ) ) {
+			return $value;
+		}
+
+		return 'var(--wp--' . str_replace( '|', '--', substr( $value, strlen( 'var:' ) ) ) . ')';
+	}
+
+	/**
+	 * Accept only value shapes a colour or length control can produce.
+	 *
+	 * Core's safecss_filter_attr() drops the *entire* style attribute when one
+	 * declaration looks hostile, so a single bad stored value would silently
+	 * strip every other token. Filtering per value keeps the blast radius to
+	 * the offending token.
+	 *
+	 * @param mixed $value Stored style value.
+	 * @return string Safe CSS value, or '' when unusable.
+	 */
+	private static function sanitize_style_value( $value ) {
+		if ( ! is_string( $value ) ) {
+			return '';
+		}
+
+		$value = trim( self::normalize_preset_value( trim( $value ) ) );
+		if ( '' === $value ) {
+			return '';
+		}
+
+		// Accepted shapes: hex colours, the rgb/rgba/hsl/hsla colour
+		// functions, a custom-property reference with an optional fallback,
+		// CSS lengths, and bare keywords such as `transparent`.
+		$patterns = array(
+			'/^#[0-9a-f]{3,8}$/i',
+			'/^(rgb|rgba|hsl|hsla)\(\s*[0-9a-z%.,\/\s+-]+\)$/i',
+			'/^var\(\s*--[a-z0-9-]+\s*(,\s*[#a-z0-9%.\s-]+)?\)$/i',
+			'/^-?[0-9]*\.?[0-9]+(px|em|rem|%|vh|vw|ch)?$/i',
+			'/^[a-z-]+$/i',
+		);
+
+		foreach ( $patterns as $pattern ) {
+			if ( 1 === preg_match( $pattern, $value ) ) {
+				return $value;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Build the inline custom-property declarations for a pillStyle attribute.
+	 *
+	 * @param mixed $pill_style Stored pillStyle attribute.
+	 * @return string Declarations without a trailing semicolon; '' when unstyled.
+	 */
+	private static function pill_style_vars( $pill_style ) {
+		if ( ! is_array( $pill_style ) || empty( $pill_style ) ) {
+			return '';
+		}
+
+		$declarations = array();
+		foreach ( self::PILL_STYLE_VARS as $token => $path ) {
+			$value = $pill_style;
+			foreach ( $path as $key ) {
+				if ( ! is_array( $value ) || ! isset( $value[ $key ] ) ) {
+					$value = null;
+					break;
+				}
+				$value = $value[ $key ];
+			}
+
+			$value = self::sanitize_style_value( $value );
+			if ( '' !== $value ) {
+				$declarations[] = $token . ':' . $value;
+			}
+		}
+
+		return implode( ';', $declarations );
+	}
+
+	/**
 	 * Render the Product Filters parent: router region, pills, Clear all.
 	 *
 	 * @param array<string,mixed> $attributes Block attributes.
@@ -140,16 +254,59 @@ class Shift64_Woo_Search_Filter_Blocks {
 		// only activates once the store controls the hidden binding.
 		$backdrop = '<div class="shift64-woo-search-product-filters__backdrop" hidden data-wp-bind--hidden="!state.hasOpenPill" data-wp-on--click="actions.closeOpenPill" aria-hidden="true"></div>';
 
-		$wrapper = get_block_wrapper_attributes(
-			array(
-				'class'                 => 'shift64-woo-search-product-filters',
-				'data-wp-interactive'   => 'shift64-woo-search/product-filters',
-				'data-wp-context'       => wp_json_encode( $context ),
-				'data-wp-router-region' => $runtime_id . '-region',
-			)
+		$wrapper_args = array(
+			'class'                 => 'shift64-woo-search-product-filters',
+			'data-wp-interactive'   => 'shift64-woo-search/product-filters',
+			'data-wp-context'       => wp_json_encode( $context ),
+			'data-wp-router-region' => $runtime_id . '-region',
 		);
 
+		$pill_style = self::pill_style_vars( $attributes['pillStyle'] ?? array() );
+		if ( '' !== $pill_style ) {
+			$wrapper_args['style'] = $pill_style;
+		}
+
+		$wrapper = get_block_wrapper_attributes( $wrapper_args );
+
 		return '<div ' . $wrapper . '>' . $content . $clear_all . $backdrop . '</div>';
+	}
+
+	/**
+	 * Option-list settings, owned by the parent and shared by every pill.
+	 *
+	 * Selection mode, counts, ordering, and the button labels are a property
+	 * of the filter row rather than of one facet — merchants configure them
+	 * once and every pill obeys, so they travel down as block context. Only
+	 * facet identity, the pill's own label, and the AND/OR operator (which is
+	 * meaningless for facets whose index field cannot do AND) stay per-pill.
+	 *
+	 * @param WP_Block|null $block Pill block instance.
+	 * @return array<string,mixed> Resolved settings.
+	 */
+	private static function pill_settings( $block ) {
+		$context = ( $block instanceof WP_Block && is_array( $block->context ) ) ? $block->context : array();
+
+		$read = static function ( $key, $default_value ) use ( $context ) {
+			$namespaced = 'shift64WooSearch/' . $key;
+			return array_key_exists( $namespaced, $context ) ? $context[ $namespaced ] : $default_value;
+		};
+
+		$order_by = (string) $read( 'orderBy', 'count-desc' );
+		if ( ! in_array( $order_by, array( 'count-desc', 'name-asc', 'name-desc' ), true ) ) {
+			$order_by = 'count-desc';
+		}
+
+		$selection_mode = (string) $read( 'selectionMode', 'multiple' );
+
+		return array(
+			'selectionMode' => 'single' === $selection_mode ? 'single' : 'multiple',
+			'showCounts'    => (bool) $read( 'showCounts', true ),
+			'hideEmpty'     => (bool) $read( 'hideEmpty', true ),
+			'orderBy'       => $order_by,
+			'maxOptions'    => absint( $read( 'maxOptions', 0 ) ),
+			'applyLabel'    => (string) $read( 'applyLabel', '' ),
+			'clearLabel'    => (string) $read( 'clearLabel', '' ),
+		);
 	}
 
 	/**
@@ -161,16 +318,17 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 * @return string
 	 */
 	public function render_filter_pill( $attributes, $content, $block ) {
-		unset( $content, $block );
+		unset( $content );
 
 		$entry = $this->ready_entry( $attributes['facet'] ?? '' );
 		if ( null === $entry ) {
 			return '';
 		}
 
+		$settings = self::pill_settings( $block );
 		$taxonomy = $entry['taxonomy'];
 		$selected = $this->selected_slugs( $taxonomy );
-		$options  = $this->pill_options( $entry, $attributes, $selected );
+		$options  = $this->pill_options( $entry, $settings, $selected );
 		if ( empty( $options ) ) {
 			return '';
 		}
@@ -180,10 +338,10 @@ class Shift64_Woo_Search_Filter_Blocks {
 			$label = $entry['label'];
 		}
 
-		$single      = 'single' === ( $attributes['selectionMode'] ?? 'multiple' );
-		$show_counts = ! empty( $attributes['showCounts'] );
-		$apply_label = trim( (string) ( $attributes['applyLabel'] ?? '' ) );
-		$clear_label = trim( (string) ( $attributes['clearLabel'] ?? '' ) );
+		$single      = 'single' === $settings['selectionMode'];
+		$show_counts = $settings['showCounts'];
+		$apply_label = trim( (string) $settings['applyLabel'] );
+		$clear_label = trim( (string) $settings['clearLabel'] );
 		$apply_label = '' !== $apply_label ? $apply_label : __( 'Apply', 'shift64-woo-search' );
 		$clear_label = '' !== $clear_label ? $clear_label : __( 'Clear', 'shift64-woo-search' );
 
@@ -420,17 +578,17 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 * either way. Selected terms always stay visible.
 	 *
 	 * @param array               $entry Eligibility entry.
-	 * @param array<string,mixed> $attributes Pill attributes.
+	 * @param array<string,mixed> $settings Parent-owned pill settings.
 	 * @param array<int,string>   $selected Selected term slugs.
 	 * @return array<int,array{slug:string,name:string,count:?int,selected:bool}>
 	 */
-	private function pill_options( $entry, $attributes, $selected ) {
-		$hide_empty = ! empty( $attributes['hideEmpty'] );
-		$order_by   = (string) ( $attributes['orderBy'] ?? 'count-desc' );
+	private function pill_options( $entry, $settings, $selected ) {
+		$hide_empty = ! empty( $settings['hideEmpty'] );
+		$order_by   = (string) ( $settings['orderBy'] ?? 'count-desc' );
 
 		// Counts cost Redis aggregations; skip them entirely when nothing in
-		// this pill's configuration renders or sorts by them.
-		$needs_counts = ! empty( $attributes['showCounts'] ) || $hide_empty || 'count-desc' === $order_by;
+		// the shared configuration renders or sorts by them.
+		$needs_counts = ! empty( $settings['showCounts'] ) || $hide_empty || 'count-desc' === $order_by;
 
 		$buckets     = $needs_counts ? Shift64_Woo_Search_Facet_Count_Provider::get_buckets( $entry['redis_field'] ) : null;
 		$have_counts = is_array( $buckets );
@@ -503,7 +661,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 			}
 		);
 
-		$max = absint( $attributes['maxOptions'] ?? 0 );
+		$max = absint( $settings['maxOptions'] ?? 0 );
 		if ( $max > 0 ) {
 			$max = min( 100, $max );
 			// The bound must never hide an active selection: an option cut

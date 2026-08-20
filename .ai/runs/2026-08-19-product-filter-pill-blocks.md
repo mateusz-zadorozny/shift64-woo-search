@@ -159,3 +159,23 @@ PR: #72
 - [x] 3.1 Extract and document the reusable pill primitive with visual fixture — 7204659
 - [x] 3.2 Update docs and flip the spec lifecycle status — 10b15f3
 - [x] Post-review fixes: TAG escaping for entity-encoded names, canonical no-JS redirect, eligibility-gated request parsing, FT.AGGREGATE schema probe, URL/param preservation hardening, count-provider gates, CI lint alignment — 5d143f4, 9ce4e36, 5796522, 3e9dee9, f4f5bb7
+
+### Phase 4: QA follow-up — parent-owned pill styling with a hover state
+
+Raised in manual QA of PR #72: the pill's colour/border supports painted the
+block wrapper (the box *around* `<details>`), so "background" coloured a slab
+behind and below the control instead of the pill, and there was no hover state
+at all.
+
+WordPress 7.1's per-block interactive states cannot be used here: the opt-in is
+a hardcoded core allowlist (`WP_Theme_JSON::VALID_BLOCK_PSEUDO_SELECTORS` and
+the editor bundle's `VALID_BLOCK_PSEUDO_STATES`, `core/button` and
+`core/navigation-link` only, no filter on either). The parent therefore stores
+core's `style` shape — `:hover` included — under a `pillStyle` attribute and
+resolves it to custom properties itself, so the saved data already matches when
+core opens the allowlist.
+
+- [x] 4.1 Move pill styling to the parent: Filter Pill drops `color`/`border`/
+      `typography` supports, Product Filters gains `pillStyle` plus a
+      Default/Hover tabbed panel, the primitive reads the token contract, and
+      hover tokens fall back to their default-state counterparts

@@ -110,5 +110,63 @@
 			</div>
 		</div>
 	</section>
+
+	<section>
+		<h2>Styled from the parent — hover the pills</h2>
+		<p>
+			The tokens below are exactly what the Product Filters parent writes from its
+			<code>pillStyle</code> attribute. The first parent sets a full default and hover
+			look; the second sets a hover background only, proving each hover token falls
+			back to its default-state counterpart.
+		</p>
+		<div
+			class="shift64-woo-search-product-filters"
+			style="
+				--s64ws-pill-color: #503aa8;
+				--s64ws-pill-bg: #f3f0fb;
+				--s64ws-pill-border-color: #503aa8;
+				--s64ws-pill-border-width: 2px;
+				--s64ws-pill-radius: 8px;
+				--s64ws-pill-color-hover: #fff;
+				--s64ws-pill-bg-hover: #503aa8;
+				--s64ws-pill-border-color-hover: #2f2166;
+			"
+		>
+			<div class="shift64-woo-search-pill">
+				<details class="shift64-woo-search-pill__disclosure">
+					<summary class="shift64-woo-search-pill__trigger">
+						<span class="shift64-woo-search-pill__label">Category</span>
+						<span class="shift64-woo-search-pill__summary-count"><span>2</span></span>
+						<span class="shift64-woo-search-pill__chevron" aria-hidden="true"></span>
+					</summary>
+					<div class="shift64-woo-search-pill__panel"></div>
+				</details>
+			</div>
+			<div class="shift64-woo-search-pill">
+				<details class="shift64-woo-search-pill__disclosure">
+					<summary class="shift64-woo-search-pill__trigger">
+						<span class="shift64-woo-search-pill__label">Color</span>
+						<span class="shift64-woo-search-pill__chevron" aria-hidden="true"></span>
+					</summary>
+					<div class="shift64-woo-search-pill__panel"></div>
+				</details>
+			</div>
+		</div>
+
+		<div
+			class="shift64-woo-search-product-filters"
+			style="--s64ws-pill-bg-hover: #ffe58a"
+		>
+			<div class="shift64-woo-search-pill">
+				<details class="shift64-woo-search-pill__disclosure">
+					<summary class="shift64-woo-search-pill__trigger">
+						<span class="shift64-woo-search-pill__label">Hover background only</span>
+						<span class="shift64-woo-search-pill__chevron" aria-hidden="true"></span>
+					</summary>
+					<div class="shift64-woo-search-pill__panel"></div>
+				</details>
+			</div>
+		</div>
+	</section>
 </body>
 </html>

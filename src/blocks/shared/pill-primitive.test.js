@@ -8,6 +8,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { PILL_STYLE_VARS } from './pill-style';
 
 const STYLESHEET = readFileSync(
 	join( __dirname, 'pill-primitive.scss' ),
@@ -89,4 +90,24 @@ describe( 'pill primitive contract', () => {
 			expect( DOC ).toContain( token );
 		}
 	);
+
+	// The parent writes these tokens, the stylesheet reads them, and the PHP
+	// renderer mirrors the same map. A token that exists in only one of the
+	// three is a silently dead control.
+	it.each( PILL_STYLE_VARS.map( ( { token } ) => token ) )(
+		'style token %s is consumed by the stylesheet and documented',
+		( token ) => {
+			expect( STYLESHEET ).toContain( token );
+			expect( DOC ).toContain( token );
+		}
+	);
+
+	it( 'gives every hover token a default-state counterpart to fall back to', () => {
+		const tokens = PILL_STYLE_VARS.map( ( { token } ) => token );
+		tokens
+			.filter( ( token ) => token.endsWith( '-hover' ) )
+			.forEach( ( token ) => {
+				expect( tokens ).toContain( token.replace( /-hover$/, '' ) );
+			} );
+	} );
 } );
