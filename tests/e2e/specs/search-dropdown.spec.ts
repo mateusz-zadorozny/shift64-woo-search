@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
+	E2E_INLINE_INSTANCE,
+	E2E_MODAL_INSTANCE,
 	SEARCH_PAGE,
 	SEL,
 	isAutocompleteRequest,
@@ -46,16 +48,21 @@ test.describe('search dropdown', () => {
 			borderTopWidth: '0px',
 			boxShadow: 'none',
 		});
-		const stacking = await page.evaluate(() => {
+		// Address both instances by id: the provisioned theme header carries its
+		// own modal-search, and it comes FIRST in document order — an unscoped
+		// querySelector would measure the header's trigger against this page's
+		// tray, which never overlap, and the assertion would silently invert.
+		const stacking = await page.evaluate(({ inline, modal }) => {
 			const tray = document.querySelector<HTMLElement>(
-				'.shift64-woo-search-results--visible'
+				`#${inline}-listbox.shift64-woo-search-results--visible`
 			);
-			const modalControl = document.querySelector<HTMLElement>(
-				'.wp-block-shift64-woo-search-search-control.is-modal'
+			const modalTrigger = document.querySelector<HTMLElement>(
+				`.shift64-woo-search-modal__trigger[aria-controls="${modal}-dialog"]`
 			);
-			const modalTrigger = modalControl?.querySelector<HTMLElement>(
-				'.shift64-woo-search-modal__trigger'
-			);
+			const modalControl =
+				modalTrigger?.closest<HTMLElement>(
+					'.wp-block-shift64-woo-search-search-control.is-modal'
+				) ?? null;
 			if (!tray || !modalControl || !modalTrigger) {
 				return null;
 			}
@@ -77,7 +84,7 @@ test.describe('search dropdown', () => {
 				overlap,
 				trayOwnsOverlap: !overlap || Boolean(topmost && tray.contains(topmost)),
 			};
-		});
+		}, { inline: E2E_INLINE_INSTANCE, modal: E2E_MODAL_INSTANCE });
 		expect(stacking).toEqual({
 			modalControlZIndex: 'auto',
 			overlap: true,

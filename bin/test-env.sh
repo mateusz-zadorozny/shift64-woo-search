@@ -1128,7 +1128,7 @@ report_ready() { # report_ready <reused|restarted-app|rebuilt>
 	echo
 	echo "============================================================"
 	echo " Test environment ready ($how)"
-	echo "   Base URL:     http://127.0.0.1:$HTTP_PORT"
+	echo "   Base URL:     http://127.0.0.1:$HTTP_PORT   (shop archive, search in the header)"
 	echo "   QA page:      http://127.0.0.1:$HTTP_PORT/search-e2e/"
 	echo "   Admin:        admin / admin  (http://127.0.0.1:$HTTP_PORT/wp-admin/)"
 	echo "   MySQL:        127.0.0.1:$MYSQL_PORT ($DB_USER/$DB_PASS)"

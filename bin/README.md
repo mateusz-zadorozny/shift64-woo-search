@@ -6,6 +6,7 @@ These scripts support local development and continuous integration. They are exc
 - `install-phpredis-local.sh` installs the PHP Redis extension in a Local development site.
 - `diagnose-category-facets.php` inspects category facet data in a WordPress environment.
 - `generate-demo-products.php` creates a deterministic English multi-vertical catalog for search testing.
+- `provision-block-theme-header.php` writes the block theme's `header` template part so both search blocks sit in the site header.
 - `demo-product-catalog.php` holds that generator's catalog data and combinatorics; it has no side effects and is unit tested.
 
 ## Demo product generator
@@ -74,5 +75,29 @@ run `wp shift64-woo-search rebuild` to refresh the search index.
 
 Variation SKUs are fixture data only and are never added to the product search
 index. Search results always resolve parent products.
+
+## Block-theme search header
+
+`bin/e2e-provision.sh` runs this on every provisioning pass; run it directly
+after editing the header in the Site Editor to fold your version back in:
+
+```bash
+wp eval-file wp-content/plugins/shift64-woo-search/bin/provision-block-theme-header.php
+wp eval-file wp-content/plugins/shift64-woo-search/bin/provision-block-theme-header.php theme=twentytwentyfive
+```
+
+It replaces the `header` template part with a header carrying
+`shift64-woo-search/modal-search` beside the account and cart icons and
+`shift64-woo-search/search` on the row below. Theme resolution, in precedence
+order: the `theme=` argument, the active theme when it is a block theme, the
+`E2E_BLOCK_THEME` environment variable, `twentytwentyfive`.
+
+Two details make it portable in a way a raw Site Editor export is not: the
+`wp:navigation` ref is resolved against this install (an exported ID points at
+another site's menu), and the `wp_theme` / `wp_template_part_area` terms are
+set explicitly, which is what makes WordPress resolve the row as *this theme's*
+header. Because the part is theme-scoped, it is simply absent under a classic
+theme such as Storefront, which is what `tests/e2e/classic-theme/` activates for
+the length of its spec file.
 
 Production Redis provisioning is intentionally outside the plugin repository. BYOR operators should use their own infrastructure tooling; the managed service will use a separate private control plane.

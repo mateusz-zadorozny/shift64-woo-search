@@ -47,8 +47,10 @@ TARGET_URL="$(wpc option get siteurl)"
 printf '\n############################################################\n'
 printf '# Provisioning target: %s\n' "$TARGET_URL"
 printf '# This OVERWRITES this site'\''s Shift64 Woo Search options\n'
-printf '# (rate limit, suggestions, archive gates, filter attributes)\n'
-printf '# and reseeds the demo catalog (generator-owned products only).\n'
+printf '# (rate limit, suggestions, archive gates, filter attributes),\n'
+printf '# reseeds the demo catalog (generator-owned products only),\n'
+printf '# REPLACES the block theme'\''s header template part, and points\n'
+printf '# the front page at the WooCommerce shop archive.\n'
 printf '############################################################\n'
 
 log "WooCommerce active + shop front visible"
@@ -167,6 +169,34 @@ if [ -z "$EXISTING_PAGE" ]; then
 else
 	wpc post update "$EXISTING_PAGE" --post_content="$SEARCH_E2E_CONTENT" >/dev/null
 	echo "Updated page /search-e2e/ (ID $EXISTING_PAGE)."
+fi
+
+log "Ensure the block-theme header template part (both search blocks in the site header)"
+# Targets the active theme when it is a block theme, which the default
+# environment's Twenty Twenty-Five is. Template parts are theme-scoped, so the
+# header is simply absent while tests/e2e/classic-theme/ runs on Storefront.
+# See the script's own header for the full theme-resolution order.
+wpc eval-file "$SCRIPT_DIR/provision-block-theme-header.php"
+
+log "Shop archive as the site front page"
+# The shop is what this plugin is for, so the storefront should open on it —
+# and it puts the header's search blocks over a product grid on the first
+# screen anyone (or any screenshot) sees.
+SHOP_PAGE_ID="$(wpc option get woocommerce_shop_page_id 2>/dev/null || true)"
+case "$SHOP_PAGE_ID" in ''|*[!0-9]*) SHOP_PAGE_ID=0 ;; esac
+if [ "$SHOP_PAGE_ID" -lt 1 ]; then
+	# A CLI-only activation can leave the stock pages uncreated; creating them
+	# is idempotent, so this costs nothing when they already exist.
+	wpc eval 'WC_Install::create_pages();'
+	SHOP_PAGE_ID="$(wpc option get woocommerce_shop_page_id 2>/dev/null || true)"
+	case "$SHOP_PAGE_ID" in ''|*[!0-9]*) SHOP_PAGE_ID=0 ;; esac
+fi
+if [ "$SHOP_PAGE_ID" -ge 1 ]; then
+	wpc option update show_on_front page
+	wpc option update page_on_front "$SHOP_PAGE_ID"
+	echo "Front page → shop page (ID $SHOP_PAGE_ID)."
+else
+	echo 'WARN: no WooCommerce shop page found — leaving the front page as it was.' >&2
 fi
 
 if [ "${SKIP_REDIS_WIRING:-}" = "1" ]; then

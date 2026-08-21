@@ -60,20 +60,31 @@ export function isSuggestionsRequest(req: Request): boolean {
 }
 
 /**
- * The plain search-block input on the e2e page. Scoped to the block wrapper:
- * the theme may render additional inputs with the same class (header search),
- * and the modal block has its own input.
+ * The `instanceId` attributes bin/e2e-provision.sh writes into the two blocks
+ * on /search-e2e/. The plugin derives every DOM id on an instance from them
+ * (`<instanceId>-input`, `-listbox`, `-dialog`), so they are the suite's stable
+ * address for "the block under test".
+ *
+ * Addressing them by INSTANCE rather than by block wrapper is load-bearing: the
+ * provisioned theme header carries its own instance of BOTH blocks, so
+ * `.shift64-woo-search-block--form` now matches on every page — the header's
+ * block is the same block, not a lookalike. The header's instances are nested
+ * inside group/column blocks, and `render_block_data` (where the plugin turns
+ * `instanceId` into its runtime id) only fires for top-level blocks — so those
+ * fall back to render-order ids (`shift64-woo-search-N-…`) that must never be
+ * matched by name.
  */
+export const E2E_INLINE_INSTANCE = 'search-e2e-inline';
+export const E2E_MODAL_INSTANCE = 'search-e2e-modal';
+
+/** The plain search-block input on the e2e page. */
 export function searchInput(page: Page): Locator {
-	return page.locator(`.shift64-woo-search-block--form ${SEL.input}`);
+	return page.locator(`#${E2E_INLINE_INSTANCE}-input`);
 }
 
-/**
- * The e2e block's modal trigger. The theme may render its own modal-search
- * instance (e.g. in the header), so scope to the block wrapper.
- */
+/** The e2e page's modal trigger, paired to its dialog rather than to a wrapper. */
 export function modalTrigger(page: Page): Locator {
-	return page.locator(`.shift64-woo-search-block--modal ${SEL.modalTrigger}`);
+	return page.locator(`${SEL.modalTrigger}[aria-controls="${E2E_MODAL_INSTANCE}-dialog"]`);
 }
 
 /**
