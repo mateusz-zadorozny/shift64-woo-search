@@ -100,6 +100,32 @@ export function hasEnhancedProductCollection(root = document) {
 }
 
 /**
+ * Keep WooCommerce's results count in step with a client-side collection
+ * navigation. Woo marks this block as a router region, but its block has no
+ * frontend view module, so the Interactivity Router does not replace it even
+ * though the response contains the correct server-rendered count.
+ *
+ * @param {string} html Full HTML response used by the router.
+ * @return {void}
+ */
+function syncProductResultsCount(html) {
+	if (typeof DOMParser === 'undefined' || typeof document === 'undefined') {
+		return;
+	}
+
+	const source = new DOMParser().parseFromString(html, 'text/html');
+	source.querySelectorAll('[data-wp-router-region^="wc-product-results-count-"]').forEach((sourceRegion) => {
+		const regionId = sourceRegion.getAttribute('data-wp-router-region');
+		const targetRegion = [...document.querySelectorAll('[data-wp-router-region]')].find(
+			(region) => region.getAttribute('data-wp-router-region') === regionId
+		);
+		if (targetRegion) {
+			targetRegion.innerHTML = sourceRegion.innerHTML;
+		}
+	});
+}
+
+/**
  * Upgrade a progressive link/form destination to router navigation.
  *
  * @param {string|URL} destination Canonical destination.
@@ -115,7 +141,16 @@ export async function navigate(destination, { forceReload = false } = {}) {
 
 	try {
 		const { actions } = await import('@wordpress/interactivity-router');
-		await actions.navigate(url);
+		const response = await fetch(url, {
+			headers: { Accept: 'text/html' },
+			credentials: 'same-origin',
+		});
+		if (!response.ok) {
+			throw new Error(`Catalog navigation returned HTTP ${response.status}.`);
+		}
+		const html = await response.text();
+		await actions.navigate(url, { html });
+		syncProductResultsCount(html);
 	} catch (error) {
 		window.location.assign(url);
 	}
