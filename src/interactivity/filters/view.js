@@ -3,9 +3,9 @@
  *
  * Upgrades the server-rendered details/summary pills with one-open-at-a-time
  * disclosure, Escape/backdrop dismissal, a focus-contained narrow-screen
- * tray, and canonical router navigation for Apply / Clear / Clear all. The
- * markup keeps working without this module — forms and links navigate to the
- * same canonical URLs.
+ * tray, and canonical router navigation for desktop option changes plus
+ * mobile Apply / Clear / Clear all. The markup keeps working without this
+ * module — forms and links navigate to the same canonical URLs.
  */
 import { getContext, getElement, store } from '@wordpress/interactivity';
 import {
@@ -62,6 +62,14 @@ function focusTrigger( element ) {
 	}
 }
 
+function formSelection( form ) {
+	return selectionFromInputs( [
+		...form.querySelectorAll(
+			'input[type="checkbox"], input[type="radio"]'
+		),
+	] );
+}
+
 const { state, actions } = store( NAMESPACE, {
 	state: {
 		// Open pill per Product Filters parent: parentId -> pillId | ''.
@@ -84,6 +92,7 @@ const { state, actions } = store( NAMESPACE, {
 		get hasOpenPill() {
 			return Boolean( state.open[ getContext().parentId ] );
 		},
+
 	},
 
 	actions: {
@@ -150,11 +159,7 @@ const { state, actions } = store( NAMESPACE, {
 				return;
 			}
 			const context = getContext();
-			const slugs = selectionFromInputs( [
-				...form.querySelectorAll(
-					'input[type="checkbox"], input[type="radio"]'
-				),
-			] );
+			const slugs = formSelection( form );
 			actions.closeOpenPill();
 			await navigate(
 				buildCatalogUrl(
@@ -162,6 +167,28 @@ const { state, actions } = store( NAMESPACE, {
 					selectionChanges(
 						context.taxonomy,
 						slugs,
+						Boolean( context.operatorAnd )
+					)
+				)
+			);
+		},
+
+		async optionChanged( event ) {
+			if ( trayQuery && trayQuery.matches ) {
+				return;
+			}
+			const form = event.target.closest( 'form' );
+			if ( ! form ) {
+				return;
+			}
+			const context = getContext();
+			actions.closeOpenPill();
+			await navigate(
+				buildCatalogUrl(
+					window.location.href,
+					selectionChanges(
+						context.taxonomy,
+						formSelection( form ),
 						Boolean( context.operatorAnd )
 					)
 				)

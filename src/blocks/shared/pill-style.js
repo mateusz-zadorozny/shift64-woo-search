@@ -36,23 +36,11 @@ export const PILL_STYLE_VARS = [
 ];
 
 export const ACTION_STYLE_VARS = [
-	{ path: [ 'color', 'text' ], token: '--s64ws-action-color' },
-	{ path: [ 'color', 'background' ], token: '--s64ws-action-bg' },
-	{ path: [ 'border', 'color' ], token: '--s64ws-action-border-color' },
-	{ path: [ 'border', 'width' ], token: '--s64ws-action-border-width' },
+	{
+		path: [ 'typography', 'fontSize' ],
+		token: '--s64ws-action-font-size',
+	},
 	{ path: [ 'border', 'radius' ], token: '--s64ws-action-radius' },
-	{
-		path: [ ':hover', 'color', 'text' ],
-		token: '--s64ws-action-color-hover',
-	},
-	{
-		path: [ ':hover', 'color', 'background' ],
-		token: '--s64ws-action-bg-hover',
-	},
-	{
-		path: [ ':hover', 'border', 'color' ],
-		token: '--s64ws-action-border-color-hover',
-	},
 ];
 
 /**

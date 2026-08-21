@@ -130,19 +130,13 @@ class Shift64_Woo_Search_Filter_Blocks {
 	);
 
 	/**
-	 * Parent-owned tokens shared by the Apply and Clear actions.
+	 * Parent-owned mobile action-button tokens shared by Apply and Clear.
 	 *
 	 * @var array<string,array<int,string>>
 	 */
 	private const ACTION_STYLE_VARS = array(
-		'--s64ws-action-color'              => array( 'color', 'text' ),
-		'--s64ws-action-bg'                 => array( 'color', 'background' ),
-		'--s64ws-action-border-color'       => array( 'border', 'color' ),
-		'--s64ws-action-border-width'       => array( 'border', 'width' ),
-		'--s64ws-action-radius'             => array( 'border', 'radius' ),
-		'--s64ws-action-color-hover'        => array( ':hover', 'color', 'text' ),
-		'--s64ws-action-bg-hover'           => array( ':hover', 'color', 'background' ),
-		'--s64ws-action-border-color-hover' => array( ':hover', 'border', 'color' ),
+		'--s64ws-action-font-size' => array( 'typography', 'fontSize' ),
+		'--s64ws-action-radius'    => array( 'border', 'radius' ),
 	);
 
 	/**
@@ -430,7 +424,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 		$html .= '<ul class="shift64-woo-search-pill__options">';
 		foreach ( $options as $option ) {
 			$html .= '<li class="shift64-woo-search-pill__option"><label>';
-			$html .= '<input type="' . esc_attr( $input_type ) . '" name="' . esc_attr( $input_name ) . '" value="' . esc_attr( $option['slug'] ) . '"' . checked( $option['selected'], true, false ) . ' />';
+			$html .= '<input type="' . esc_attr( $input_type ) . '" name="' . esc_attr( $input_name ) . '" value="' . esc_attr( $option['slug'] ) . '"' . checked( $option['selected'], true, false ) . ' data-wp-on--change="actions.optionChanged" />';
 			$html .= '<span class="shift64-woo-search-pill__option-label">' . esc_html( $option['name'] ) . '</span>';
 			if ( $show_counts && null !== $option['count'] ) {
 				$html .= '<span class="shift64-woo-search-pill__count">' . esc_html( (string) $option['count'] ) . '</span>';

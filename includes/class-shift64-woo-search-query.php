@@ -2257,7 +2257,7 @@ class Shift64_Woo_Search_Query {
 	 * @return array Array of ['value' => string, 'count' => int], sorted by count DESC.
 	 */
 	private function execute_multi_value_tag_facet( $base_query, $field, $limit = 10000 ) {
-		$index_name   = $this->redis->get_index_name();
+		$index_name = $this->redis->get_index_name();
 		$base_query = trim( $base_query );
 		if ( '' === $base_query ) {
 			// An entirely empty query needs the explicit match-all token. A

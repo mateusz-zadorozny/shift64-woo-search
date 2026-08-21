@@ -1,5 +1,6 @@
 import {
 	ColorPalette,
+	FontSizePicker,
 	InnerBlocks,
 	InspectorControls,
 	useBlockProps,
@@ -315,13 +316,51 @@ function PillStylePanel( { pillStyle, setAttributes } ) {
 }
 
 function ActionStylePanel( { actionStyle, setAttributes } ) {
+	const read = ( path ) =>
+		path.reduce(
+			( carry, key ) =>
+				carry && typeof carry === 'object' ? carry[ key ] : undefined,
+			actionStyle
+		);
+	const write = ( path, value ) =>
+		setAttributes( {
+			actionStyle: setActionStyleValue( actionStyle, path, value ),
+		} );
+
 	return (
-		<StylePanel
-			title={ __( 'Action buttons', 'shift64-woo-search' ) }
-			styleValue={ actionStyle }
-			setValue={ setActionStyleValue }
-			onChange={ ( next ) => setAttributes( { actionStyle: next } ) }
-		/>
+		<PanelBody
+			title={ __( 'Mobile Action buttons', 'shift64-woo-search' ) }
+			initialOpen
+		>
+			<FontSizePicker
+				value={ read( [ 'typography', 'fontSize' ] ) }
+				onChange={ ( next ) =>
+					write(
+						[ 'typography', 'fontSize' ],
+						undefined === next
+							? ''
+							: 'number' === typeof next
+								? `${ next }px`
+								: next
+					)
+				}
+			/>
+			<RangeControl
+				__nextHasNoMarginBottom
+				__next40pxDefaultSize
+				label={ __( 'Border radius', 'shift64-woo-search' ) }
+				value={ pxToNumber( read( [ 'border', 'radius' ] ) ) }
+				min={ 0 }
+				max={ 50 }
+				allowReset
+				onChange={ ( next ) =>
+					write(
+						[ 'border', 'radius' ],
+						undefined === next ? '' : `${ next }px`
+					)
+				}
+			/>
+		</PanelBody>
 	);
 }
 

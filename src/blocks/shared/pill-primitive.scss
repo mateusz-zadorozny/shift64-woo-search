@@ -189,13 +189,14 @@
 	}
 
 	&__actions {
-		display: flex;
+		display: none;
 		gap: 0.5rem;
 		justify-content: flex-end;
 		margin-top: 0.75rem;
 	}
 
 	&__apply,
+	&__apply.wp-element-button,
 	&__clear {
 		align-items: center;
 		appearance: none;
@@ -209,6 +210,7 @@
 		display: inline-flex;
 		flex: 1 1 0;
 		font: inherit;
+		font-size: var(--s64ws-action-font-size, inherit);
 		justify-content: center;
 		line-height: 1.2;
 		min-height: 2.5rem;
@@ -241,6 +243,29 @@
 
 	// Narrow screens: the panel becomes a bottom tray above the backdrop.
 	@media (max-width: 782px) {
+		&__actions {
+			display: flex;
+		}
+
+		&__clear,
+		&__clear:hover,
+		&__clear:focus-visible {
+			background: var(--wp--preset--color--base, #fff);
+			border-color: var(--wp--preset--color--contrast, #111);
+			color: var(--wp--preset--color--contrast, #111);
+		}
+
+		&__apply,
+		&__apply.wp-element-button,
+		&__apply:hover,
+		&__apply.wp-element-button:hover,
+		&__apply:focus-visible,
+		&__apply.wp-element-button:focus-visible {
+			background: var(--wp--preset--color--contrast, #111);
+			border-color: var(--wp--preset--color--contrast, #111);
+			color: var(--wp--preset--color--base, #fff);
+		}
+
 		&__panel {
 			border-radius: 12px 12px 0 0;
 			bottom: 0;
