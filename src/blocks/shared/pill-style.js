@@ -35,6 +35,26 @@ export const PILL_STYLE_VARS = [
 	},
 ];
 
+export const ACTION_STYLE_VARS = [
+	{ path: [ 'color', 'text' ], token: '--s64ws-action-color' },
+	{ path: [ 'color', 'background' ], token: '--s64ws-action-bg' },
+	{ path: [ 'border', 'color' ], token: '--s64ws-action-border-color' },
+	{ path: [ 'border', 'width' ], token: '--s64ws-action-border-width' },
+	{ path: [ 'border', 'radius' ], token: '--s64ws-action-radius' },
+	{
+		path: [ ':hover', 'color', 'text' ],
+		token: '--s64ws-action-color-hover',
+	},
+	{
+		path: [ ':hover', 'color', 'background' ],
+		token: '--s64ws-action-bg-hover',
+	},
+	{
+		path: [ ':hover', 'border', 'color' ],
+		token: '--s64ws-action-border-color-hover',
+	},
+];
+
 /**
  * Resolve a theme preset reference to a CSS custom property reference.
  *
@@ -64,18 +84,19 @@ function readPath( source, path ) {
 }
 
 /**
- * Turn a stored pillStyle object into CSS custom properties.
+ * Turn a stored style object into CSS custom properties.
  *
- * @param {Object} pillStyle Stored pillStyle attribute.
+ * @param {Object} style     Stored style attribute.
+ * @param {Array}  variables CSS token definitions.
  * @return {Object} Map of custom property name to value; empty when unstyled.
  */
-export function pillStyleToVars( pillStyle ) {
-	if ( ! pillStyle || typeof pillStyle !== 'object' ) {
+function styleToVars( style, variables ) {
+	if ( ! style || typeof style !== 'object' ) {
 		return {};
 	}
 
-	return PILL_STYLE_VARS.reduce( ( vars, { path, token } ) => {
-		const value = readPath( pillStyle, path );
+	return variables.reduce( ( vars, { path, token } ) => {
+		const value = readPath( style, path );
 		if ( typeof value === 'string' && value !== '' ) {
 			vars[ token ] = normalizePresetValue( value );
 		}
@@ -83,21 +104,28 @@ export function pillStyleToVars( pillStyle ) {
 	}, {} );
 }
 
+export function pillStyleToVars( pillStyle ) {
+	return styleToVars( pillStyle, PILL_STYLE_VARS );
+}
+
+export function actionStyleToVars( actionStyle ) {
+	return styleToVars( actionStyle, ACTION_STYLE_VARS );
+}
+
 /**
- * Immutably set one value inside the pillStyle object, pruning empty branches.
+ * Immutably set one value inside a style object, pruning empty branches.
  *
- * Pruning matters: a `pillStyle` left holding `{ color: {} }` would serialize
- * empty objects into post content and make "is this block styled?" checks lie.
+ * Pruning matters: a style left holding `{ color: {} }` would serialize empty
+ * objects into post content and make "is this block styled?" checks lie.
  *
- * @param {Object}        pillStyle Current pillStyle attribute.
- * @param {Array<string>} path      Path to write.
- * @param {string|number} value     Next value; empty clears the path.
- * @return {Object} Next pillStyle attribute.
+ * @param {Object}        style Current style attribute.
+ * @param {Array<string>} path  Path to write.
+ * @param {string|number} value Next value; empty clears the path.
+ * @return {Object} Next style attribute.
  */
-export function setPillStyleValue( pillStyle, path, value ) {
+function setStyleValue( style, path, value ) {
 	const [ key, ...rest ] = path;
-	const source =
-		pillStyle && typeof pillStyle === 'object' ? { ...pillStyle } : {};
+	const source = style && typeof style === 'object' ? { ...style } : {};
 
 	if ( rest.length === 0 ) {
 		if ( value === undefined || value === '' || value === null ) {
@@ -106,7 +134,7 @@ export function setPillStyleValue( pillStyle, path, value ) {
 			source[ key ] = value;
 		}
 	} else {
-		const branch = setPillStyleValue( source[ key ], rest, value );
+		const branch = setStyleValue( source[ key ], rest, value );
 		if ( Object.keys( branch ).length === 0 ) {
 			delete source[ key ];
 		} else {
@@ -115,4 +143,12 @@ export function setPillStyleValue( pillStyle, path, value ) {
 	}
 
 	return source;
+}
+
+export function setPillStyleValue( pillStyle, path, value ) {
+	return setStyleValue( pillStyle, path, value );
+}
+
+export function setActionStyleValue( actionStyle, path, value ) {
+	return setStyleValue( actionStyle, path, value );
 }

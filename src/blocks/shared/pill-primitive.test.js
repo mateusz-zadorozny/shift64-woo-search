@@ -8,7 +8,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PILL_STYLE_VARS } from './pill-style';
+import { ACTION_STYLE_VARS, PILL_STYLE_VARS } from './pill-style';
 
 const STYLESHEET = readFileSync(
 	join( __dirname, 'pill-primitive.scss' ),
@@ -95,7 +95,11 @@ describe( 'pill primitive contract', () => {
 	// The parent writes these tokens, the stylesheet reads them, and the PHP
 	// renderer mirrors the same map. A token that exists in only one of the
 	// three is a silently dead control.
-	it.each( PILL_STYLE_VARS.map( ( { token } ) => token ) )(
+	it.each(
+		[ ...PILL_STYLE_VARS, ...ACTION_STYLE_VARS ].map(
+			( { token } ) => token
+		)
+	)(
 		'style token %s is consumed by the stylesheet and documented',
 		( token ) => {
 			expect( STYLESHEET ).toContain( token );

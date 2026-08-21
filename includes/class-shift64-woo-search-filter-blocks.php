@@ -130,6 +130,22 @@ class Shift64_Woo_Search_Filter_Blocks {
 	);
 
 	/**
+	 * Parent-owned tokens shared by the Apply and Clear actions.
+	 *
+	 * @var array<string,array<int,string>>
+	 */
+	private const ACTION_STYLE_VARS = array(
+		'--s64ws-action-color'              => array( 'color', 'text' ),
+		'--s64ws-action-bg'                 => array( 'color', 'background' ),
+		'--s64ws-action-border-color'       => array( 'border', 'color' ),
+		'--s64ws-action-border-width'       => array( 'border', 'width' ),
+		'--s64ws-action-radius'             => array( 'border', 'radius' ),
+		'--s64ws-action-color-hover'        => array( ':hover', 'color', 'text' ),
+		'--s64ws-action-bg-hover'           => array( ':hover', 'color', 'background' ),
+		'--s64ws-action-border-color-hover' => array( ':hover', 'border', 'color' ),
+	);
+
+	/**
 	 * Resolve a theme preset reference to a CSS custom property reference.
 	 *
 	 * Mirrors core's wp_normalize_state_preset_vars(), which is 7.1-only while
@@ -188,19 +204,20 @@ class Shift64_Woo_Search_Filter_Blocks {
 	}
 
 	/**
-	 * Build the inline custom-property declarations for a pillStyle attribute.
+	 * Build inline custom-property declarations for a style attribute.
 	 *
-	 * @param mixed $pill_style Stored pillStyle attribute.
+	 * @param mixed $style     Stored style attribute.
+	 * @param array $variables Token-to-path map.
 	 * @return string Declarations without a trailing semicolon; '' when unstyled.
 	 */
-	private static function pill_style_vars( $pill_style ) {
-		if ( ! is_array( $pill_style ) || empty( $pill_style ) ) {
+	private static function style_vars( $style, $variables ) {
+		if ( ! is_array( $style ) || empty( $style ) ) {
 			return '';
 		}
 
 		$declarations = array();
-		foreach ( self::PILL_STYLE_VARS as $token => $path ) {
-			$value = $pill_style;
+		foreach ( $variables as $token => $path ) {
+			$value = $style;
 			foreach ( $path as $key ) {
 				if ( ! is_array( $value ) || ! isset( $value[ $key ] ) ) {
 					$value = null;
@@ -216,6 +233,26 @@ class Shift64_Woo_Search_Filter_Blocks {
 		}
 
 		return implode( ';', $declarations );
+	}
+
+	/**
+	 * Build the pill trigger style declarations.
+	 *
+	 * @param mixed $pill_style Stored pill style attribute.
+	 * @return string
+	 */
+	private static function pill_style_vars( $pill_style ) {
+		return self::style_vars( $pill_style, self::PILL_STYLE_VARS );
+	}
+
+	/**
+	 * Build the shared action-button style declarations.
+	 *
+	 * @param mixed $action_style Stored action style attribute.
+	 * @return string
+	 */
+	private static function action_style_vars( $action_style ) {
+		return self::style_vars( $action_style, self::ACTION_STYLE_VARS );
 	}
 
 	/**
@@ -261,9 +298,11 @@ class Shift64_Woo_Search_Filter_Blocks {
 			'data-wp-router-region' => $runtime_id . '-region',
 		);
 
-		$pill_style = self::pill_style_vars( $attributes['pillStyle'] ?? array() );
-		if ( '' !== $pill_style ) {
-			$wrapper_args['style'] = $pill_style;
+		$pill_style   = self::pill_style_vars( $attributes['pillStyle'] ?? array() );
+		$action_style = self::action_style_vars( $attributes['actionStyle'] ?? array() );
+		$styles       = array_filter( array( $pill_style, $action_style ) );
+		if ( ! empty( $styles ) ) {
+			$wrapper_args['style'] = implode( ';', $styles );
 		}
 
 		$wrapper = get_block_wrapper_attributes( $wrapper_args );

@@ -15,6 +15,7 @@
 		"showClearAll": { "type": "boolean", "default": true },
 		"clearAllLabel": { "type": "string", "default": "" },
 		"pillStyle": { "type": "object", "default": {} },
+		"actionStyle": { "type": "object", "default": {} },
 		"previewOpen": { "type": "boolean", "default": false },
 		"selectionMode": {
 			"type": "string",

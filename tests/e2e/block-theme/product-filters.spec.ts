@@ -83,6 +83,19 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		expect(
 			await page.locator(`${PILL} .shift64-woo-search-pill__count`).count()
 		).toBeGreaterThan(0);
+		const countBox = await page
+			.locator(`${PILL} .shift64-woo-search-pill__count`)
+			.first()
+			.boundingBox();
+		const listBox = await page
+			.locator(`${PILL} .shift64-woo-search-pill__options`)
+			.first()
+			.boundingBox();
+		expect( countBox ).not.toBeNull();
+		expect( listBox ).not.toBeNull();
+		const listRight = ( listBox?.x ?? 0 ) + ( listBox?.width ?? 0 );
+		const countRight = ( countBox?.x ?? 0 ) + ( countBox?.width ?? 0 );
+		expect( listRight - countRight ).toBeGreaterThanOrEqual( 4 );
 	});
 
 	test('apply router-navigates without a reload, resets paging, keeps search', async ({ page }) => {
@@ -162,6 +175,25 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 
 		await page.goto(`${BROAD_QUERY}&filter_product_cat=${slug}`);
 		await page.locator(TRIGGER).first().click();
+		const actionVisuals = await page.evaluate(() => {
+			const actions = Array.from(
+				document.querySelectorAll(
+					'.shift64-woo-search-pill__clear, .shift64-woo-search-pill__apply'
+				)
+			).map((element) => {
+				const style = window.getComputedStyle(element);
+				return {
+					background: style.backgroundColor,
+					borderColor: style.borderColor,
+					borderRadius: style.borderRadius,
+				};
+			});
+			return actions;
+		});
+		expect(actionVisuals).toHaveLength(2);
+		expect(actionVisuals[0].background).toBe(actionVisuals[1].background);
+		expect(actionVisuals[0].borderColor).toBe(actionVisuals[1].borderColor);
+		expect(actionVisuals[0].borderRadius).toBe(actionVisuals[1].borderRadius);
 		await page.locator(`${PILL} .shift64-woo-search-pill__clear`).first().click();
 
 		await expect(page).toHaveURL(/s=series/);

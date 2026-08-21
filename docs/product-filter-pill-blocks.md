@@ -35,9 +35,11 @@ Archive template
 4. Style everything from the parent's **Styles** tab: layout, wrapping, gap,
    container background and typography use the normal block design tools, and
    the **Pills** panel styles the pill controls themselves under a **Default** /
-   **Hover** tab pair. Individual pills expose no style controls. The parent’s
-   **Editor preview** panel keeps option lists hidden by default and can reveal
-   them while editing. There are no plugin appearance settings in WP Admin.
+   **Hover** tab pair, while **Action buttons** styles the shared Apply / Clear
+   controls under the same tab pair. Individual pills expose no style controls.
+   The parent’s **Editor preview** panel keeps option lists hidden by default
+   and can reveal them while editing. There are no plugin appearance settings
+   in WP Admin.
 
    The parent has no text-colour control of its own: container text colour and
    pill text colour would be the same visible change on the same elements, so
@@ -175,6 +177,20 @@ resolved to custom properties on the parent wrapper:
 | `--s64ws-pill-color-hover` | Pill text on hover/keyboard focus |
 | `--s64ws-pill-bg-hover` | Pill background on hover/keyboard focus |
 | `--s64ws-pill-border-color-hover` | Pill border colour on hover/keyboard focus |
+
+The Apply and Clear controls use one shared parent-owned `actionStyle` contract,
+so they always have the same base appearance and can be styled together:
+
+| Token | Styles |
+| --- | --- |
+| `--s64ws-action-color` | Action text |
+| `--s64ws-action-bg` | Action background |
+| `--s64ws-action-border-color` | Action border colour |
+| `--s64ws-action-border-width` | Action border width |
+| `--s64ws-action-radius` | Action border radius |
+| `--s64ws-action-color-hover` | Action text on hover/keyboard focus |
+| `--s64ws-action-bg-hover` | Action background on hover/keyboard focus |
+| `--s64ws-action-border-color-hover` | Action border colour on hover/keyboard focus |
 
 Each hover token falls back to its default-state counterpart, so setting only a
 hover background leaves everything else alone. Hover styles apply to

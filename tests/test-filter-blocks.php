@@ -647,6 +647,37 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Apply and Clear inherit one parent-owned action-button style contract.
+	 */
+	public function test_action_style_renders_shared_custom_properties_on_the_parent() {
+		$_GET['filter_product_cat'] = 'lamps';
+		$html                       = $this->render_filters(
+			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat"} /-->',
+			array(
+				'actionStyle' => array(
+					'color'  => array(
+						'text'       => '#ffffff',
+						'background' => '#111111',
+					),
+					'border' => array(
+						'color'  => '#111111',
+						'width'  => '2px',
+						'radius' => '8px',
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( '--s64ws-action-color:#ffffff', $html );
+		$this->assertStringContainsString( '--s64ws-action-bg:#111111', $html );
+		$this->assertStringContainsString( '--s64ws-action-border-color:#111111', $html );
+		$this->assertStringContainsString( '--s64ws-action-border-width:2px', $html );
+		$this->assertStringContainsString( '--s64ws-action-radius:8px', $html );
+		$this->assertStringContainsString( 'class="shift64-woo-search-pill__clear"', $html );
+		$this->assertStringContainsString( 'class="shift64-woo-search-pill__apply wp-element-button"', $html );
+	}
+
+	/**
 	 * An unstyled parent emits no style attribute of its own.
 	 */
 	public function test_unstyled_parent_emits_no_pill_tokens() {
@@ -655,6 +686,7 @@ class Filter_Blocks_Test extends WP_UnitTestCase {
 		);
 
 		$this->assertStringNotContainsString( '--s64ws-pill-', $html );
+		$this->assertStringNotContainsString( '--s64ws-action-', $html );
 	}
 
 	/**

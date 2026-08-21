@@ -24,7 +24,12 @@ import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import metadata from './block.json';
 import { groupFacets, useEditorFacets } from '../shared/facets';
-import { pillStyleToVars, setPillStyleValue } from '../shared/pill-style';
+import {
+	actionStyleToVars,
+	pillStyleToVars,
+	setActionStyleValue,
+	setPillStyleValue,
+} from '../shared/pill-style';
 import './editor.scss';
 import './style.scss';
 
@@ -171,21 +176,24 @@ function PillColorControl( { label, value, onChange } ) {
 	);
 }
 
-function PillStylePanel( { pillStyle, setAttributes } ) {
+function StylePanel( {
+	title,
+	styleValue,
+	onChange,
+	setValue = setPillStyleValue,
+} ) {
 	const write = ( path, value ) =>
-		setAttributes( {
-			pillStyle: setPillStyleValue( pillStyle, path, value ),
-		} );
+		onChange( setValue( styleValue, path, value ) );
 
 	const read = ( path ) =>
 		path.reduce(
 			( carry, key ) =>
 				carry && typeof carry === 'object' ? carry[ key ] : undefined,
-			pillStyle
+			styleValue
 		);
 
 	return (
-		<PanelBody title={ __( 'Pills', 'shift64-woo-search' ) } initialOpen>
+		<PanelBody title={ title } initialOpen>
 			<TabPanel tabs={ STATE_TABS }>
 				{ ( tab ) => {
 					const prefix = 'hover' === tab.name ? [ ':hover' ] : [];
@@ -296,9 +304,36 @@ function PillStylePanel( { pillStyle, setAttributes } ) {
 	);
 }
 
+function PillStylePanel( { pillStyle, setAttributes } ) {
+	return (
+		<StylePanel
+			title={ __( 'Pills', 'shift64-woo-search' ) }
+			styleValue={ pillStyle }
+			onChange={ ( next ) => setAttributes( { pillStyle: next } ) }
+		/>
+	);
+}
+
+function ActionStylePanel( { actionStyle, setAttributes } ) {
+	return (
+		<StylePanel
+			title={ __( 'Action buttons', 'shift64-woo-search' ) }
+			styleValue={ actionStyle }
+			setValue={ setActionStyleValue }
+			onChange={ ( next ) => setAttributes( { actionStyle: next } ) }
+		/>
+	);
+}
+
 function Edit( { attributes, clientId, setAttributes } ) {
-	const { showClearAll, clearAllLabel, instanceId, pillStyle, previewOpen } =
-		attributes;
+	const {
+		showClearAll,
+		clearAllLabel,
+		instanceId,
+		pillStyle,
+		actionStyle,
+		previewOpen,
+	} = attributes;
 	const { replaceInnerBlocks } = useDispatch( 'core/block-editor' );
 	const pillCount = useSelect(
 		( select ) => select( 'core/block-editor' ).getBlockCount( clientId ),
@@ -341,7 +376,10 @@ function Edit( { attributes, clientId, setAttributes } ) {
 		// The pill tokens ride on the parent wrapper in the editor exactly as
 		// they do on the frontend, so the preview and the storefront resolve
 		// the same custom properties.
-		style: pillStyleToVars( pillStyle ),
+		style: {
+			...pillStyleToVars( pillStyle ),
+			...actionStyleToVars( actionStyle ),
+		},
 	} );
 	const innerBlocksProps = useInnerBlocksProps( blockProps, {
 		allowedBlocks: [ PILL_BLOCK ],
@@ -413,6 +451,10 @@ function Edit( { attributes, clientId, setAttributes } ) {
 			<InspectorControls group="styles">
 				<PillStylePanel
 					pillStyle={ pillStyle }
+					setAttributes={ setAttributes }
+				/>
+				<ActionStylePanel
+					actionStyle={ actionStyle }
 					setAttributes={ setAttributes }
 				/>
 			</InspectorControls>

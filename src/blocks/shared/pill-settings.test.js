@@ -83,6 +83,12 @@ describe( 'parent/pill settings contract', () => {
 		);
 	} );
 
+	it( 'keeps action-button appearance global on the parent', () => {
+		expect( PARENT_METADATA.attributes.actionStyle.default ).toEqual( {} );
+		expect( PARENT_METADATA.attributes ).not.toHaveProperty( 'applyStyle' );
+		expect( PARENT_METADATA.attributes ).not.toHaveProperty( 'clearStyle' );
+	} );
+
 	it( 'does not expose style supports on individual pills', () => {
 		expect( PILL_METADATA.supports ).toMatchObject( {
 			color: false,

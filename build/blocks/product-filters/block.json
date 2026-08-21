@@ -35,6 +35,10 @@
       "type": "object",
       "default": {}
     },
+    "actionStyle": {
+      "type": "object",
+      "default": {}
+    },
     "previewOpen": {
       "type": "boolean",
       "default": false

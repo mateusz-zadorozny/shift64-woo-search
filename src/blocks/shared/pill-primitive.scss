@@ -169,6 +169,7 @@
 			display: flex;
 			gap: 0.5em;
 			padding: 0.25em 0;
+			padding-inline-end: 0.5rem;
 		}
 
 		input:focus-visible {
@@ -183,6 +184,7 @@
 
 	&__count {
 		font-size: 0.8em;
+		margin-inline-end: 0.25rem;
 		opacity: 0.7;
 	}
 
@@ -197,33 +199,38 @@
 	&__clear {
 		align-items: center;
 		appearance: none;
-		border-radius: 4px;
+		background: var(--s64ws-action-bg, var(--wp--preset--color--contrast, #111));
+		border: var(--s64ws-action-border-width, 1px) solid
+			var(--s64ws-action-border-color, transparent);
+		border-radius: var(--s64ws-action-radius, 4px);
 		box-sizing: border-box;
+		color: var(--s64ws-action-color, var(--wp--preset--color--base, #fff));
 		cursor: pointer;
 		display: inline-flex;
+		flex: 1 1 0;
 		font: inherit;
 		justify-content: center;
 		line-height: 1.2;
 		min-height: 2.5rem;
+		min-width: 0;
 		padding: 0.4em 0.9em;
 		text-align: center;
 		text-decoration: none;
-	}
 
-	&__apply {
-		background: var(--wp--preset--color--contrast, #111);
-		border: 1px solid transparent;
-		color: var(--wp--preset--color--base, #fff);
-	}
-
-	&__clear {
-		background: transparent;
-		border: 1px solid currentColor;
-		color: inherit;
-
-		&:hover {
-			background: currentColor;
-			color: var(--wp--preset--color--base, #fff);
+		&:hover,
+		&:focus-visible {
+			background: var(
+				--s64ws-action-bg-hover,
+				var(--s64ws-action-bg, var(--wp--preset--color--contrast, #111))
+			);
+			border-color: var(
+				--s64ws-action-border-color-hover,
+				var(--s64ws-action-border-color, transparent)
+			);
+			color: var(
+				--s64ws-action-color-hover,
+				var(--s64ws-action-color, var(--wp--preset--color--base, #fff))
+			);
 		}
 
 		&:focus-visible {

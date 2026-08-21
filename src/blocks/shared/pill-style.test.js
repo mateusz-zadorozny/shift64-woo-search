@@ -1,6 +1,8 @@
 import {
+	actionStyleToVars,
 	normalizePresetValue,
 	pillStyleToVars,
+	setActionStyleValue,
 	setPillStyleValue,
 } from './pill-style';
 
@@ -64,6 +66,41 @@ describe( 'pillStyleToVars', () => {
 	} );
 } );
 
+describe( 'actionStyleToVars', () => {
+	it( 'maps the shared action-button style contract', () => {
+		expect(
+			actionStyleToVars( {
+				color: { text: '#fff', background: '#111' },
+				border: { color: '#111', width: '2px', radius: '8px' },
+				':hover': {
+					color: { background: '#fff' },
+					border: { color: '#fff' },
+				},
+			} )
+		).toEqual( {
+			'--s64ws-action-color': '#fff',
+			'--s64ws-action-bg': '#111',
+			'--s64ws-action-border-color': '#111',
+			'--s64ws-action-border-width': '2px',
+			'--s64ws-action-radius': '8px',
+			'--s64ws-action-bg-hover': '#fff',
+			'--s64ws-action-border-color-hover': '#fff',
+		} );
+	} );
+
+	it( 'uses the same theme preset normalization as pill styles', () => {
+		expect(
+			actionStyleToVars( {
+				color: {
+					background: 'var:preset|color|accent-3',
+				},
+			} )
+		).toEqual( {
+			'--s64ws-action-bg': 'var(--wp--preset--color--accent-3)',
+		} );
+	} );
+} );
+
 describe( 'setPillStyleValue', () => {
 	it( 'writes a nested value without mutating the source', () => {
 		const source = { color: { text: '#111' } };
@@ -103,5 +140,28 @@ describe( 'setPillStyleValue', () => {
 				''
 			)
 		).toEqual( { color: { background: '#fff' } } );
+	} );
+} );
+
+describe( 'setActionStyleValue', () => {
+	it( 'writes and prunes the shared action style shape', () => {
+		const source = { color: { text: '#fff' } };
+		const next = setActionStyleValue(
+			source,
+			[ ':hover', 'color', 'background' ],
+			'#111'
+		);
+
+		expect( next ).toEqual( {
+			color: { text: '#fff' },
+			':hover': { color: { background: '#111' } },
+		} );
+		expect(
+			setActionStyleValue(
+				next,
+				[ ':hover', 'color', 'background' ],
+				undefined
+			)
+		).toEqual( { color: { text: '#fff' } } );
 	} );
 } );
