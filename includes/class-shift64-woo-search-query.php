@@ -2258,18 +2258,12 @@ class Shift64_Woo_Search_Query {
 	 */
 	private function execute_multi_value_tag_facet( $base_query, $field, $limit = 10000 ) {
 		$index_name   = $this->redis->get_index_name();
-		$parts        = preg_split( '/\s+/', trim( $base_query ) );
-		$has_positive = false;
-
-		foreach ( $parts as $part ) {
-			if ( '' !== $part && '-' !== substr( $part, 0, 1 ) ) {
-				$has_positive = true;
-				break;
-			}
-		}
-
-		if ( ! $has_positive ) {
-			$base_query = trim( '* ' . $base_query );
+		$base_query = trim( $base_query );
+		if ( '' === $base_query ) {
+			// An entirely empty query needs the explicit match-all token. A
+			// negative-only query is already valid RediSearch syntax; prefixing
+			// it with `*` makes this deployment reject the query instead.
+			$base_query = '*';
 		}
 
 		$args = array(
