@@ -11,6 +11,7 @@ import { getContext, getElement, store } from '@wordpress/interactivity';
 import {
 	buildCatalogUrl,
 	navigate,
+	observeProductResultsCount,
 } from '../../../frontend/js/shift64-woo-search-catalog-navigation';
 import {
 	clearAllChanges,
@@ -380,6 +381,8 @@ const { state, actions } = store( NAMESPACE, {
 		},
 	},
 } );
+
+observeProductResultsCount();
 
 // A viewport change while a surface is open would swap disclosure and tray
 // presentation under the user: close everything and return focus first.

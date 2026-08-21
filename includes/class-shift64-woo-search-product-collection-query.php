@@ -94,7 +94,8 @@ class Shift64_Woo_Search_Product_Collection_Query {
 			return;
 		}
 
-		$context = Shift64_Woo_Search_Product_Collection_Context::for_current_request( 'shift64-woo-search-result-count' );
+		$count_page = Shift64_Woo_Search_Catalog_State::requested_page( 1, null, null, null );
+		$context    = Shift64_Woo_Search_Product_Collection_Context::for_current_request( 'shift64-woo-search-result-count', $count_page );
 		if ( null === $context ) {
 			return;
 		}
@@ -108,10 +109,63 @@ class Shift64_Woo_Search_Product_Collection_Query {
 		}
 
 		Shift64_Woo_Search_Product_Collection_Results::set( $result );
+		$collection_per_page = $this->current_collection_per_page();
 		$this->saved_results_count_loop = array(
-			'total' => (int) wc_get_loop_prop( 'total' ),
+			'total'        => (int) wc_get_loop_prop( 'total' ),
+			'per_page'     => (int) wc_get_loop_prop( 'per_page' ),
+			'current_page' => (int) wc_get_loop_prop( 'current_page' ),
 		);
 		wc_set_loop_prop( 'total', $result->get_total() );
+		wc_set_loop_prop( 'current_page', $result->get_page() );
+		if ( null !== $collection_per_page ) {
+			wc_set_loop_prop( 'per_page', $collection_per_page );
+		}
+	}
+
+	/**
+	 * Read the active Product Collection page size before its sibling renders.
+	 *
+	 * WooCommerce renders Product Results Count before the Product Collection,
+	 * so the collection's request context is not available yet. The active
+	 * block template is already resolved at this point; use its saved block
+	 * attributes to keep WooCommerce's range text aligned with the collection.
+	 *
+	 * @return int|null Product Collection page size, or null when unavailable.
+	 */
+	private function current_collection_per_page() {
+		global $_wp_current_template_content;
+
+		if ( ! is_string( $_wp_current_template_content ) || '' === $_wp_current_template_content ) {
+			return null;
+		}
+
+		return $this->find_collection_per_page( parse_blocks( $_wp_current_template_content ) );
+	}
+
+	/**
+	 * Find the first Product Collection page size in parsed template blocks.
+	 *
+	 * @param array $blocks Parsed blocks.
+	 * @return int|null Product Collection page size, or null when not found.
+	 */
+	private function find_collection_per_page( array $blocks ) {
+		foreach ( $blocks as $block ) {
+			if ( 'woocommerce/product-collection' === ( $block['blockName'] ?? '' ) ) {
+				$per_page = $block['attrs']['query']['perPage'] ?? null;
+				if ( is_numeric( $per_page ) && (int) $per_page > 0 ) {
+					return (int) $per_page;
+				}
+			}
+
+			if ( ! empty( $block['innerBlocks'] ) ) {
+				$per_page = $this->find_collection_per_page( $block['innerBlocks'] );
+				if ( null !== $per_page ) {
+					return $per_page;
+				}
+			}
+		}
+
+		return null;
 	}
 
 	/**

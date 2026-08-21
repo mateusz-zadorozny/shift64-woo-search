@@ -18,6 +18,10 @@ const PRIVATE_PARAMS = [
 	'customize_changeset_uuid',
 ];
 
+let resultsCountObserver = null;
+let resultsCountSyncTimer = null;
+let lastResultsCountUrl = '';
+
 /**
  * Resolve a navigation target that cannot leave the current storefront.
  *
@@ -123,6 +127,57 @@ function syncProductResultsCount(html) {
 			targetRegion.innerHTML = sourceRegion.innerHTML;
 		}
 	});
+	lastResultsCountUrl = window.location.href;
+}
+
+/**
+ * Keep the count synchronized when WooCommerce navigates Product Collection
+ * pagination directly through the Interactivity Router.
+ *
+ * @return {void}
+ */
+export function observeProductResultsCount() {
+	if (
+		resultsCountObserver ||
+		typeof MutationObserver === 'undefined' ||
+		typeof document === 'undefined'
+	) {
+		return;
+	}
+
+	const collection = document.querySelector(
+		'[data-wp-router-region^="wc-product-collection-"]'
+	);
+	if (!collection) {
+		return;
+	}
+
+	lastResultsCountUrl = window.location.href;
+	resultsCountObserver = new MutationObserver( () => {
+		if ( window.location.href === lastResultsCountUrl ) {
+			return;
+		}
+		window.clearTimeout( resultsCountSyncTimer );
+		resultsCountSyncTimer = window.setTimeout( async () => {
+			const url = window.location.href;
+			if ( url === lastResultsCountUrl ) {
+				return;
+			}
+			try {
+				const response = await fetch( url, {
+					headers: { Accept: 'text/html' },
+					credentials: 'same-origin',
+				} );
+				if ( ! response.ok ) {
+					return;
+				}
+				syncProductResultsCount( await response.text() );
+			} catch ( error ) {
+				// The router already owns navigation errors; count sync is best effort.
+			}
+		}, 0);
+	} );
+	resultsCountObserver.observe( collection, { childList: true, subtree: true } );
 }
 
 /**

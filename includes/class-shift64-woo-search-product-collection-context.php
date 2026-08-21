@@ -260,15 +260,16 @@ final class Shift64_Woo_Search_Product_Collection_Context {
 	 * validated search/scope/visibility facts. Paging intentionally stays at
 	 * 1 — facet aggregations are page-independent.
 	 *
-	 * @param string $request_key Request-scoped result key.
+	 * @param string   $request_key Request-scoped result key.
+	 * @param int|null $page       Optional current Product Collection page.
 	 * @return self|null Null off eligible archives or with the feature disabled.
 	 */
-	public static function for_current_request( $request_key ) {
+	public static function for_current_request( $request_key, $page = null ) {
 		return self::from_query_context(
 			array(),
 			array(),
 			null,
-			1,
+			null === $page ? 1 : max( 1, (int) $page ),
 			self::current_request_context( array() ),
 			$request_key
 		);
