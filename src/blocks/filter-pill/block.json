@@ -20,7 +20,8 @@
 		"shift64WooSearch/maxOptions",
 		"shift64WooSearch/applyLabel",
 		"shift64WooSearch/clearLabel",
-		"shift64WooSearch/previewOpen"
+		"shift64WooSearch/previewOpen",
+		"shift64WooSearch/mobileMode"
 	],
 	"attributes": {
 		"facet": { "type": "string", "default": "" },

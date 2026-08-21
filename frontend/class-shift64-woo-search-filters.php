@@ -46,6 +46,10 @@ class Shift64_Woo_Search_Filters {
 	 * context provider. Renderer doesn't know which one it's talking to.
 	 */
 	public function render_filters() {
+		if ( class_exists( 'Shift64_Woo_Search_Filter_Blocks' ) && Shift64_Woo_Search_Filter_Blocks::has_rendered_product_filters() ) {
+			return;
+		}
+
 		if ( self::$has_rendered ) {
 			return;
 		}

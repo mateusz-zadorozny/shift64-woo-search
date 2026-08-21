@@ -17,6 +17,11 @@
 		"pillStyle": { "type": "object", "default": {} },
 		"actionStyle": { "type": "object", "default": {} },
 		"previewOpen": { "type": "boolean", "default": false },
+		"mobileMode": {
+			"type": "string",
+			"enum": [ "separate", "combined" ],
+			"default": "separate"
+		},
 		"selectionMode": {
 			"type": "string",
 			"enum": [ "multiple", "single" ],
@@ -37,6 +42,7 @@
 		"shift64WooSearch/filterInstanceId": "instanceId",
 		"shift64WooSearch/filterRuntimeId": "runtimeId",
 		"shift64WooSearch/previewOpen": "previewOpen",
+		"shift64WooSearch/mobileMode": "mobileMode",
 		"shift64WooSearch/selectionMode": "selectionMode",
 		"shift64WooSearch/showCounts": "showCounts",
 		"shift64WooSearch/hideEmpty": "hideEmpty",

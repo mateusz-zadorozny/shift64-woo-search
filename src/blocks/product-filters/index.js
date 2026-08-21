@@ -368,6 +368,7 @@ function Edit( { attributes, clientId, setAttributes } ) {
 	const {
 		showClearAll,
 		clearAllLabel,
+		mobileMode,
 		instanceId,
 		pillStyle,
 		actionStyle,
@@ -411,7 +412,9 @@ function Edit( { attributes, clientId, setAttributes } ) {
 	}, [ clientId, isLoading, pillCount, ready, replaceInnerBlocks ] );
 
 	const blockProps = useBlockProps( {
-		className: 'shift64-woo-search-product-filters is-editor-preview',
+		className: `shift64-woo-search-product-filters is-editor-preview${
+			'combined' === mobileMode ? ' is-mobile-mode-combined' : ''
+		}`,
 		// The pill tokens ride on the parent wrapper in the editor exactly as
 		// they do on the frontend, so the preview and the storefront resolve
 		// the same custom properties.
@@ -434,6 +437,28 @@ function Edit( { attributes, clientId, setAttributes } ) {
 					attributes={ attributes }
 					setAttributes={ setAttributes }
 				/>
+				<PanelBody
+					title={ __( 'Mobile filters', 'shift64-woo-search' ) }
+					initialOpen
+				>
+					<RadioControl
+						label={ __( 'Layout', 'shift64-woo-search' ) }
+						selected={ mobileMode }
+						options={ [
+							{
+								label: __( 'Separate filter pills', 'shift64-woo-search' ),
+								value: 'separate',
+							},
+							{
+								label: __( 'One combined Filters button', 'shift64-woo-search' ),
+								value: 'combined',
+							},
+						] }
+						onChange={ ( next ) =>
+							setAttributes( { mobileMode: next } )
+						}
+					/>
+				</PanelBody>
 				<PanelBody title={ __( 'Clear all', 'shift64-woo-search' ) }>
 					<ToggleControl
 						label={ __(

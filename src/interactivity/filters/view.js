@@ -29,9 +29,29 @@ const trayQuery =
 const FOCUSABLE =
 	'summary, a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const SCROLL_LOCK_CLASS = 'shift64-woo-search-has-open-filter';
+let lockedScrollY = null;
+let scrollLockActive = false;
 
 function pillRoot( element ) {
 	return element ? element.closest( 'details' ) : null;
+}
+
+function parentRoot( element ) {
+	return element
+		? element.closest( '.shift64-woo-search-product-filters' )
+		: null;
+}
+
+function closePills( element, except = null ) {
+	const root = parentRoot( element );
+	if ( ! root ) {
+		return;
+	}
+	root.querySelectorAll( 'details[open]' ).forEach( ( details ) => {
+		if ( details !== except ) {
+			details.open = false;
+		}
+	} );
 }
 
 /**
@@ -47,11 +67,42 @@ function syncScrollLock() {
 	if ( typeof document === 'undefined' ) {
 		return;
 	}
+	// A native details toggle updates the rendered surface before the
+	// Interactivity state has necessarily settled. Use that DOM state as a
+	// second source of truth so reopening a different pill after dismissal
+	// cannot leave the modal tray unlocked.
+	const hasRenderedSurface = [
+		...document.querySelectorAll(
+			'.shift64-woo-search-product-filters'
+		),
+	].some( ( root ) =>
+		Boolean(
+			root.querySelector( 'details[open]' ) ||
+			root.querySelector(
+				'.shift64-woo-search-product-filters__mobile-trigger[aria-expanded="true"]'
+			)
+		)
+	);
 	const locked = shouldLockScroll(
 		trayQuery && trayQuery.matches,
-		state.open
+		{ ...state.open, ...state.combinedOpen }
 	);
-	document.documentElement.classList.toggle( SCROLL_LOCK_CLASS, locked );
+	const shouldLock = locked || ( trayQuery && trayQuery.matches && hasRenderedSurface );
+	if ( shouldLock && ! scrollLockActive && typeof window !== 'undefined' ) {
+		lockedScrollY = window.scrollY;
+	}
+	document.documentElement.classList.toggle( SCROLL_LOCK_CLASS, shouldLock );
+	if (
+		! shouldLock &&
+		scrollLockActive &&
+		lockedScrollY !== null &&
+		typeof window !== 'undefined' &&
+		typeof window.scrollTo === 'function'
+	) {
+		window.scrollTo( 0, lockedScrollY );
+		lockedScrollY = null;
+	}
+	scrollLockActive = shouldLock;
 }
 
 function focusTrigger( element ) {
@@ -70,10 +121,43 @@ function formSelection( form ) {
 	] );
 }
 
+function combinedChanges( root ) {
+	const changes = {};
+	if ( ! root ) {
+		return changes;
+	}
+	root.querySelectorAll( 'form[data-taxonomy]' ).forEach( ( form ) => {
+		Object.assign(
+			changes,
+			selectionChanges(
+				form.dataset.taxonomy,
+				formSelection( form ),
+				form.dataset.operatorAnd === 'true'
+			)
+		);
+	} );
+	return changes;
+}
+
+function focusCombinedTrigger( element ) {
+	const root = parentRoot( element );
+	const trigger = root
+		? root.querySelector(
+				'.shift64-woo-search-product-filters__mobile-trigger'
+		  )
+		: null;
+	if ( trigger ) {
+		trigger.focus();
+	}
+}
+
 const { state, actions } = store( NAMESPACE, {
 	state: {
 		// Open pill per Product Filters parent: parentId -> pillId | ''.
 		open: {},
+
+		// Open combined mobile tray per Product Filters parent.
+		combinedOpen: {},
 
 		// Progressive-enhancement flag: the server renders JavaScript-only
 		// controls hidden, and binding against this unhides them once the
@@ -93,13 +177,79 @@ const { state, actions } = store( NAMESPACE, {
 			return Boolean( state.open[ getContext().parentId ] );
 		},
 
+		get isCombinedOpen() {
+			return Boolean( state.combinedOpen[ getContext().parentId ] );
+		},
+
+		get combinedExpanded() {
+			return state.isCombinedOpen ? 'true' : 'false';
+		},
+
+		get hasOpenSurface() {
+			return state.isCombinedOpen || state.hasOpenPill;
+		},
+
 	},
 
 	actions: {
+		toggleCombined() {
+			const context = getContext();
+			const open = Boolean( state.combinedOpen[ context.parentId ] );
+			state.combinedOpen[ context.parentId ] = ! open;
+			if ( ! open ) {
+				state.open[ context.parentId ] = '';
+				closePills( getElement().ref );
+			}
+			syncScrollLock();
+		},
+
+		closeSurface() {
+			const context = getContext();
+			state.combinedOpen[ context.parentId ] = false;
+			state.open[ context.parentId ] = '';
+			closePills( getElement().ref );
+			syncScrollLock();
+		},
+
+		dismissCombined( event ) {
+			focusCombinedTrigger( event.target );
+			actions.closeSurface();
+		},
+
+		combinedKeydown( event ) {
+			if ( event.key === 'Escape' ) {
+				event.preventDefault();
+				event.stopPropagation();
+				focusCombinedTrigger( event.target );
+				actions.closeSurface();
+				return;
+			}
+			if ( event.key !== 'Tab' || ! ( trayQuery && trayQuery.matches ) ) {
+				return;
+			}
+			const root = parentRoot( event.target );
+			if ( ! root ) {
+				return;
+			}
+			const focusable = [ ...root.querySelectorAll( FOCUSABLE ) ].filter(
+				( element ) => element.offsetParent !== null
+			);
+			const next = trapTabIndex(
+				focusable.length,
+				focusable.indexOf( event.target ),
+				event.shiftKey
+			);
+			if ( next >= 0 ) {
+				event.preventDefault();
+				focusable[ next ].focus();
+			}
+		},
+
 		pillToggled() {
 			const context = getContext();
 			const { ref } = getElement();
 			if ( ref.open ) {
+				closePills( ref, ref );
 				state.open[ context.parentId ] = context.pillId;
 			} else if ( state.open[ context.parentId ] === context.pillId ) {
 				state.open[ context.parentId ] = '';
@@ -109,6 +259,7 @@ const { state, actions } = store( NAMESPACE, {
 
 		closeOpenPill() {
 			state.open[ getContext().parentId ] = '';
+			closePills( getElement().ref );
 			syncScrollLock();
 		},
 
@@ -173,6 +324,15 @@ const { state, actions } = store( NAMESPACE, {
 			);
 		},
 
+		async combinedApply( event ) {
+			event.preventDefault();
+			const root = parentRoot( event.target );
+			actions.closeSurface();
+			await navigate(
+				buildCatalogUrl( window.location.href, combinedChanges( root ) )
+			);
+		},
+
 		async optionChanged( event ) {
 			if ( trayQuery && trayQuery.matches ) {
 				return;
@@ -210,6 +370,7 @@ const { state, actions } = store( NAMESPACE, {
 		async clearAll( event ) {
 			event.preventDefault();
 			const context = getContext();
+			actions.closeSurface();
 			await navigate(
 				buildCatalogUrl(
 					window.location.href,
@@ -226,6 +387,9 @@ if ( typeof window !== 'undefined' && window.matchMedia ) {
 	window.matchMedia( TRAY_MEDIA ).addEventListener( 'change', () => {
 		Object.keys( state.open ).forEach( ( parentId ) => {
 			state.open[ parentId ] = '';
+		} );
+		Object.keys( state.combinedOpen ).forEach( ( parentId ) => {
+			state.combinedOpen[ parentId ] = false;
 		} );
 		syncScrollLock();
 	} );
