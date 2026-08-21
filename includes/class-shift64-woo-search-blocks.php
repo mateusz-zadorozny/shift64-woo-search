@@ -29,12 +29,20 @@ class Shift64_Woo_Search_Blocks {
 	private $runtime_ids = array();
 
 	/**
+	 * Product Filters / Filter Pill renderer.
+	 *
+	 * @var Shift64_Woo_Search_Filter_Blocks
+	 */
+	private $filter_blocks;
+
+	/**
 	 * Set up block registration.
 	 *
 	 * @param Shift64_Woo_Search_Frontend $frontend Shared shortcode renderer and asset loader.
 	 */
 	public function __construct( Shift64_Woo_Search_Frontend $frontend ) {
-		$this->frontend = $frontend;
+		$this->frontend      = $frontend;
+		$this->filter_blocks = new Shift64_Woo_Search_Filter_Blocks();
 		add_filter( 'render_block_data', array( $this, 'add_runtime_id' ), 10, 2 );
 		add_action( 'init', array( $this, 'register_blocks' ) );
 	}
@@ -51,16 +59,18 @@ class Shift64_Woo_Search_Blocks {
 		);
 
 		$blocks = array(
-			'search'         => 'render_search_parent',
-			'modal-search'   => 'render_modal_search_parent',
-			'search-control' => 'render_search_control',
-			'search-panel'   => 'render_search_panel',
+			'search'          => array( $this, 'render_search_parent' ),
+			'modal-search'    => array( $this, 'render_modal_search_parent' ),
+			'search-control'  => array( $this, 'render_search_control' ),
+			'search-panel'    => array( $this, 'render_search_panel' ),
+			'product-filters' => array( $this->filter_blocks, 'render_product_filters' ),
+			'filter-pill'     => array( $this->filter_blocks, 'render_filter_pill' ),
 		);
 
 		foreach ( $blocks as $directory => $callback ) {
 			$block = register_block_type_from_metadata(
 				SHIFT64_WOO_SEARCH_PATH . 'build/blocks/' . $directory,
-				array( 'render_callback' => array( $this, $callback ) )
+				array( 'render_callback' => $callback )
 			);
 			if ( ! $block instanceof WP_Block_Type ) {
 				continue;
@@ -83,14 +93,14 @@ class Shift64_Woo_Search_Blocks {
 	 */
 	public function add_runtime_id( $parsed_block, $source_block ) {
 		unset( $source_block );
-		if ( ! in_array( $parsed_block['blockName'] ?? '', array( 'shift64-woo-search/search', 'shift64-woo-search/modal-search' ), true ) ) {
+		if ( ! in_array( $parsed_block['blockName'] ?? '', array( 'shift64-woo-search/search', 'shift64-woo-search/modal-search', 'shift64-woo-search/product-filters' ), true ) ) {
 			return $parsed_block;
 		}
 
 		$attributes = isset( $parsed_block['attrs'] ) && is_array( $parsed_block['attrs'] ) ? $parsed_block['attrs'] : array();
 		$base       = isset( $attributes['instanceId'] ) ? sanitize_html_class( $attributes['instanceId'] ) : '';
 		if ( '' === $base ) {
-			$base = 'shift64-woo-search-instance';
+			$base = 'shift64-woo-search/product-filters' === $parsed_block['blockName'] ? 'shift64-woo-search-filters' : 'shift64-woo-search-instance';
 		}
 		$count                      = ( $this->runtime_ids[ $base ] ?? 0 ) + 1;
 		$this->runtime_ids[ $base ] = $count;

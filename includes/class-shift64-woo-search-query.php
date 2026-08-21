@@ -1394,19 +1394,26 @@ class Shift64_Woo_Search_Query {
 	/**
 	 * Escape a value for use in a TAG filter.
 	 *
-	 * Comma is escaped because inside a TAG query `@field:{a,b}` it is the
-	 * OR alternation separator — Polish decimals like "26,5" (used for
-	 * gramatura) would otherwise parse as `{26} OR {5}` and match nothing.
+	 * Every character outside letters, numbers, and underscore is escaped —
+	 * RediSearch query syntax reserves most ASCII punctuation, and a partial
+	 * list keeps regressing: `,` is the TAG alternation separator (bug #4,
+	 * Polish decimals like "26,5"), and `&`/`;` broke every term name stored
+	 * entity-encoded by WordPress ("Beauty &amp; Care" raised SEARCH_SYNTAX,
+	 * turning the whole filtered query into a native fallback). Multibyte
+	 * letters (Polish diacritics) are left untouched.
 	 *
 	 * @param string $value Tag value to escape.
 	 * @return string
 	 */
 	public static function escape_tag_value( $value ) {
-		return str_replace(
-			array( ' ', '-', '.', ',' ),
-			array( '\\ ', '\\-', '\\.', '\\,' ),
-			$value
-		);
+		$escaped = preg_replace( '/([^\p{L}\p{N}_])/u', '\\\\$1', (string) $value );
+		if ( null === $escaped ) {
+			// Invalid UTF-8 (legacy latin1 imports): /u refuses the subject.
+			// Fall back to a byte-safe pass that escapes ASCII specials and
+			// leaves high bytes untouched — never return null into a query.
+			$escaped = preg_replace( '/([^A-Za-z0-9_\x80-\xFF])/', '\\\\$1', (string) $value );
+		}
+		return null === $escaped ? '' : $escaped;
 	}
 
 	/**
@@ -2250,19 +2257,13 @@ class Shift64_Woo_Search_Query {
 	 * @return array Array of ['value' => string, 'count' => int], sorted by count DESC.
 	 */
 	private function execute_multi_value_tag_facet( $base_query, $field, $limit = 10000 ) {
-		$index_name   = $this->redis->get_index_name();
-		$parts        = preg_split( '/\s+/', trim( $base_query ) );
-		$has_positive = false;
-
-		foreach ( $parts as $part ) {
-			if ( '' !== $part && '-' !== substr( $part, 0, 1 ) ) {
-				$has_positive = true;
-				break;
-			}
-		}
-
-		if ( ! $has_positive ) {
-			$base_query = trim( '* ' . $base_query );
+		$index_name = $this->redis->get_index_name();
+		$base_query = trim( $base_query );
+		if ( '' === $base_query ) {
+			// An entirely empty query needs the explicit match-all token. A
+			// negative-only query is already valid RediSearch syntax; prefixing
+			// it with `*` makes this deployment reject the query instead.
+			$base_query = '*';
 		}
 
 		$args = array(

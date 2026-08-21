@@ -1,0 +1,44 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "shift64-woo-search/filter-pill",
+	"version": "0.1.0",
+	"title": "Filter Pill",
+	"category": "woocommerce",
+	"icon": "tag",
+	"description": "One Redis facet rendered as a filter pill with a disclosure panel.",
+	"textdomain": "shift64-woo-search",
+	"parent": [ "shift64-woo-search/product-filters" ],
+	"ancestor": [ "shift64-woo-search/product-filters" ],
+	"usesContext": [
+		"shift64WooSearch/filterInstanceId",
+		"shift64WooSearch/filterRuntimeId",
+		"shift64WooSearch/selectionMode",
+		"shift64WooSearch/showCounts",
+		"shift64WooSearch/hideEmpty",
+		"shift64WooSearch/orderBy",
+		"shift64WooSearch/maxOptions",
+		"shift64WooSearch/applyLabel",
+		"shift64WooSearch/clearLabel",
+		"shift64WooSearch/previewOpen",
+		"shift64WooSearch/mobileMode"
+	],
+	"attributes": {
+		"facet": { "type": "string", "default": "" },
+		"label": { "type": "string", "default": "" },
+		"queryType": {
+			"type": "string",
+			"enum": [ "or", "and" ],
+			"default": "or"
+		}
+	},
+	"supports": {
+		"html": false,
+		"color": false,
+		"border": false,
+		"typography": false,
+		"spacing": false
+	},
+	"editorScript": "file:./index.js",
+	"style": "file:./style-index.css"
+}

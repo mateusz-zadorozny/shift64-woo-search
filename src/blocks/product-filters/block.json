@@ -1,0 +1,89 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "shift64-woo-search/product-filters",
+	"version": "0.1.0",
+	"title": "Product Filters (Shift64)",
+	"category": "woocommerce",
+	"icon": "filter",
+	"description": "Composable Redis-backed product filters for an inherited Product Collection.",
+	"keywords": [ "Shift64", "filters", "facets", "WooCommerce" ],
+	"textdomain": "shift64-woo-search",
+	"attributes": {
+		"instanceId": { "type": "string", "default": "" },
+		"runtimeId": { "type": "string", "default": "" },
+		"showClearAll": { "type": "boolean", "default": true },
+		"clearAllLabel": { "type": "string", "default": "" },
+		"pillStyle": { "type": "object", "default": {} },
+		"actionStyle": { "type": "object", "default": {} },
+		"previewOpen": { "type": "boolean", "default": false },
+		"mobileMode": {
+			"type": "string",
+			"enum": [ "separate", "combined" ],
+			"default": "separate"
+		},
+		"selectionMode": {
+			"type": "string",
+			"enum": [ "multiple", "single" ],
+			"default": "multiple"
+		},
+		"showCounts": { "type": "boolean", "default": true },
+		"hideEmpty": { "type": "boolean", "default": true },
+		"orderBy": {
+			"type": "string",
+			"enum": [ "count-desc", "name-asc", "name-desc" ],
+			"default": "count-desc"
+		},
+		"maxOptions": { "type": "integer", "default": 0 },
+		"applyLabel": { "type": "string", "default": "" },
+		"clearLabel": { "type": "string", "default": "" }
+	},
+	"providesContext": {
+		"shift64WooSearch/filterInstanceId": "instanceId",
+		"shift64WooSearch/filterRuntimeId": "runtimeId",
+		"shift64WooSearch/previewOpen": "previewOpen",
+		"shift64WooSearch/mobileMode": "mobileMode",
+		"shift64WooSearch/selectionMode": "selectionMode",
+		"shift64WooSearch/showCounts": "showCounts",
+		"shift64WooSearch/hideEmpty": "hideEmpty",
+		"shift64WooSearch/orderBy": "orderBy",
+		"shift64WooSearch/maxOptions": "maxOptions",
+		"shift64WooSearch/applyLabel": "applyLabel",
+		"shift64WooSearch/clearLabel": "clearLabel"
+	},
+	"supports": {
+		"align": [ "wide", "full" ],
+		"anchor": true,
+		"html": false,
+		"interactivity": true,
+		"layout": {
+			"allowSwitching": false,
+			"allowInheriting": false,
+			"allowEditing": true,
+			"default": {
+				"type": "flex",
+				"flexWrap": "wrap"
+			}
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true,
+			"blockGap": true
+		},
+		"color": {
+			"background": true,
+			"text": false,
+			"gradients": false
+		},
+		"typography": {
+			"fontSize": true,
+			"lineHeight": true,
+			"__experimentalFontWeight": true,
+			"__experimentalFontStyle": true
+		}
+	},
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css",
+	"viewScriptModule": "file:./view.js"
+}

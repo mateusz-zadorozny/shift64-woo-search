@@ -23,7 +23,7 @@ and PRs.
 | [Repository Docs Restructure](2026-07-30-repository-docs-restructure.md) | ✅ implemented | PR #52 |
 | [Block Theme Product Collection Integration](2026-07-30-block-theme-product-collection-integration.md) | ✅ implemented | PR #51; foundation for block-native controls |
 | [Composable Search Blocks](2026-07-30-composable-search-blocks.md) | ✅ implemented | PR #60 |
-| [Product Filter and Filter Pill Blocks](2026-07-30-product-filter-pill-blocks.md) | 🚧 draft | depends on Product Collection integration |
+| [Product Filter and Filter Pill Blocks](2026-07-30-product-filter-pill-blocks.md) | ✅ implemented | PR #72 |
 | [Block Theme-Only Legacy Surface Removal](2026-07-30-block-theme-only-legacy-removal.md) | 🚧 draft | final cleanup after all block-native specs |
 | [One-Shot Isolated Worktree Test Environments](2026-07-31-one-shot-worktree-test-env.md) | ✅ implemented | PR #56 (issue #53) |
 

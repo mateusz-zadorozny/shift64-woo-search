@@ -1,6 +1,6 @@
 # Product Filter and Filter Pill Blocks
 
-> **Status:** draft
+> **Status:** implemented — PR #72, 2026-08-19
 
 ## 📝 TLDR
 
