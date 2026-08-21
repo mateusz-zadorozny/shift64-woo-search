@@ -73,8 +73,8 @@ class Shift64_Woo_Search_Product_Collection_Query {
 	 * The loop total is adjusted before WooCommerce builds the block's template
 	 * arguments, then restored by the render_block filter after the block.
 	 *
-	 * @param string|null $pre_render   Existing short-circuit value.
-	 * @param array       $parsed_block Parsed block.
+	 * @param string|null   $pre_render   Existing short-circuit value.
+	 * @param array         $parsed_block Parsed block.
 	 * @param WP_Block|null $parent_block Parent block.
 	 * @return string|null
 	 */
@@ -109,7 +109,7 @@ class Shift64_Woo_Search_Product_Collection_Query {
 		}
 
 		Shift64_Woo_Search_Product_Collection_Results::set( $result );
-		$collection_per_page = $this->current_collection_per_page();
+		$collection_per_page            = $this->current_collection_per_page();
 		$this->saved_results_count_loop = array(
 			'total'        => (int) wc_get_loop_prop( 'total' ),
 			'per_page'     => (int) wc_get_loop_prop( 'per_page' ),
@@ -171,8 +171,8 @@ class Shift64_Woo_Search_Product_Collection_Query {
 	/**
 	 * Restore the main loop after the count block has rendered.
 	 *
-	 * @param string       $block_content Rendered block content.
-	 * @param array        $parsed_block  Parsed block.
+	 * @param string        $block_content Rendered block content.
+	 * @param array         $parsed_block  Parsed block.
 	 * @param WP_Block|null $block        Block instance.
 	 * @return string
 	 */

@@ -70,33 +70,25 @@ describe( 'actionStyleToVars', () => {
 	it( 'maps the shared action-button style contract', () => {
 		expect(
 			actionStyleToVars( {
+				typography: { fontSize: '16px' },
+				border: { radius: '8px' },
 				color: { text: '#fff', background: '#111' },
-				border: { color: '#111', width: '2px', radius: '8px' },
-				':hover': {
-					color: { background: '#fff' },
-					border: { color: '#fff' },
-				},
 			} )
 		).toEqual( {
-			'--s64ws-action-color': '#fff',
-			'--s64ws-action-bg': '#111',
-			'--s64ws-action-border-color': '#111',
-			'--s64ws-action-border-width': '2px',
+			'--s64ws-action-font-size': '16px',
 			'--s64ws-action-radius': '8px',
-			'--s64ws-action-bg-hover': '#fff',
-			'--s64ws-action-border-color-hover': '#fff',
 		} );
 	} );
 
 	it( 'uses the same theme preset normalization as pill styles', () => {
 		expect(
 			actionStyleToVars( {
-				color: {
-					background: 'var:preset|color|accent-3',
+				typography: {
+					fontSize: 'var:preset|font-size|large',
 				},
 			} )
 		).toEqual( {
-			'--s64ws-action-bg': 'var(--wp--preset--color--accent-3)',
+			'--s64ws-action-font-size': 'var(--wp--preset--font-size--large)',
 		} );
 	} );
 } );

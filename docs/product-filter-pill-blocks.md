@@ -178,22 +178,18 @@ resolved to custom properties on the parent wrapper:
 | `--s64ws-pill-bg-hover` | Pill background on hover/keyboard focus |
 | `--s64ws-pill-border-color-hover` | Pill border colour on hover/keyboard focus |
 
-The Apply and Clear controls use one shared parent-owned `actionStyle` contract,
-so they always have the same base appearance and can be styled together:
+The mobile Apply and Clear controls use one shared parent-owned `actionStyle`
+contract for their text size and border radius. Their appearance remains fixed by
+the mobile mode: Clear is the light button and Apply is the dark button. Desktop
+navigation has no action row.
 
 | Token | Styles |
 | --- | --- |
-| `--s64ws-action-color` | Action text |
-| `--s64ws-action-bg` | Action background |
-| `--s64ws-action-border-color` | Action border colour |
-| `--s64ws-action-border-width` | Action border width |
+| `--s64ws-action-font-size` | Mobile action text size |
 | `--s64ws-action-radius` | Action border radius |
-| `--s64ws-action-color-hover` | Action text on hover/keyboard focus |
-| `--s64ws-action-bg-hover` | Action background on hover/keyboard focus |
-| `--s64ws-action-border-color-hover` | Action border colour on hover/keyboard focus |
 
-Each hover token falls back to its default-state counterpart, so setting only a
-hover background leaves everything else alone. Hover styles apply to
+Pill hover tokens fall back to their default-state counterparts, so setting only
+a hover background leaves everything else alone. Hover styles apply to
 `:focus-visible` as well: a merchant who designs a hover state must not leave
 keyboard users without one.
 

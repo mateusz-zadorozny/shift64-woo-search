@@ -326,6 +326,15 @@ function ActionStylePanel( { actionStyle, setAttributes } ) {
 		setAttributes( {
 			actionStyle: setActionStyleValue( actionStyle, path, value ),
 		} );
+	const formatFontSize = ( value ) => {
+		if ( undefined === value ) {
+			return '';
+		}
+		if ( 'number' === typeof value ) {
+			return `${ value }px`;
+		}
+		return value;
+	};
 
 	return (
 		<PanelBody
@@ -337,11 +346,7 @@ function ActionStylePanel( { actionStyle, setAttributes } ) {
 				onChange={ ( next ) =>
 					write(
 						[ 'typography', 'fontSize' ],
-						undefined === next
-							? ''
-							: 'number' === typeof next
-								? `${ next }px`
-								: next
+						formatFontSize( next )
 					)
 				}
 			/>
@@ -446,11 +451,17 @@ function Edit( { attributes, clientId, setAttributes } ) {
 						selected={ mobileMode }
 						options={ [
 							{
-								label: __( 'Separate filter pills', 'shift64-woo-search' ),
+								label: __(
+									'Separate filter pills',
+									'shift64-woo-search'
+								),
 								value: 'separate',
 							},
 							{
-								label: __( 'One combined Filters button', 'shift64-woo-search' ),
+								label: __(
+									'One combined Filters button',
+									'shift64-woo-search'
+								),
 								value: 'combined',
 							},
 						] }

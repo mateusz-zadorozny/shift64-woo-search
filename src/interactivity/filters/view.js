@@ -73,22 +73,21 @@ function syncScrollLock() {
 	// second source of truth so reopening a different pill after dismissal
 	// cannot leave the modal tray unlocked.
 	const hasRenderedSurface = [
-		...document.querySelectorAll(
-			'.shift64-woo-search-product-filters'
-		),
+		...document.querySelectorAll( '.shift64-woo-search-product-filters' ),
 	].some( ( root ) =>
 		Boolean(
 			root.querySelector( 'details[open]' ) ||
-			root.querySelector(
-				'.shift64-woo-search-product-filters__mobile-trigger[aria-expanded="true"]'
-			)
+				root.querySelector(
+					'.shift64-woo-search-product-filters__mobile-trigger[aria-expanded="true"]'
+				)
 		)
 	);
-	const locked = shouldLockScroll(
-		trayQuery && trayQuery.matches,
-		{ ...state.open, ...state.combinedOpen }
-	);
-	const shouldLock = locked || ( trayQuery && trayQuery.matches && hasRenderedSurface );
+	const locked = shouldLockScroll( trayQuery && trayQuery.matches, {
+		...state.open,
+		...state.combinedOpen,
+	} );
+	const shouldLock =
+		locked || ( trayQuery && trayQuery.matches && hasRenderedSurface );
 	if ( shouldLock && ! scrollLockActive && typeof window !== 'undefined' ) {
 		lockedScrollY = window.scrollY;
 	}
@@ -189,7 +188,6 @@ const { state, actions } = store( NAMESPACE, {
 		get hasOpenSurface() {
 			return state.isCombinedOpen || state.hasOpenPill;
 		},
-
 	},
 
 	actions: {

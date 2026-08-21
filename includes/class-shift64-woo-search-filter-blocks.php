@@ -279,7 +279,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 */
 	public function render_product_filters( $attributes, $content, $block ) {
 		self::$has_rendered_product_filters = true;
-		$runtime_id = sanitize_html_class( $attributes['runtimeId'] ?? '' );
+		$runtime_id                         = sanitize_html_class( $attributes['runtimeId'] ?? '' );
 		if ( '' === $runtime_id ) {
 			$runtime_id = 'shift64-woo-search-filters';
 		}
@@ -298,7 +298,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 			}
 		}
 
-		$context = array(
+		$context        = array(
 			'parentId'        => $runtime_id,
 			'clearTaxonomies' => $represented,
 			'mobileMode'      => $mobile_mode,
@@ -306,27 +306,27 @@ class Shift64_Woo_Search_Filter_Blocks {
 		$selected_count = 0;
 		$clear_changes  = array();
 		foreach ( $represented as $taxonomy ) {
-			$selected_count += count( $this->selected_slugs( $taxonomy ) );
+			$selected_count                            += count( $this->selected_slugs( $taxonomy ) );
 			$clear_changes[ 'filter_' . $taxonomy ]     = null;
 			$clear_changes[ 'query_type_' . $taxonomy ] = null;
 		}
 
-		$combined_label = trim( (string) ( $attributes['clearAllLabel'] ?? '' ) );
-		$combined_label = '' !== $combined_label ? $combined_label : __( 'Clear filters', 'shift64-woo-search' );
-		$apply_label = trim( (string) ( $attributes['applyLabel'] ?? '' ) );
-		$apply_label = '' !== $apply_label ? $apply_label : __( 'Show results', 'shift64-woo-search' );
+		$combined_label     = trim( (string) ( $attributes['clearAllLabel'] ?? '' ) );
+		$combined_label     = '' !== $combined_label ? $combined_label : __( 'Clear filters', 'shift64-woo-search' );
+		$apply_label        = trim( (string) ( $attributes['applyLabel'] ?? '' ) );
+		$apply_label        = '' !== $apply_label ? $apply_label : __( 'Show results', 'shift64-woo-search' );
 		$combined_clear_url = Shift64_Woo_Search_Catalog_State::build_url( $this->current_url(), $clear_changes );
-		$combined_clear = $selected_count > 0
+		$combined_clear     = $selected_count > 0
 			? '<a class="shift64-woo-search-pill__clear" href="' . esc_url( $combined_clear_url ) . '" data-wp-on--click="actions.clearAll">' . esc_html( $combined_label ) . '</a>'
 			: '<button type="button" class="shift64-woo-search-pill__clear" disabled>' . esc_html( $combined_label ) . '</button>';
-		$combined_id = $runtime_id . '-combined-panel';
-		$combined_trigger = '<button type="button" class="shift64-woo-search-product-filters__mobile-trigger" data-wp-on--click="actions.toggleCombined" data-wp-bind--aria-expanded="state.combinedExpanded" aria-controls="' . esc_attr( $combined_id ) . '"><svg class="shift64-woo-search-product-filters__mobile-trigger-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16l-6.5 7.2V18l-3 1.5v-7.3L4 5z" /></svg><span>' . esc_html__( 'Filters', 'shift64-woo-search' ) . '</span>';
+		$combined_id        = $runtime_id . '-combined-panel';
+		$combined_trigger   = '<button type="button" class="shift64-woo-search-product-filters__mobile-trigger" data-wp-on--click="actions.toggleCombined" data-wp-bind--aria-expanded="state.combinedExpanded" aria-controls="' . esc_attr( $combined_id ) . '"><svg class="shift64-woo-search-product-filters__mobile-trigger-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16l-6.5 7.2V18l-3 1.5v-7.3L4 5z" /></svg><span>' . esc_html__( 'Filters', 'shift64-woo-search' ) . '</span>';
 		if ( $selected_count > 0 ) {
 			$combined_trigger .= '<span class="shift64-woo-search-pill__summary-count"><span>' . esc_html( (string) $selected_count ) . '</span></span>';
 		}
 		$combined_trigger .= '</button>';
-		$combined_actions = '<div class="shift64-woo-search-pill__actions shift64-woo-search-product-filters__combined-actions" hidden data-wp-bind--hidden="!state.isCombinedOpen">' . $combined_clear . '<button type="button" class="shift64-woo-search-pill__apply wp-element-button" data-wp-on--click="actions.combinedApply">' . esc_html( $apply_label ) . '</button></div>';
-		$pills = '<div id="' . esc_attr( $combined_id ) . '" class="shift64-woo-search-product-filters__pills"' . ( 'combined' === $mobile_mode ? ' hidden data-wp-bind--hidden="!state.isCombinedOpen" data-wp-on--keydown="actions.combinedKeydown"' : '' ) . '>';
+		$combined_actions  = '<div class="shift64-woo-search-pill__actions shift64-woo-search-product-filters__combined-actions" hidden data-wp-bind--hidden="!state.isCombinedOpen">' . $combined_clear . '<button type="button" class="shift64-woo-search-pill__apply wp-element-button" data-wp-on--click="actions.combinedApply">' . esc_html( $apply_label ) . '</button></div>';
+		$pills             = '<div id="' . esc_attr( $combined_id ) . '" class="shift64-woo-search-product-filters__pills"' . ( 'combined' === $mobile_mode ? ' hidden data-wp-bind--hidden="!state.isCombinedOpen" data-wp-on--keydown="actions.combinedKeydown"' : '' ) . '>';
 		if ( 'combined' === $mobile_mode ) {
 			$pills .= '<button type="button" class="shift64-woo-search-product-filters__combined-close" hidden data-wp-bind--hidden="!state.isCombinedOpen" data-wp-on--click="actions.dismissCombined" aria-label="' . esc_attr__( 'Close filters', 'shift64-woo-search' ) . '"><span aria-hidden="true">&times;</span></button><p class="shift64-woo-search-product-filters__combined-heading">' . esc_html__( 'Filters', 'shift64-woo-search' ) . '</p>';
 		}
@@ -338,7 +338,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 
 		// The backdrop stays hidden without JavaScript; the tray presentation
 		// only activates once the store controls the hidden binding.
-		$backdrop = '<div class="shift64-woo-search-product-filters__backdrop" hidden data-wp-bind--hidden="!state.hasOpenSurface" data-wp-on--click="actions.closeSurface" aria-hidden="true"></div>';
+		$backdrop      = '<div class="shift64-woo-search-product-filters__backdrop" hidden data-wp-bind--hidden="!state.hasOpenSurface" data-wp-on--click="actions.closeSurface" aria-hidden="true"></div>';
 		$wrapper_class = 'shift64-woo-search-product-filters' . ( 'combined' === $mobile_mode ? ' is-mobile-mode-combined' : '' );
 
 		$wrapper_args = array(
@@ -514,8 +514,8 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 * Clear the per-request selection cache (tests).
 	 */
 	public static function reset() {
-		self::$selections                 = null;
-		self::$pill_sequence              = 0;
+		self::$selections                   = null;
+		self::$pill_sequence                = 0;
 		self::$has_rendered_product_filters = false;
 	}
 
