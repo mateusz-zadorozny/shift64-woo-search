@@ -48,7 +48,14 @@ function facetChoices( facets ) {
 	return choices;
 }
 
-function PillPreview( { label, entry, instanceId, settings, termNames } ) {
+function PillPreview( {
+	label,
+	entry,
+	instanceId,
+	settings,
+	termNames,
+	previewOpen,
+} ) {
 	const { selectionMode, showCounts, orderBy, maxOptions } = settings;
 	const heading = label || ( entry ? entry.label : '' );
 	const options = orderPreviewOptions(
@@ -71,55 +78,58 @@ function PillPreview( { label, entry, instanceId, settings, termNames } ) {
 					aria-hidden="true"
 				/>
 			</span>
-			<div className="shift64-woo-search-pill__panel is-open">
-				<p className="shift64-woo-search-pill__heading">{ heading }</p>
-				<ul className="shift64-woo-search-pill__options">
-					{ options.map( ( option, index ) => {
-						const optionId = `${ instanceId }-option-${ index }`;
-						return (
-							<li
-								key={ option.name }
-								className="shift64-woo-search-pill__option"
-							>
-								<label htmlFor={ optionId }>
-									<input
-										id={ optionId }
-										type={
-											selectionMode === 'single'
-												? 'radio'
-												: 'checkbox'
-										}
-										disabled
-										readOnly
-									/>
-									<span className="shift64-woo-search-pill__option-label">
-										{ option.name }
-									</span>
-									{ showCounts && (
-										<span className="shift64-woo-search-pill__count">
-											{ option.count }
+			{ previewOpen && (
+				<div className="shift64-woo-search-pill__panel is-open">
+					<p className="shift64-woo-search-pill__heading">
+						{ heading }
+					</p>
+					<ul className="shift64-woo-search-pill__options">
+						{ options.map( ( option, index ) => {
+							const optionId = `${ instanceId }-option-${ index }`;
+							return (
+								<li
+									key={ option.name }
+									className="shift64-woo-search-pill__option"
+								>
+									<label htmlFor={ optionId }>
+										<input
+											id={ optionId }
+											type={
+												selectionMode === 'single'
+													? 'radio'
+													: 'checkbox'
+											}
+											disabled
+											readOnly
+										/>
+										<span className="shift64-woo-search-pill__option-label">
+											{ option.name }
 										</span>
-									) }
-								</label>
-							</li>
-						);
-					} ) }
-				</ul>
-			</div>
+										{ showCounts && (
+											<span className="shift64-woo-search-pill__count">
+												{ option.count }
+											</span>
+										) }
+									</label>
+								</li>
+							);
+						} ) }
+					</ul>
+				</div>
+			) }
 		</div>
 	);
 }
 
 function Edit( { attributes, clientId, context, setAttributes } ) {
-	const { facet, label, queryType } = attributes;
+	const { facet, label } = attributes;
 	// Option-list behavior is the parent's to own: one setting, every pill.
 	const settings = pillSettings( context );
-	const { selectionMode } = settings;
+	const previewOpen = Boolean(
+		context && context[ 'shift64WooSearch/previewOpen' ]
+	);
 	const { payload, isLoading } = useEditorFacets();
 	const entry = payload.facets.find( ( item ) => item.key === facet );
-	const supportsAnd = Boolean(
-		entry && entry.operators && entry.operators.includes( 'and' )
-	);
 	const isReady = Boolean( entry && entry.status === 'ready' );
 	const entryTaxonomy = entry ? entry.taxonomy : '';
 
@@ -180,7 +190,7 @@ function Edit( { attributes, clientId, context, setAttributes } ) {
 					) }
 				</PanelBody>
 				{ entry && (
-					<PanelBody title={ __( 'Behavior', 'shift64-woo-search' ) }>
+					<PanelBody title={ __( 'Label', 'shift64-woo-search' ) }>
 						<TextControl
 							label={ __( 'Label', 'shift64-woo-search' ) }
 							value={ label }
@@ -189,40 +199,6 @@ function Edit( { attributes, clientId, context, setAttributes } ) {
 								setAttributes( { label: next } )
 							}
 						/>
-						{ supportsAnd && selectionMode === 'multiple' && (
-							<SelectControl
-								label={ __(
-									'Match products against',
-									'shift64-woo-search'
-								) }
-								value={ queryType }
-								options={ [
-									{
-										label: __(
-											'Any selected value (OR)',
-											'shift64-woo-search'
-										),
-										value: 'or',
-									},
-									{
-										label: __(
-											'All selected values (AND)',
-											'shift64-woo-search'
-										),
-										value: 'and',
-									},
-								] }
-								onChange={ ( next ) =>
-									setAttributes( { queryType: next } )
-								}
-							/>
-						) }
-						<p className="shift64-woo-search-pill__settings-hint">
-							{ __(
-								'Selection, counts, ordering, and button labels are set once on the Product Filters block and apply to every pill.',
-								'shift64-woo-search'
-							) }
-						</p>
 					</PanelBody>
 				) }
 			</InspectorControls>
@@ -263,6 +239,7 @@ function Edit( { attributes, clientId, context, setAttributes } ) {
 						instanceId={ `s64ws-pill-${ clientId }` }
 						settings={ settings }
 						termNames={ termNames }
+						previewOpen={ previewOpen }
 					/>
 				) }
 			</div>

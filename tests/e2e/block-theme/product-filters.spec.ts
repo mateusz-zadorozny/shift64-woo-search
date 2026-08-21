@@ -155,6 +155,20 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		).toBeVisible();
 	});
 
+	test('Clear removes the active pill selection', async ({ page }) => {
+		await page.goto(BROAD_QUERY);
+		await page.locator(TRIGGER).first().click();
+		const slug = await page.locator(OPTION_INPUT).first().getAttribute('value');
+
+		await page.goto(`${BROAD_QUERY}&filter_product_cat=${slug}`);
+		await page.locator(TRIGGER).first().click();
+		await page.locator(`${PILL} .shift64-woo-search-pill__clear`).first().click();
+
+		await expect(page).toHaveURL(/s=series/);
+		await expect(page).not.toHaveURL(/filter_product_cat=/);
+		await expect(productCards(page).first()).toBeVisible();
+	});
+
 	test('Escape closes the panel and returns focus to the trigger', async ({ page }) => {
 		await page.goto(BROAD_QUERY);
 		const trigger = page.locator(TRIGGER).first();

@@ -23,7 +23,8 @@
     "shift64WooSearch/orderBy",
     "shift64WooSearch/maxOptions",
     "shift64WooSearch/applyLabel",
-    "shift64WooSearch/clearLabel"
+    "shift64WooSearch/clearLabel",
+    "shift64WooSearch/previewOpen"
   ],
   "attributes": {
     "facet": {
@@ -48,9 +49,7 @@
     "color": false,
     "border": false,
     "typography": false,
-    "spacing": {
-      "margin": true
-    }
+    "spacing": false
   },
   "editorScript": "file:./index.js",
   "style": "file:./style-index.css"

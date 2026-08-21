@@ -297,7 +297,8 @@ function PillStylePanel( { pillStyle, setAttributes } ) {
 }
 
 function Edit( { attributes, clientId, setAttributes } ) {
-	const { showClearAll, clearAllLabel, instanceId, pillStyle } = attributes;
+	const { showClearAll, clearAllLabel, instanceId, pillStyle, previewOpen } =
+		attributes;
 	const { replaceInnerBlocks } = useDispatch( 'core/block-editor' );
 	const pillCount = useSelect(
 		( select ) => select( 'core/block-editor' ).getBlockCount( clientId ),
@@ -387,6 +388,24 @@ function Edit( { attributes, clientId, setAttributes } ) {
 							}
 						/>
 					) }
+				</PanelBody>
+				<PanelBody
+					title={ __( 'Editor preview', 'shift64-woo-search' ) }
+				>
+					<ToggleControl
+						label={ __(
+							'Show option lists',
+							'shift64-woo-search'
+						) }
+						help={ __(
+							'Show each pill’s options while editing. This changes the editor preview only.',
+							'shift64-woo-search'
+						) }
+						checked={ Boolean( previewOpen ) }
+						onChange={ ( next ) =>
+							setAttributes( { previewOpen: next } )
+						}
+					/>
 				</PanelBody>
 			</InspectorControls>
 			{ /* Appearance belongs in the Styles tab next to the container's

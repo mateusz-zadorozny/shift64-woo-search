@@ -35,8 +35,9 @@ Archive template
 4. Style everything from the parent's **Styles** tab: layout, wrapping, gap,
    container background and typography use the normal block design tools, and
    the **Pills** panel styles the pill controls themselves under a **Default** /
-   **Hover** tab pair. Individual pills expose only margin. There are no plugin
-   appearance settings in WP Admin.
+   **Hover** tab pair. Individual pills expose no style controls. The parent’s
+   **Editor preview** panel keeps option lists hidden by default and can reveal
+   them while editing. There are no plugin appearance settings in WP Admin.
 
    The parent has no text-colour control of its own: container text colour and
    pill text colour would be the same visible change on the same elements, so

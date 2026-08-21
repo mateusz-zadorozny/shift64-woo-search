@@ -71,4 +71,24 @@ describe( 'parent/pill settings contract', () => {
 			);
 		} );
 	} );
+
+	it( 'keeps the editor preview toggle global and hidden by default', () => {
+		expect( PARENT_METADATA.attributes.previewOpen.default ).toBe( false );
+		expect( PARENT_METADATA.providesContext ).toHaveProperty(
+			'shift64WooSearch/previewOpen',
+			'previewOpen'
+		);
+		expect( PILL_METADATA.usesContext ).toContain(
+			'shift64WooSearch/previewOpen'
+		);
+	} );
+
+	it( 'does not expose style supports on individual pills', () => {
+		expect( PILL_METADATA.supports ).toMatchObject( {
+			color: false,
+			border: false,
+			typography: false,
+			spacing: false,
+		} );
+	} );
 } );

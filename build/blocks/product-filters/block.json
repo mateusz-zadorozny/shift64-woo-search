@@ -35,6 +35,10 @@
       "type": "object",
       "default": {}
     },
+    "previewOpen": {
+      "type": "boolean",
+      "default": false
+    },
     "selectionMode": {
       "type": "string",
       "enum": [
@@ -76,6 +80,7 @@
   "providesContext": {
     "shift64WooSearch/filterInstanceId": "instanceId",
     "shift64WooSearch/filterRuntimeId": "runtimeId",
+    "shift64WooSearch/previewOpen": "previewOpen",
     "shift64WooSearch/selectionMode": "selectionMode",
     "shift64WooSearch/showCounts": "showCounts",
     "shift64WooSearch/hideEmpty": "hideEmpty",
