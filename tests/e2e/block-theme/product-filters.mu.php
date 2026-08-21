@@ -26,7 +26,7 @@ add_filter(
 		$rendered = true;
 
 		$filters = do_blocks(
-			'<!-- wp:shift64-woo-search/product-filters -->' .
+			'<!-- wp:shift64-woo-search/product-filters {"className":"shift64-e2e-product-filters"} -->' .
 			'<!-- wp:shift64-woo-search/filter-pill {"facet":"product_cat","hideEmpty":false} /-->' .
 			'<!-- /wp:shift64-woo-search/product-filters -->'
 		);

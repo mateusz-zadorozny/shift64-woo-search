@@ -26,12 +26,13 @@ const PAGE_2 = /\/page\/2\/|[?&](?:paged|query-page|query-\d+-page)=2/;
 
 const MU_FIXTURE = 'shift64-e2e-product-filters.php';
 
-const PILL = '.shift64-woo-search-pill';
+const FIXTURE_ROOT = '.shift64-e2e-product-filters';
+const PILL = `${FIXTURE_ROOT} .shift64-woo-search-pill`;
 const TRIGGER = `${PILL} summary.shift64-woo-search-pill__trigger`;
 const PANEL = `${PILL} .shift64-woo-search-pill__panel`;
 const OPTION_INPUT = `${PILL} .shift64-woo-search-pill__option input`;
 const APPLY = `${PILL} .shift64-woo-search-pill__apply`;
-const BACKDROP = '.shift64-woo-search-product-filters__backdrop';
+const BACKDROP = `${FIXTURE_ROOT} .shift64-woo-search-product-filters__backdrop`;
 const CLOSE = `${PILL} .shift64-woo-search-pill__close`;
 const ACTIONS = `${PILL} .shift64-woo-search-pill__actions`;
 
@@ -98,7 +99,7 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		expect( listRight - countRight ).toBeGreaterThanOrEqual( 4 );
 	});
 
-	test('apply router-navigates without a reload, resets paging, keeps search', async ({ page }) => {
+	test('desktop option changes router-navigate without a reload, reset paging, and keep search', async ({ page }) => {
 		await page.goto(BROAD_QUERY);
 		await expect(productCards(page).first()).toBeVisible();
 
@@ -126,7 +127,6 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		);
 		expect(optionCount).toBeGreaterThan(0);
 		await firstInput.check();
-		await page.locator(APPLY).first().click();
 
 		await expect(page).toHaveURL(new RegExp(`filter_product_cat=${slug}`));
 		await expect(page).toHaveURL(/s=series/);
@@ -165,10 +165,11 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		await expect(page.locator(OPTION_INPUT).first()).toBeChecked();
 		await expect(
 			page.locator(`${PILL} .shift64-woo-search-pill__clear`).first()
-		).toBeVisible();
+		).toBeHidden();
 	});
 
 	test('Clear removes the active pill selection', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 800 });
 		await page.goto(BROAD_QUERY);
 		await page.locator(TRIGGER).first().click();
 		const slug = await page.locator(OPTION_INPUT).first().getAttribute('value');
@@ -176,10 +177,11 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		await page.goto(`${BROAD_QUERY}&filter_product_cat=${slug}`);
 		await page.locator(TRIGGER).first().click();
 		const actionVisuals = await page.evaluate(() => {
+			const root = document.querySelector('.shift64-e2e-product-filters');
 			const actions = Array.from(
-				document.querySelectorAll(
+				root?.querySelectorAll(
 					'.shift64-woo-search-pill__clear, .shift64-woo-search-pill__apply'
-				)
+				) ?? []
 			).map((element) => {
 				const style = window.getComputedStyle(element);
 				return {
@@ -191,7 +193,7 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 			return actions;
 		});
 		expect(actionVisuals).toHaveLength(2);
-		expect(actionVisuals[0].background).toBe(actionVisuals[1].background);
+		expect(actionVisuals[0].background).not.toBe(actionVisuals[1].background);
 		expect(actionVisuals[0].borderColor).toBe(actionVisuals[1].borderColor);
 		expect(actionVisuals[0].borderRadius).toBe(actionVisuals[1].borderRadius);
 		await page.locator(`${PILL} .shift64-woo-search-pill__clear`).first().click();
@@ -223,8 +225,9 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 
 		// Tray stacks above the backdrop.
 		const zIndexes = await page.evaluate(() => {
-			const panel = document.querySelector('.shift64-woo-search-pill__panel');
-			const overlay = document.querySelector('.shift64-woo-search-product-filters__backdrop');
+			const root = document.querySelector('.shift64-e2e-product-filters');
+			const panel = root?.querySelector('.shift64-woo-search-pill__panel');
+			const overlay = root?.querySelector('.shift64-woo-search-product-filters__backdrop');
 			return {
 				panel: panel ? Number(window.getComputedStyle(panel).zIndex) : NaN,
 				overlay: overlay ? Number(window.getComputedStyle(overlay).zIndex) : NaN,
@@ -244,8 +247,9 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		await page.locator(TRIGGER).first().click();
 
 		const geometry = await page.evaluate(() => {
-			const panel = document.querySelector('.shift64-woo-search-pill__panel');
-			const actions = document.querySelector('.shift64-woo-search-pill__actions');
+			const root = document.querySelector('.shift64-e2e-product-filters');
+			const panel = root?.querySelector('.shift64-woo-search-pill__panel');
+			const actions = root?.querySelector('.shift64-woo-search-pill__actions');
 			return {
 				trayBottom: panel ? panel.getBoundingClientRect().bottom : NaN,
 				trayHeight: panel ? panel.getBoundingClientRect().height : NaN,
@@ -295,6 +299,7 @@ test.describe('Product Filters without JavaScript', () => {
 	test.use({ javaScriptEnabled: false });
 
 	test('the plain GET form navigates to the same canonical result', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 800 });
 		await page.goto(BROAD_QUERY);
 
 		const trigger = page.locator(TRIGGER).first();
