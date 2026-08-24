@@ -45,6 +45,13 @@ class Shift64_Woo_Search_Product_Collection_Query {
 	private $result_sequence = 0;
 
 	/**
+	 * Main WooCommerce loop values saved while rendering the count block.
+	 *
+	 * @var array<string,int>|null
+	 */
+	private $saved_results_count_loop = null;
+
+	/**
 	 * Register public query hooks.
 	 *
 	 * @param Shift64_Woo_Search_Product_Collection_Query_Service|null $service Query service.
@@ -52,8 +59,137 @@ class Shift64_Woo_Search_Product_Collection_Query {
 	public function __construct( $service = null ) {
 		$this->service = $service ?? new Shift64_Woo_Search_Product_Collection_Query_Service();
 		add_filter( 'render_block_context', array( $this, 'scope_inherited_query_context' ), 99, 2 );
+		add_filter( 'pre_render_block', array( $this, 'track_results_count_block' ), 10, 3 );
+		add_filter( 'render_block', array( $this, 'restore_count_loop' ), 10, 3 );
 		add_filter( 'query_loop_block_query_vars', array( $this, 'filter_query_vars' ), 99, 3 );
 		add_filter( 'found_posts', array( $this, 'filter_found_posts' ), 99, 2 );
+	}
+
+	/**
+	 * Mark the WooCommerce block whose renderer calls woocommerce_result_count().
+	 *
+	 * The Product Results Count block is a sibling of the Product Collection,
+	 * so it does not inherit the collection query's request-scoped result.
+	 * The loop total is adjusted before WooCommerce builds the block's template
+	 * arguments, then restored by the render_block filter after the block.
+	 *
+	 * @param string|null   $pre_render   Existing short-circuit value.
+	 * @param array         $parsed_block Parsed block.
+	 * @param WP_Block|null $parent_block Parent block.
+	 * @return string|null
+	 */
+	public function track_results_count_block( $pre_render, $parsed_block, $parent_block = null ) {
+		unset( $parent_block );
+		if ( 'woocommerce/product-results-count' === ( $parsed_block['blockName'] ?? '' ) ) {
+			$this->use_collection_total_for_count();
+		}
+		return $pre_render;
+	}
+
+	/**
+	 * Make WooCommerce's result-count template read the Redis collection total.
+	 */
+	public function use_collection_total_for_count() {
+		if ( null !== $this->saved_results_count_loop ) {
+			return;
+		}
+
+		$count_page = Shift64_Woo_Search_Catalog_State::requested_page( 1, null, null, null );
+		$context    = Shift64_Woo_Search_Product_Collection_Context::for_current_request( 'shift64-woo-search-result-count', $count_page );
+		if ( null === $context ) {
+			return;
+		}
+
+		$result = $this->service->execute(
+			$context,
+			Shift64_Woo_Search_Catalog_State::from_request( $context )
+		);
+		if ( Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS !== $result->get_status() ) {
+			return;
+		}
+
+		Shift64_Woo_Search_Product_Collection_Results::set( $result );
+		$collection_per_page            = $this->current_collection_per_page();
+		$this->saved_results_count_loop = array(
+			'total'        => (int) wc_get_loop_prop( 'total' ),
+			'per_page'     => (int) wc_get_loop_prop( 'per_page' ),
+			'current_page' => (int) wc_get_loop_prop( 'current_page' ),
+		);
+		wc_set_loop_prop( 'total', $result->get_total() );
+		wc_set_loop_prop( 'current_page', $result->get_page() );
+		if ( null !== $collection_per_page ) {
+			wc_set_loop_prop( 'per_page', $collection_per_page );
+		}
+	}
+
+	/**
+	 * Read the active Product Collection page size before its sibling renders.
+	 *
+	 * WooCommerce renders Product Results Count before the Product Collection,
+	 * so the collection's request context is not available yet. The active
+	 * block template is already resolved at this point; use its saved block
+	 * attributes to keep WooCommerce's range text aligned with the collection.
+	 *
+	 * @return int|null Product Collection page size, or null when unavailable.
+	 */
+	private function current_collection_per_page() {
+		global $_wp_current_template_content;
+
+		if ( ! is_string( $_wp_current_template_content ) || '' === $_wp_current_template_content ) {
+			return null;
+		}
+
+		return $this->find_collection_per_page( parse_blocks( $_wp_current_template_content ) );
+	}
+
+	/**
+	 * Find the first Product Collection page size in parsed template blocks.
+	 *
+	 * @param array $blocks Parsed blocks.
+	 * @return int|null Product Collection page size, or null when not found.
+	 */
+	private function find_collection_per_page( array $blocks ) {
+		foreach ( $blocks as $block ) {
+			if ( 'woocommerce/product-collection' === ( $block['blockName'] ?? '' ) ) {
+				$per_page = $block['attrs']['query']['perPage'] ?? null;
+				if ( is_numeric( $per_page ) && (int) $per_page > 0 ) {
+					return (int) $per_page;
+				}
+			}
+
+			if ( ! empty( $block['innerBlocks'] ) ) {
+				$per_page = $this->find_collection_per_page( $block['innerBlocks'] );
+				if ( null !== $per_page ) {
+					return $per_page;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Restore the main loop after the count block has rendered.
+	 *
+	 * @param string        $block_content Rendered block content.
+	 * @param array         $parsed_block  Parsed block.
+	 * @param WP_Block|null $block        Block instance.
+	 * @return string
+	 */
+	public function restore_count_loop( $block_content, $parsed_block, $block = null ) {
+		unset( $block );
+		if (
+			'woocommerce/product-results-count' !== ( $parsed_block['blockName'] ?? '' )
+			|| null === $this->saved_results_count_loop
+		) {
+			return $block_content;
+		}
+
+		foreach ( $this->saved_results_count_loop as $prop => $value ) {
+			wc_set_loop_prop( $prop, $value );
+		}
+		$this->saved_results_count_loop = null;
+		return $block_content;
 	}
 
 	/**

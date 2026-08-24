@@ -68,6 +68,14 @@ pagination, history, and accessibility to WooCommerce and WordPress. See
 [Block Theme Product Collection Integration](docs/block-theme-product-collection.md)
 for the supported Site Editor template and canonical URL contract.
 
+Beside that collection, the **Product Filters (Shift64)** container holds
+repeatable **Filter Pill** children, each exposing one enabled, indexed facet
+(category, brand, or a `pa_*` attribute) as a progressively enhanced pill with
+Redis-backed disjunctive counts and canonical `filter_{taxonomy}` URLs. See
+[Product Filters and Filter Pill Blocks](docs/product-filter-pill-blocks.md)
+for the merchant workflow and the shared pill primitive that the upcoming
+Product Sort block reuses.
+
 ## Search shortcodes
 
 Both renderers remain available as permanent shortcodes for classic themes,

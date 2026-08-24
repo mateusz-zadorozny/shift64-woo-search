@@ -319,6 +319,34 @@ class Shift64_Woo_Search_Schema {
 	}
 
 	/**
+	 * Whether a field exists in the live RediSearch index schema.
+	 *
+	 * FT.INFO cannot answer this reliably here: phpredis coerces the reply's
+	 * simple strings (including field names) to booleans on some RESP/version
+	 * combinations. A GROUPBY aggregation is authoritative instead — RediSearch
+	 * rejects a property that is not in the schema, and a known field answers
+	 * with a (possibly empty) result. Callers memoize per request.
+	 *
+	 * @param Shift64_Woo_Search_Redis $redis Redis connection instance.
+	 * @param string                   $field Schema field name (e.g. attr_pa_color).
+	 * @return bool
+	 */
+	public static function index_field_exists( $redis, $field ) {
+		$result = $redis->raw_command(
+			'FT.AGGREGATE',
+			$redis->get_index_name(),
+			'*',
+			'GROUPBY',
+			'1',
+			'@' . $field,
+			'LIMIT',
+			'0',
+			'1'
+		);
+		return false !== $result && is_array( $result );
+	}
+
+	/**
 	 * Get index info from RediSearch.
 	 *
 	 * @param Shift64_Woo_Search_Redis $redis Redis connection instance.

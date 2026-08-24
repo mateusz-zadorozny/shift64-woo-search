@@ -58,9 +58,9 @@ class Category_Facet_Splitting_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Category facet should prepend `*` when the base query contains only negations.
+	 * Category facet should preserve a valid negative-only base query.
 	 */
-	public function test_execute_category_facet_prepends_star_for_negative_only_query() {
+	public function test_execute_category_facet_preserves_negative_only_query() {
 		$captured_args = null;
 
 		$redis = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
@@ -80,6 +80,6 @@ class Category_Facet_Splitting_Test extends WP_UnitTestCase {
 		$query->execute_category_facet( '-@excluded:{yes} -@visibility:{hidden}', 50 );
 
 		$this->assertNotNull( $captured_args );
-		$this->assertSame( '* -@excluded:{yes} -@visibility:{hidden}', $captured_args[2] );
+		$this->assertSame( '-@excluded:{yes} -@visibility:{hidden}', $captured_args[2] );
 	}
 }

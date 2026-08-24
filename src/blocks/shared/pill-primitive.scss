@@ -1,0 +1,344 @@
+/*
+ * Shared pill trigger/panel visual primitive (Filter Pill, future Product Sort).
+ *
+ * These selectors are the stable contract downstream controls (Product Sort)
+ * reuse; treat renames as breaking. Stacking tokens keep the panel above page
+ * controls; the Phase 2 tray raises them further.
+ */
+.shift64-woo-search-pill {
+	--s64ws-pill-panel-z: 30;
+
+	position: relative;
+
+	&__disclosure {
+		margin: 0;
+
+		> summary {
+			list-style: none;
+
+			&::-webkit-details-marker {
+				display: none;
+			}
+		}
+	}
+
+	/*
+	 * Style tokens. The Product Filters parent writes these as inline custom
+	 * properties from its `pillStyle` attribute, so one parent styles every
+	 * pill it contains and each token falls back to the unstyled default.
+	 * Hover tokens fall back to their own default-state token, which is what
+	 * makes "set only a hover background" behave the way a merchant expects.
+	 */
+	&__trigger {
+		align-items: center;
+		background: var(--s64ws-pill-bg, transparent);
+		border: var(--s64ws-pill-border-width, 1px) solid
+			var(--s64ws-pill-border-color, currentColor);
+		border-radius: var(--s64ws-pill-radius, 999px);
+		color: var(--s64ws-pill-color, inherit);
+		cursor: pointer;
+		display: inline-flex;
+		gap: 0.4em;
+		line-height: 1.2;
+		padding: 0.45em 1em;
+		user-select: none;
+
+		/*
+		 * Keyboard focus gets the same treatment as the pointer: a merchant
+		 * setting a hover look must not leave keyboard users without one.
+		 */
+		&:hover,
+		&:focus-visible {
+			background: var(
+				--s64ws-pill-bg-hover,
+				var(--s64ws-pill-bg, transparent)
+			);
+			border-color: var(
+				--s64ws-pill-border-color-hover,
+				var(--s64ws-pill-border-color, currentColor)
+			);
+			color: var(
+				--s64ws-pill-color-hover,
+				var(--s64ws-pill-color, inherit)
+			);
+		}
+
+		&:focus-visible {
+			outline: 2px solid currentColor;
+			outline-offset: 2px;
+		}
+	}
+
+	&__summary-count {
+		background: currentColor;
+		border-radius: 999px;
+		display: inline-flex;
+		font-size: 0.75em;
+		line-height: 1;
+		min-width: 1.5em;
+		justify-content: center;
+		padding: 0.25em;
+
+		> span {
+			// Invert against the currentColor chip without hardcoding a color.
+			filter: invert(1) grayscale(1) contrast(9);
+		}
+	}
+
+	&__chevron {
+		border-right: 2px solid currentColor;
+		border-bottom: 2px solid currentColor;
+		height: 0.4em;
+		transform: rotate(45deg) translateY(-0.1em);
+		transition: transform 0.15s ease;
+		width: 0.4em;
+
+		@media (prefers-reduced-motion: reduce) {
+			transition: none;
+		}
+	}
+
+	&__disclosure[open] &__chevron {
+		transform: rotate(225deg) translateY(-0.1em);
+	}
+
+	&__panel {
+		background: var(--wp--preset--color--base, #fff);
+		border: 1px solid rgba(0, 0, 0, 0.15);
+		border-radius: 8px;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+		color: var(--wp--preset--color--contrast, currentColor);
+		left: 0;
+		min-width: 16rem;
+		padding: 1rem;
+		position: absolute;
+		top: calc(100% + 0.4rem);
+		z-index: var(--s64ws-pill-panel-z);
+	}
+
+	&__heading {
+		font-size: 0.875em;
+		font-weight: 600;
+		margin: 0 0 0.5rem;
+	}
+
+	/*
+	 * Tray dismissal. The tray covers the trigger with its backdrop, so the
+	 * pill itself can no longer be tapped to close — this button is the
+	 * explicit affordance. It is a JavaScript-only control: the server renders
+	 * it `hidden` and the store unhides it on hydration, so the no-JS
+	 * disclosure never shows a dead button.
+	 */
+	&__close {
+		background: none;
+		border: 0;
+		color: inherit;
+		cursor: pointer;
+		display: none;
+		font-size: 1.5em;
+		line-height: 1;
+		padding: 0 0.25em;
+		position: absolute;
+		right: 0.5rem;
+		top: 0.5rem;
+
+		&[hidden] {
+			display: none;
+		}
+
+		&:focus-visible {
+			outline: 2px solid currentColor;
+			outline-offset: 2px;
+		}
+	}
+
+	&__options {
+		list-style: none;
+		margin: 0;
+		max-height: 16rem;
+		overflow: auto;
+		padding: 0;
+	}
+
+	&__option {
+		margin: 0;
+
+		> label {
+			align-items: baseline;
+			cursor: pointer;
+			display: flex;
+			gap: 0.5em;
+			padding: 0.25em 0;
+			padding-inline-end: 0.5rem;
+		}
+
+		input:focus-visible {
+			outline: 2px solid currentColor;
+			outline-offset: 1px;
+		}
+	}
+
+	&__option-label {
+		flex: 1 1 auto;
+	}
+
+	&__count {
+		font-size: 0.8em;
+		margin-inline-end: 0.25rem;
+		opacity: 0.7;
+	}
+
+	&__actions {
+		display: none;
+		gap: 0.5rem;
+		justify-content: flex-end;
+		margin-top: 0.75rem;
+	}
+
+	&__apply,
+	&__apply.wp-element-button,
+	&__clear {
+		align-items: center;
+		appearance: none;
+		background: var(--s64ws-action-bg, var(--wp--preset--color--contrast, #111));
+		border: var(--s64ws-action-border-width, 1px) solid
+			var(--s64ws-action-border-color, transparent);
+		border-radius: var(--s64ws-action-radius, 4px);
+		box-sizing: border-box;
+		color: var(--s64ws-action-color, var(--wp--preset--color--base, #fff));
+		cursor: pointer;
+		display: inline-flex;
+		flex: 1 1 0;
+		font: inherit;
+		font-size: var(--s64ws-action-font-size, inherit);
+		justify-content: center;
+		line-height: 1.2;
+		min-height: 2.5rem;
+		min-width: 0;
+		padding: 0.4em 0.9em;
+		text-align: center;
+		text-decoration: none;
+
+		&:hover,
+		&:focus-visible {
+			background: var(
+				--s64ws-action-bg-hover,
+				var(--s64ws-action-bg, var(--wp--preset--color--contrast, #111))
+			);
+			border-color: var(
+				--s64ws-action-border-color-hover,
+				var(--s64ws-action-border-color, transparent)
+			);
+			color: var(
+				--s64ws-action-color-hover,
+				var(--s64ws-action-color, var(--wp--preset--color--base, #fff))
+			);
+		}
+
+		&:focus-visible {
+			outline: 2px solid currentColor;
+			outline-offset: 2px;
+		}
+	}
+
+	// Narrow screens: the panel becomes a bottom tray above the backdrop.
+	@media (max-width: 782px) {
+		&__actions {
+			display: flex;
+		}
+
+		&__clear,
+		&__clear:hover,
+		&__clear:focus-visible {
+			background: var(--wp--preset--color--base, #fff);
+			border-color: var(--wp--preset--color--contrast, #111);
+			color: var(--wp--preset--color--contrast, #111);
+		}
+
+		&__apply,
+		&__apply.wp-element-button,
+		&__apply:hover,
+		&__apply.wp-element-button:hover,
+		&__apply:focus-visible,
+		&__apply.wp-element-button:focus-visible {
+			background: var(--wp--preset--color--contrast, #111);
+			border-color: var(--wp--preset--color--contrast, #111);
+			color: var(--wp--preset--color--base, #fff);
+		}
+
+		&__panel {
+			border-radius: 12px 12px 0 0;
+			bottom: 0;
+			// Themes do not all set a global border-box; without this the
+			// padding and border are added on top of the cap and the tray
+			// overshoots the height it was told to respect.
+			box-sizing: border-box;
+			display: flex;
+			flex-direction: column;
+			left: 0;
+			/*
+			 * Static viewport units first, dynamic ones where the engine has
+			 * them: a phone browser's collapsing address bar changes `vh`
+			 * without changing the visible area, which is what pushes the
+			 * Apply row under the toolbar. `dvh` tracks the area the shopper
+			 * can actually see.
+			 */
+			max-height: 70vh;
+			// The tray itself never scrolls — its option list does (below), so
+			// the heading and the Apply/Clear row stay reachable.
+			overflow: hidden;
+			// Respect the home indicator / gesture bar on modern phones.
+			padding-bottom: max(1rem, env(safe-area-inset-bottom));
+			position: fixed;
+			right: 0;
+			top: auto;
+			z-index: var(--s64ws-pill-tray-z, 50);
+
+			@supports (max-height: 70dvh) {
+				max-height: 70dvh;
+			}
+		}
+
+		// Leave room for the close button in the tray's top-right corner.
+		&__heading {
+			padding-right: 2.5rem;
+		}
+
+		/*
+		 * One scroll region instead of two. On the desktop dropdown the list
+		 * is capped so the panel stays a panel; in the tray that cap produces
+		 * a scrollbar inside a scrollbar, and shoppers get stuck dragging the
+		 * wrong one. The form has to become a column too — it sits between the
+		 * tray and the list, so without it the flex chain breaks and the
+		 * Apply row is pushed off the bottom of a long facet.
+		 */
+		&__form {
+			display: flex;
+			flex: 1 1 auto;
+			flex-direction: column;
+			min-height: 0;
+		}
+
+		&__options {
+			flex: 1 1 auto;
+			max-height: none;
+			min-height: 0;
+		}
+
+		&__close {
+			display: inline-flex;
+		}
+	}
+
+	// Editor preview: the panel participates in layout instead of floating.
+	&.is-editor-preview {
+		.shift64-woo-search-pill__panel {
+			margin-top: 0.4rem;
+			position: static;
+		}
+
+		.shift64-woo-search-pill__trigger {
+			cursor: default;
+		}
+	}
+}

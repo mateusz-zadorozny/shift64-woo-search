@@ -501,6 +501,16 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 	 * Query-ID paging wins and invalid URL values are discarded.
 	 */
 	public function test_catalog_state_normalizes_paging_filters_and_sort() {
+		// Request parsing accepts only ready eligibility entries; the test
+		// environment has no live index, so force readiness explicitly.
+		add_filter(
+			'shift64_woo_search_facet_entries',
+			static function ( $entries ) {
+				$entries['product_cat']['status'] = 'ready';
+				return $entries;
+			}
+		);
+		Shift64_Woo_Search_Facet_Eligibility::reset();
 		$term = $this->factory->term->create_and_get(
 			array(
 				'taxonomy' => 'product_cat',

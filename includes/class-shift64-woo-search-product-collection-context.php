@@ -252,6 +252,30 @@ final class Shift64_Woo_Search_Product_Collection_Context {
 	}
 
 	/**
+	 * Build an eligible context from the request alone, without any Product
+	 * Collection block context.
+	 *
+	 * Server-rendered controls (Filter Pills) may render before the inherited
+	 * Product Collection composes its query; this factory gives them the same
+	 * validated search/scope/visibility facts. Paging intentionally stays at
+	 * 1 — facet aggregations are page-independent.
+	 *
+	 * @param string   $request_key Request-scoped result key.
+	 * @param int|null $page       Optional current Product Collection page.
+	 * @return self|null Null off eligible archives or with the feature disabled.
+	 */
+	public static function for_current_request( $request_key, $page = null ) {
+		return self::from_query_context(
+			array(),
+			array(),
+			null,
+			null === $page ? 1 : max( 1, (int) $page ),
+			self::current_request_context( array() ),
+			$request_key
+		);
+	}
+
+	/**
 	 * Whether the current frontend request is an eligible inherited archive.
 	 *
 	 * This is used before WooCommerce constructs the child WP_Block instance,

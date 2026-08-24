@@ -18,6 +18,10 @@ const PRIVATE_PARAMS = [
 	'customize_changeset_uuid',
 ];
 
+let resultsCountObserver = null;
+let resultsCountSyncTimer = null;
+let lastResultsCountUrl = '';
+
 /**
  * Resolve a navigation target that cannot leave the current storefront.
  *
@@ -100,6 +104,83 @@ export function hasEnhancedProductCollection(root = document) {
 }
 
 /**
+ * Keep WooCommerce's results count in step with a client-side collection
+ * navigation. Woo marks this block as a router region, but its block has no
+ * frontend view module, so the Interactivity Router does not replace it even
+ * though the response contains the correct server-rendered count.
+ *
+ * @param {string} html Full HTML response used by the router.
+ * @return {void}
+ */
+function syncProductResultsCount(html) {
+	if (typeof DOMParser === 'undefined' || typeof document === 'undefined') {
+		return;
+	}
+
+	const source = new DOMParser().parseFromString(html, 'text/html');
+	source.querySelectorAll('[data-wp-router-region^="wc-product-results-count-"]').forEach((sourceRegion) => {
+		const regionId = sourceRegion.getAttribute('data-wp-router-region');
+		const targetRegion = [...document.querySelectorAll('[data-wp-router-region]')].find(
+			(region) => region.getAttribute('data-wp-router-region') === regionId
+		);
+		if (targetRegion) {
+			targetRegion.innerHTML = sourceRegion.innerHTML;
+		}
+	});
+	lastResultsCountUrl = window.location.href;
+}
+
+/**
+ * Keep the count synchronized when WooCommerce navigates Product Collection
+ * pagination directly through the Interactivity Router.
+ *
+ * @return {void}
+ */
+export function observeProductResultsCount() {
+	if (
+		resultsCountObserver ||
+		typeof MutationObserver === 'undefined' ||
+		typeof document === 'undefined'
+	) {
+		return;
+	}
+
+	const collection = document.querySelector(
+		'[data-wp-router-region^="wc-product-collection-"]'
+	);
+	if (!collection) {
+		return;
+	}
+
+	lastResultsCountUrl = window.location.href;
+	resultsCountObserver = new MutationObserver( () => {
+		if ( window.location.href === lastResultsCountUrl ) {
+			return;
+		}
+		window.clearTimeout( resultsCountSyncTimer );
+		resultsCountSyncTimer = window.setTimeout( async () => {
+			const url = window.location.href;
+			if ( url === lastResultsCountUrl ) {
+				return;
+			}
+			try {
+				const response = await fetch( url, {
+					headers: { Accept: 'text/html' },
+					credentials: 'same-origin',
+				} );
+				if ( ! response.ok ) {
+					return;
+				}
+				syncProductResultsCount( await response.text() );
+			} catch ( error ) {
+				// The router already owns navigation errors; count sync is best effort.
+			}
+		}, 0);
+	} );
+	resultsCountObserver.observe( collection, { childList: true, subtree: true } );
+}
+
+/**
  * Upgrade a progressive link/form destination to router navigation.
  *
  * @param {string|URL} destination Canonical destination.
@@ -115,7 +196,16 @@ export async function navigate(destination, { forceReload = false } = {}) {
 
 	try {
 		const { actions } = await import('@wordpress/interactivity-router');
-		await actions.navigate(url);
+		const response = await fetch(url, {
+			headers: { Accept: 'text/html' },
+			credentials: 'same-origin',
+		});
+		if (!response.ok) {
+			throw new Error(`Catalog navigation returned HTTP ${response.status}.`);
+		}
+		const html = await response.text();
+		await actions.navigate(url, { html });
+		syncProductResultsCount(html);
 	} catch (error) {
 		window.location.assign(url);
 	}

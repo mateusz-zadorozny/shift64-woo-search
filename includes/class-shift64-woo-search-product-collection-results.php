@@ -31,7 +31,24 @@ final class Shift64_Woo_Search_Product_Collection_Results {
 	}
 
 	/**
-	 * Read a result envelope.
+	 * The first stored envelope that came from a successful Redis query.
+	 *
+	 * Sibling controls (Filter Pills) read facet buckets from here when the
+	 * Product Collection has already executed this request.
+	 *
+	 * @return Shift64_Woo_Search_Product_Collection_Result|null
+	 */
+	public static function first_redis() {
+		foreach ( self::$results as $result ) {
+			if ( Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS === $result->get_status() ) {
+				return $result;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Get a stored result by its request key.
 	 *
 	 * @param string $request_key Request key.
 	 * @return Shift64_Woo_Search_Product_Collection_Result|null

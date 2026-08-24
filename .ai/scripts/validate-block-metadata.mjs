@@ -1,17 +1,38 @@
 import { globSync, readFileSync } from 'node:fs';
 
 const metadataFiles = globSync( 'src/blocks/*/block.json' ).sort();
-const expectedNames = new Set( [
-	'shift64-woo-search/modal-search',
-	'shift64-woo-search/search',
-	'shift64-woo-search/search-control',
-	'shift64-woo-search/search-panel',
-] );
-const seenNames = new Set();
-const parentNames = [
+
+const searchParents = [
 	'shift64-woo-search/search',
 	'shift64-woo-search/modal-search',
 ];
+const filtersParent = [ 'shift64-woo-search/product-filters' ];
+
+// Every registered block and its structural contract:
+// - interactive parents must ship a view module;
+// - template-locked search children stay out of every inserter;
+// - the repeatable Filter Pill is constrained to its parent but stays
+//   insertable there (merchants add/remove/reorder pills themselves).
+const contracts = {
+	'shift64-woo-search/search': { kind: 'interactive-parent' },
+	'shift64-woo-search/modal-search': { kind: 'interactive-parent' },
+	'shift64-woo-search/search-control': {
+		kind: 'locked-child',
+		parents: searchParents,
+	},
+	'shift64-woo-search/search-panel': {
+		kind: 'locked-child',
+		parents: searchParents,
+	},
+	'shift64-woo-search/product-filters': { kind: 'interactive-parent' },
+	'shift64-woo-search/filter-pill': {
+		kind: 'repeatable-child',
+		parents: filtersParent,
+	},
+};
+
+const expectedNames = new Set( Object.keys( contracts ) );
+const seenNames = new Set();
 
 if ( metadataFiles.length !== expectedNames.size ) {
 	throw new Error(
@@ -38,37 +59,50 @@ for ( const file of metadataFiles ) {
 	) {
 		throw new Error( `${ file } must declare the plugin text domain.` );
 	}
-	if (
-		metadata.name.endsWith( 'search-control' ) ||
-		metadata.name.endsWith( 'search-panel' )
-	) {
+
+	const contract = contracts[ metadata.name ];
+	if ( contract.kind === 'interactive-parent' ) {
 		if (
-			JSON.stringify( metadata.parent ) !== JSON.stringify( parentNames )
+			! metadata.viewScriptModule ||
+			metadata.supports?.interactivity !== true
 		) {
 			throw new Error(
-				`${ file } must be restricted to both search parents.`
+				`${ file } must declare its interactive view module.`
+			);
+		}
+	} else {
+		if (
+			JSON.stringify( metadata.parent ) !==
+			JSON.stringify( contract.parents )
+		) {
+			throw new Error(
+				`${ file } must be restricted to its declared parents.`
 			);
 		}
 		if (
 			JSON.stringify( metadata.ancestor ) !==
-			JSON.stringify( parentNames )
+			JSON.stringify( contract.parents )
 		) {
 			throw new Error(
-				`${ file } must declare both search parents as ancestors.`
+				`${ file } must declare its parents as ancestors.`
 			);
 		}
-		if ( metadata.supports?.inserter !== false ) {
+		if (
+			contract.kind === 'locked-child' &&
+			metadata.supports?.inserter !== false
+		) {
 			throw new Error(
 				`${ file } must stay hidden from the standalone inserter.`
 			);
 		}
-	} else if (
-		! metadata.viewScriptModule ||
-		metadata.supports?.interactivity !== true
-	) {
-		throw new Error(
-			`${ file } must declare its interactive view module.`
-		);
+		if (
+			contract.kind === 'repeatable-child' &&
+			metadata.supports?.inserter === false
+		) {
+			throw new Error(
+				`${ file } must stay insertable inside its parent.`
+			);
+		}
 	}
 	seenNames.add( metadata.name );
 }
