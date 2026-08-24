@@ -40,10 +40,13 @@ import { SEL } from '../helpers/search';
  * beforeAll is normally a no-op; against a differently-themed target it still
  * switches and restores, bounded by beforeAll/afterAll — a spec file is the
  * unit a worker runs to completion, so no other project can observe the
- * switched theme, and afterAll still runs when a test fails. The
- * forcePageReload describe REALLY installs/removes a test-only mu-plugin
+ * switched theme, and afterAll still runs when a test fails. beforeAll also
+ * detaches `page_on_front` for the same window — see the comment there for why
+ * a shop-as-front-page storefront has no WooCommerce breadcrumb to assert on.
+ * The forcePageReload describe REALLY installs/removes a test-only mu-plugin
  * around itself; if a run is hard-killed in between, delete
- * wp-content/mu-plugins/shift64-e2e-force-page-reload.php.
+ * wp-content/mu-plugins/shift64-e2e-force-page-reload.php and restore the front
+ * page with `wp option update page_on_front <shop page id>`.
  */
 
 // 48 results = 3 pages at 16/page — the same broad query the main-suite
@@ -56,15 +59,36 @@ const PAGE_2 = /\/page\/2\/|[?&](?:paged|query-page|query-\d+-page)=2/;
 const MU_FIXTURE = 'shift64-e2e-force-page-reload.php';
 
 let originalTheme = '';
+let originalPageOnFront = '';
 
 test.beforeAll(() => {
 	originalTheme = wpCli(['theme', 'list', '--status=active', '--field=name']).trim();
 	if (originalTheme !== BLOCK_THEME) {
 		wpCli(['theme', 'activate', BLOCK_THEME]);
 	}
+
+	// The breadcrumb assertions below need a breadcrumb to exist at all.
+	// WC_Breadcrumb::generate() returns an EMPTY trail — on every template, not
+	// just this one — while `page_on_front` is the shop page and the request is
+	// not is_paged(). Provisioning sets exactly that so the QA storefront opens
+	// on the catalog, and Product Collection pages through `query-0-page`, which
+	// leaves the main query unpaged. So the shop-as-front-page storefront is a
+	// site shape in which WooCommerce renders no breadcrumb here.
+	//
+	// Detaching the front page for the length of this file keeps the assertions
+	// pointed at the behavior they were written for (#51: the plugin refreshes
+	// page context after a catalog swap) instead of at a WooCommerce display
+	// rule. Same bounds and same reasoning as the theme switch above.
+	originalPageOnFront = wpCli(['option', 'get', 'page_on_front']).trim();
+	if (originalPageOnFront !== '0') {
+		wpCli(['option', 'update', 'page_on_front', '0']);
+	}
 });
 
 test.afterAll(() => {
+	if (originalPageOnFront && originalPageOnFront !== '0') {
+		wpCli(['option', 'update', 'page_on_front', originalPageOnFront]);
+	}
 	if (originalTheme && originalTheme !== BLOCK_THEME) {
 		wpCli(['theme', 'activate', originalTheme]);
 	}

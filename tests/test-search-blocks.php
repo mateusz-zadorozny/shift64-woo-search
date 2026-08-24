@@ -292,6 +292,28 @@ class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Search parents nested inside layout blocks still provide one stable ID to
+	 * their control, panel, and Interactivity API context.
+	 */
+	public function test_nested_composable_blocks_share_the_parent_runtime_id() {
+		$html = do_blocks(
+			'<!-- wp:group --><div class="wp-block-group"><!-- wp:columns --><div class="wp-block-columns"><!-- wp:column --><div class="wp-block-column"><!-- wp:shift64-woo-search/modal-search {"instanceId":"nested-modal"} --><!-- wp:shift64-woo-search/search-control /--><!-- wp:shift64-woo-search/search-panel /--><!-- /wp:shift64-woo-search/modal-search --><!-- wp:shift64-woo-search/search {"instanceId":"nested-inline"} --><!-- wp:shift64-woo-search/search-control /--><!-- wp:shift64-woo-search/search-panel /--><!-- /wp:shift64-woo-search/search --></div><!-- /wp:column --></div><!-- /wp:columns --></div><!-- /wp:group -->'
+		);
+
+		$this->assertStringContainsString( 'aria-controls="nested-modal-dialog"', $html );
+		$this->assertStringContainsString( 'id="nested-modal-dialog"', $html );
+		$this->assertStringContainsString( 'id="nested-modal-input"', $html );
+		$this->assertStringContainsString( 'aria-controls="nested-modal-listbox"', $html );
+		$this->assertStringContainsString( 'id="nested-modal-listbox"', $html );
+		$this->assertStringContainsString( 'id="nested-inline-input"', $html );
+		$this->assertStringContainsString( 'aria-controls="nested-inline-listbox"', $html );
+		$this->assertStringContainsString( 'id="nested-inline-listbox"', $html );
+		$decoded_html = html_entity_decode( $html );
+		$this->assertStringContainsString( '"instanceId":"nested-modal"', $decoded_html );
+		$this->assertStringContainsString( '"instanceId":"nested-inline"', $decoded_html );
+	}
+
+	/**
 	 * The opt-in editor preview occupies a new row below the trigger.
 	 */
 	public function test_modal_editor_preview_stacks_below_trigger() {

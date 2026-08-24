@@ -22,7 +22,8 @@ That is the whole setup. When it returns, the launcher has:
 - installed WordPress + WooCommerce via `bin/e2e-install-wp.sh`, with Twenty
   Twenty-Five active (the supported block-theme baseline) and Storefront
   installed inactive for the classic-theme e2e projection
-  and provisioned the plugin state (demo catalog, options, index) via
+  and provisioned the plugin state (demo catalog, options, index, the shop
+  archive as the front page, and the theme's search header) via
   `bin/e2e-provision.sh`;
 - installed `wordpress-tests-lib` and its test database via
   `bin/install-wp-tests.sh`, and generated a worktree-local `phpunit.xml`
@@ -30,6 +31,8 @@ That is the whole setup. When it returns, the launcher has:
   no manual exports**;
 - printed the QA URL (`/search-e2e/` carries both search blocks) and the
   admin credentials (`admin` / `admin`);
+- pointed the front page at the WooCommerce shop archive, so `/` opens on a
+  product grid;
 - written the environment descriptor to `.ai/qa/test-env.json`;
 - started the configured validation gate (`.ai/agentic.config.json` →
   `validation.commands`) in a supervised **background** process, so tests run
@@ -42,6 +45,32 @@ the shell or agent command that launched it; no terminal needs to stay open.
 Flags: `--allow-degraded` (accept a searchless storefront when phpredis
 cannot be installed), `--no-validate` (skip the background gate), `--force` (restart even if
 healthy), `--fresh` (wipe and rebuild everything, new database and catalog).
+
+## The storefront shape
+
+Provisioning gives every environment the same shopper-facing shape, so a
+screenshot from one run is comparable with the next:
+
+- **Front page = the shop archive.** `show_on_front`/`page_on_front` point at
+  the WooCommerce shop page, so `/` opens on a product grid instead of a blog
+  roll.
+- **Search lives in the site header.** `bin/provision-block-theme-header.php`
+  writes the block theme's `header` template part: the modal search trigger
+  next to the account and cart icons, and the inline search field on the row
+  below. It replaces any existing `header` part for that theme on every run.
+
+Both are live the moment `up` returns: the default environment activates Twenty
+Twenty-Five, and the script targets the active theme whenever it is a block
+theme — so the same holds on a block-theme dev site (LocalWP) running
+`bin/e2e-provision.sh` directly.
+
+Template parts are theme-scoped through the `wp_theme` term, so the header is
+simply **absent under Storefront**, including while
+`tests/e2e/classic-theme/` has it activated for the length of its spec file.
+Nothing needs tearing down around that switch. The suite addresses every search
+block by its provisioned `instanceId` (`search-e2e-*` on `/search-e2e/` and
+`shift64-e2e-header-*` in the header), so multiple instances of the same block
+never collide.
 
 ## Status, logs, and validation progress
 
