@@ -1,3 +1,10 @@
+## [0.17.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.17.0...v0.17.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ci:** use AppArmor-compatible MySQL datadir ([#75](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/75)) ([696aa51](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/696aa51ee510490f597ecd8b7d88cac9138f6327))
+
 # [0.17.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.16.2...v0.17.0) (2026-08-24)
 
 
