@@ -216,7 +216,10 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 
 		await page.goBack();
 		await expect(page).toHaveURL(/query-0-page=2/);
-		await expect(productCards(page)).toHaveCount(10);
+		// A scoped collection is sized by the archive it replaces, so a full
+		// page holds `loop_shop_per_page` products (WooCommerce's 4x4 default)
+		// rather than the `perPage` the template author saved on the block.
+		await expect(productCards(page)).toHaveCount(16);
 		await expect(productCards(page).first()).toContainText(page2FirstProduct);
 		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
 		await expect(page.locator('.woocommerce-breadcrumb').first()).toContainText('Page 2');
