@@ -8,7 +8,11 @@ import {
 	TextControl,
 	useBaseControlProps,
 } from '@wordpress/components';
-import { ColorPalette, InspectorControls, useBlockProps } from '@wordpress/block-editor';
+import {
+	ColorPalette,
+	InspectorControls,
+	useBlockProps,
+} from '@wordpress/block-editor';
 import { registerBlockType } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
 import metadata from './block.json';
@@ -20,7 +24,10 @@ import './editor.scss';
 // Keep in sync with Shift64_Woo_Search_Blocks::render_product_sort_block().
 const CANONICAL_OPTIONS = [
 	{ key: 'menu_order', label: __( 'Default sorting', 'shift64-woo-search' ) },
-	{ key: 'popularity', label: __( 'Sort by popularity', 'shift64-woo-search' ) },
+	{
+		key: 'popularity',
+		label: __( 'Sort by popularity', 'shift64-woo-search' ),
+	},
 	{
 		key: 'rating',
 		label: __( 'Sort by average rating', 'shift64-woo-search' ),
@@ -96,7 +103,10 @@ function SortOptionsPanel( { orderedOptions, labels, setAttributes } ) {
 	};
 
 	return (
-		<PanelBody title={ __( 'Sort options', 'shift64-woo-search' ) } initialOpen>
+		<PanelBody
+			title={ __( 'Sort options', 'shift64-woo-search' ) }
+			initialOpen
+		>
 			{ CANONICAL_OPTIONS.map( ( option ) => {
 				const index = orderedOptions.indexOf( option.key );
 				const isEnabled = index > -1;
@@ -166,7 +176,10 @@ function SortOptionsPanel( { orderedOptions, labels, setAttributes } ) {
 
 function PillStylePanel( { attributes, setAttributes } ) {
 	return (
-		<PanelBody title={ __( 'Pill style', 'shift64-woo-search' ) } initialOpen>
+		<PanelBody
+			title={ __( 'Pill style', 'shift64-woo-search' ) }
+			initialOpen
+		>
 			<TabPanel tabs={ STATE_TABS }>
 				{ ( tab ) => {
 					const hover = 'hover' === tab.name;
