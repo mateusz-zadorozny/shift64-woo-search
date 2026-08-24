@@ -135,6 +135,10 @@ class Search_By_Filters_Test extends WP_UnitTestCase {
 		// Must contain at least the static exclusions.
 		$this->assertStringContainsString( '-@excluded:{yes}', $captured_query );
 		$this->assertStringContainsString( '-@visibility:{hidden}', $captured_query );
+		// Dialect 2 rejects `*` next to any other clause ("Syntax error at
+		// offset 2"), and accepts a query built purely from negations — so an
+		// unfiltered archive must not be padded with a wildcard.
+		$this->assertStringNotContainsString( '*', $captured_query );
 	}
 
 	/**

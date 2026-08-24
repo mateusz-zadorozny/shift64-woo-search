@@ -1087,20 +1087,11 @@ class Shift64_Woo_Search_Query {
 		);
 		$parts = array_values( array_unique( $parts ) );
 
-		// FT.SEARCH needs at least one positive matcher — exclusions alone are invalid.
-		// When all parts are negations (no scope, no attr filters), prepend `*`.
-		$has_positive = false;
-		foreach ( $parts as $part ) {
-			if ( '-' !== substr( $part, 0, 1 ) ) {
-				$has_positive = true;
-				break;
-			}
-		}
-		if ( ! $has_positive ) {
-			array_unshift( $parts, '*' );
-		}
-
-		$ft_query = implode( ' ', $parts );
+		// Dialect 2 accepts a query made only of negations, and rejects `*`
+		// combined with anything else ("Syntax error at offset 2"). The wildcard
+		// therefore stands in only for a query with no clauses at all — an
+		// unfiltered archive, where every product matches.
+		$ft_query = empty( $parts ) ? '*' : implode( ' ', $parts );
 
 		$per_page = max( 1, (int) $per_page );
 		$paged    = max( 1, (int) $paged );
@@ -1285,17 +1276,7 @@ class Shift64_Woo_Search_Query {
 	 * @return array{ids:int[],total:int,ok:bool}
 	 */
 	public function execute_composite_catalog_query( $ft_query, $offset, $limit, array $sort_fields ) {
-		$parts        = preg_split( '/\s+/', trim( $ft_query ) );
-		$has_positive = false;
-		foreach ( $parts as $part ) {
-			if ( '' !== $part && '-' !== substr( $part, 0, 1 ) ) {
-				$has_positive = true;
-				break;
-			}
-		}
-		if ( ! $has_positive ) {
-			$ft_query = trim( '* ' . $ft_query );
-		}
+		$ft_query = '' === trim( $ft_query ) ? '*' : trim( $ft_query );
 
 		$sortby_args = array();
 		foreach ( $sort_fields as $field => $dir ) {
