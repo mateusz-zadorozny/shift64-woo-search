@@ -16,6 +16,11 @@ jobs:
   clean-room:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Ubuntu's packaged mysqld is confined by AppArmor and cannot initialize
+    # a datadir below /home/runner. Keep the launcher's durable per-user cache
+    # default for local use, but use the CI runner's short-lived /tmp here.
+    env:
+      TEST_ENV_RUN_ROOT: /tmp/shift64-test-env
     steps:
       - uses: actions/checkout@v6
 
