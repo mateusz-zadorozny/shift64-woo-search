@@ -67,10 +67,10 @@ theme — so the same holds on a block-theme dev site (LocalWP) running
 Template parts are theme-scoped through the `wp_theme` term, so the header is
 simply **absent under Storefront**, including while
 `tests/e2e/classic-theme/` has it activated for the length of its spec file.
-Nothing needs tearing down around that switch. The suite's own selectors are
-already scoped to the search block wrappers (`.shift64-woo-search-block--form`,
-`--modal`), so the header's second instance of each block does not collide with
-the ones on `/search-e2e/`.
+Nothing needs tearing down around that switch. The suite addresses every search
+block by its provisioned `instanceId` (`search-e2e-*` on `/search-e2e/` and
+`shift64-e2e-header-*` in the header), so multiple instances of the same block
+never collide.
 
 ## Status, logs, and validation progress
 

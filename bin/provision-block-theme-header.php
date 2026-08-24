@@ -55,7 +55,7 @@ $header_markup = <<<'MARKUP'
 
 <!-- wp:column {"verticalAlignment":"center","width":""} -->
 <div class="wp-block-column is-vertically-aligned-center"><!-- wp:group {"style":{"spacing":{"blockGap":"0px"}},"layout":{"type":"flex","flexWrap":"nowrap","justifyContent":"right"}} -->
-<div class="wp-block-group"><!-- wp:shift64-woo-search/modal-search {"instanceId":"s64ws-90477a6e0535"} -->
+<div class="wp-block-group"><!-- wp:shift64-woo-search/modal-search {"instanceId":"shift64-e2e-header-modal"} -->
 <!-- wp:shift64-woo-search/search-control /-->
 
 <!-- wp:shift64-woo-search/search-panel /-->
@@ -71,7 +71,7 @@ $header_markup = <<<'MARKUP'
 
 <!-- wp:group {"align":"full","layout":{"type":"flex","flexWrap":"nowrap","justifyContent":"space-between"}} -->
 <div class="wp-block-group alignfull"><!-- wp:group {"style":{"spacing":{"padding":{"right":"0","left":"0"}}},"layout":{"type":"constrained"}} -->
-<div class="wp-block-group" style="padding-right:0;padding-left:0"><!-- wp:shift64-woo-search/search {"instanceId":"s64ws-2b36668ae646"} -->
+<div class="wp-block-group" style="padding-right:0;padding-left:0"><!-- wp:shift64-woo-search/search {"instanceId":"shift64-e2e-header-inline"} -->
 <!-- wp:shift64-woo-search/search-control /-->
 
 <!-- wp:shift64-woo-search/search-panel /-->
@@ -122,7 +122,7 @@ if ( ! wp_get_theme( $theme_slug )->exists() ) {
 $navigation_ids = get_posts(
 	array(
 		'post_type'      => 'wp_navigation',
-		'post_status'    => array( 'publish', 'draft' ),
+		'post_status'    => 'publish',
 		'posts_per_page' => 1,
 		'orderby'        => 'ID',
 		'order'          => 'ASC',
@@ -208,7 +208,12 @@ foreach ( $part_terms as $taxonomy => $term_name ) {
 			sprintf( 'Could not assign the "%1$s" term "%2$s": %3$s', $taxonomy, $term_name, $term->get_error_message() )
 		);
 	}
-	wp_set_post_terms( (int) $template_part_id, array( (int) $term['term_id'] ), $taxonomy );
+	$assigned_terms = wp_set_post_terms( (int) $template_part_id, array( (int) $term['term_id'] ), $taxonomy );
+	if ( is_wp_error( $assigned_terms ) ) {
+		WP_CLI::error(
+			sprintf( 'Could not assign the "%1$s" term "%2$s": %3$s', $taxonomy, $term_name, $assigned_terms->get_error_message() )
+		);
+	}
 }
 
 WP_CLI::success(

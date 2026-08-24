@@ -68,14 +68,14 @@ export function isSuggestionsRequest(req: Request): boolean {
  * Addressing them by INSTANCE rather than by block wrapper is load-bearing: the
  * provisioned theme header carries its own instance of BOTH blocks, so
  * `.shift64-woo-search-block--form` now matches on every page — the header's
- * block is the same block, not a lookalike. The header's instances are nested
- * inside group/column blocks, and `render_block_data` (where the plugin turns
- * `instanceId` into its runtime id) only fires for top-level blocks — so those
- * fall back to render-order ids (`shift64-woo-search-N-…`) that must never be
- * matched by name.
+ * block is the same block, not a lookalike.
  */
 export const E2E_INLINE_INSTANCE = 'search-e2e-inline';
 export const E2E_MODAL_INSTANCE = 'search-e2e-modal';
+
+/** Stable instances provisioned into the active block theme's header. */
+export const E2E_HEADER_INLINE_INSTANCE = 'shift64-e2e-header-inline';
+export const E2E_HEADER_MODAL_INSTANCE = 'shift64-e2e-header-modal';
 
 /** The plain search-block input on the e2e page. */
 export function searchInput(page: Page): Locator {
