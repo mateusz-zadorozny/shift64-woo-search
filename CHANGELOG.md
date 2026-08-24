@@ -1,3 +1,10 @@
+# [0.17.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.16.2...v0.17.0) (2026-08-24)
+
+
+### Features
+
+* **blocks:** add Product Filters and Filter Pill blocks ([#72](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/72)) ([243daec](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/243daecc99eaf2b18ff70b604a85355a6a751157))
+
 ## [0.16.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.16.1...v0.16.2) (2026-08-19)
 
 
