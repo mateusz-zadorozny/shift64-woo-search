@@ -144,7 +144,9 @@ class Shift64_Woo_Search_Product_Collection_Query_Service {
 			return $this->fallback( $context, $state );
 		}
 
-		$facets = Shift64_Woo_Search_Facets::compute(
+		// Memoized: a Filter Pill rendered before this collection may already
+		// have aggregated the same canonical state (never twice per request).
+		$facets = Shift64_Woo_Search_Facet_Count_Provider::compute_memoized(
 			$query,
 			$scope,
 			$state->get_redis_filters(),

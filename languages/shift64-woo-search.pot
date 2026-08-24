@@ -1,36 +1,42 @@
 # Copyright (C) 2026 Mateusz Zadorożny
-# This file is distributed under the same license as the Shift64 Woo Search plugin.
+# This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Shift64 Woo Search 0.10.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/shift64-woo-search\n"
+"Project-Id-Version: Shift64 Woo Search 0.16.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/a8f238eb-a5d8-4635-aa57-419a0b93abfa\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-29T09:03:33+00:00\n"
+"POT-Creation-Date: 2026-08-20T17:56:55+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: shift64-woo-search\n"
 
 #. Plugin Name of the plugin
-#: shift64-woo-search.php:3
+#: shift64-woo-search.php
 #: admin/class-shift64-woo-search-admin.php:70
 #: admin/class-shift64-woo-search-admin.php:71
 #: admin/class-shift64-woo-search-admin.php:159
-#: admin/class-shift64-woo-search-admin.php:1660
-#: admin/class-shift64-woo-search-admin.php:1719
+#: admin/class-shift64-woo-search-admin.php:1673
+#: admin/class-shift64-woo-search-admin.php:1732
 msgid "Shift64 Woo Search"
 msgstr ""
 
+#. Plugin URI of the plugin
+#. Author URI of the plugin
+#: shift64-woo-search.php
+msgid "https://shift64.com"
+msgstr ""
+
 #. Description of the plugin
-#: shift64-woo-search.php:4
+#: shift64-woo-search.php
 msgid "Custom WooCommerce search engine powered by RediSearch. Ultra-fast autocomplete and full-text search."
 msgstr ""
 
 #. Author of the plugin
-#: shift64-woo-search.php:6
+#: shift64-woo-search.php
 msgid "Mateusz Zadorożny"
 msgstr ""
 
@@ -189,9 +195,16 @@ msgid "Type a search query..."
 msgstr ""
 
 #: admin/class-shift64-woo-search-admin.php:325
-#: frontend/class-shift64-woo-search-frontend.php:51
-#: frontend/class-shift64-woo-search-frontend.php:108
-#: includes/class-shift64-woo-search-blocks.php:483
+#: frontend/class-shift64-woo-search-frontend.php:66
+#: frontend/class-shift64-woo-search-frontend.php:123
+#: includes/class-shift64-woo-search-blocks.php:357
+#: includes/class-shift64-woo-search-blocks.php:403
+#: includes/class-shift64-woo-search-blocks.php:800
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:27
+#: src/blocks/search-control/index.js:195
+#: src/blocks/search-panel/index.js:118
 msgid "Search"
 msgstr ""
 
@@ -230,6 +243,7 @@ msgstr ""
 #: admin/class-shift64-woo-search-admin.php:691
 #: frontend/class-shift64-woo-search-filters.php:115
 #: frontend/class-shift64-woo-search-filters.php:122
+#: includes/class-shift64-woo-search-facet-eligibility.php:104
 msgid "Category"
 msgstr ""
 
@@ -385,7 +399,7 @@ msgstr ""
 #: admin/class-shift64-woo-search-admin.php:1549
 #: admin/class-shift64-woo-search-admin.php:1586
 #: admin/class-shift64-woo-search-admin.php:1615
-#: admin/class-shift64-woo-search-admin.php:1645
+#: admin/class-shift64-woo-search-admin.php:1658
 msgid "Save Settings"
 msgstr ""
 
@@ -510,6 +524,8 @@ msgid "Brands"
 msgstr ""
 
 #: admin/class-shift64-woo-search-admin.php:889
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:246
 msgid "Categories"
 msgstr ""
 
@@ -626,7 +642,7 @@ msgid "Show Brand Filter"
 msgstr ""
 
 #: admin/class-shift64-woo-search-admin.php:1104
-#: admin/class-shift64-woo-search-admin.php:1865
+#: admin/class-shift64-woo-search-admin.php:1878
 msgid "Enabled"
 msgstr ""
 
@@ -966,86 +982,135 @@ msgstr ""
 msgid "Max products shown in the dropdown."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1639
+#: admin/class-shift64-woo-search-admin.php:1641
+msgid "Dropdown Width"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1643
+msgid "Match the search field"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1644
+msgid "Custom width"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1646
+msgid "The results tray is as wide as the search field unless you set a custom width."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1648
+msgid "Custom Width (px)"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1648
+msgid "Applies only when Dropdown Width is set to Custom. Between 320 and 1200; mobile stays full-width regardless."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1649
+msgid "Show SKU"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1649
+msgid "Include the product SKU in the result meta line."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1650
+msgid "Show Category"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1650
+msgid "Include the most specific product category in the result meta line."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1651
+msgid "Show Brand"
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1651
+msgid "Include the product brand in the result meta line. Turn options off to reduce clutter, or stack any combination."
+msgstr ""
+
+#: admin/class-shift64-woo-search-admin.php:1652
 msgid "Category Suggestion Fuzzy"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1639
+#: admin/class-shift64-woo-search-admin.php:1652
 msgid "Allow typo-tolerant matching in the autocomplete category section. Uses conservative Levenshtein distance 1 on category-name tokens; no index rebuild required."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1640
+#: admin/class-shift64-woo-search-admin.php:1653
 msgid "Brand Suggestions"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1640
+#: admin/class-shift64-woo-search-admin.php:1653
 msgid "Show a Brands section in the autocomplete dropdown. The section hides itself on stores that have no brands."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1679
+#: admin/class-shift64-woo-search-admin.php:1692
 msgid "Promoted in search"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1683
+#: admin/class-shift64-woo-search-admin.php:1696
 msgid "Excluded from search"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1734
+#: admin/class-shift64-woo-search-admin.php:1747
 msgid "searches (7d)"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1735
+#: admin/class-shift64-woo-search-admin.php:1748
 msgid "avg response"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1738
+#: admin/class-shift64-woo-search-admin.php:1751
 msgid "Top searches:"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1746
+#: admin/class-shift64-woo-search-admin.php:1759
 msgid "Zero-result searches:"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:1754
+#: admin/class-shift64-woo-search-admin.php:1767
 msgid "View full statistics"
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2377
+#: admin/class-shift64-woo-search-admin.php:2390
 msgid "Filter settings saved. Rebuild index only if you changed filter attributes."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2404
-#: admin/class-shift64-woo-search-admin.php:2545
+#: admin/class-shift64-woo-search-admin.php:2417
+#: admin/class-shift64-woo-search-admin.php:2558
 msgid "Category required."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2407
+#: admin/class-shift64-woo-search-admin.php:2420
 msgid "Boost must be greater than 0."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2420
-#: admin/class-shift64-woo-search-admin.php:2550
+#: admin/class-shift64-woo-search-admin.php:2433
+#: admin/class-shift64-woo-search-admin.php:2563
 msgid "Category not found."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2434
+#: admin/class-shift64-woo-search-admin.php:2447
 msgid "Boost saved."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2462
+#: admin/class-shift64-woo-search-admin.php:2475
 msgid "Boost removed."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2558
+#: admin/class-shift64-woo-search-admin.php:2571
 msgid "Category hidden."
 msgstr ""
 
-#: admin/class-shift64-woo-search-admin.php:2580
+#: admin/class-shift64-woo-search-admin.php:2593
 msgid "Category restored."
 msgstr ""
 
 #: frontend/class-shift64-woo-search-filters.php:135
 #: frontend/class-shift64-woo-search-filters.php:142
+#: includes/class-shift64-woo-search-facet-eligibility.php:115
 msgid "Brand"
 msgstr ""
 
@@ -1074,12 +1139,12 @@ msgid "Show results"
 msgstr ""
 
 #: frontend/class-shift64-woo-search-filters.php:445
-#: includes/class-shift64-woo-search-archive.php:635
+#: includes/class-shift64-woo-search-archive.php:767
 msgid "Price: low to high"
 msgstr ""
 
 #: frontend/class-shift64-woo-search-filters.php:446
-#: includes/class-shift64-woo-search-archive.php:636
+#: includes/class-shift64-woo-search-archive.php:768
 msgid "Price: high to low"
 msgstr ""
 
@@ -1091,353 +1156,945 @@ msgid_plural "%d selected"
 msgstr[0] ""
 msgstr[1] ""
 
-#: frontend/class-shift64-woo-search-frontend.php:50
-#: frontend/class-shift64-woo-search-frontend.php:107
-#: includes/class-shift64-woo-search-blocks.php:478
+#: frontend/class-shift64-woo-search-frontend.php:65
+#: frontend/class-shift64-woo-search-frontend.php:122
+#: includes/class-shift64-woo-search-blocks.php:356
+#: includes/class-shift64-woo-search-blocks.php:402
+#: includes/class-shift64-woo-search-blocks.php:795
 msgid "Search products..."
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:52
-#: frontend/class-shift64-woo-search-frontend.php:109
-#: includes/class-shift64-woo-search-blocks.php:488
+#: frontend/class-shift64-woo-search-frontend.php:67
+#: frontend/class-shift64-woo-search-frontend.php:124
+#: includes/class-shift64-woo-search-blocks.php:276
+#: includes/class-shift64-woo-search-blocks.php:398
+#: includes/class-shift64-woo-search-blocks.php:401
+#: includes/class-shift64-woo-search-blocks.php:805
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:22
+#: src/blocks/search-panel/index.js:110
+#: src/blocks/search-panel/index.js:113
 msgid "Search products"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:110
-#: includes/class-shift64-woo-search-blocks.php:505
+#: frontend/class-shift64-woo-search-frontend.php:125
+#: includes/class-shift64-woo-search-blocks.php:348
+#: includes/class-shift64-woo-search-blocks.php:822
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:30
 msgid "Open product search"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:111
-#: includes/class-shift64-woo-search-blocks.php:510
+#: frontend/class-shift64-woo-search-frontend.php:126
+#: includes/class-shift64-woo-search-blocks.php:399
+#: includes/class-shift64-woo-search-blocks.php:827
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:120
 msgid "Close search"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:112
-#: includes/class-shift64-woo-search-blocks.php:515
+#: frontend/class-shift64-woo-search-frontend.php:127
+#: includes/class-shift64-woo-search-blocks.php:400
+#: includes/class-shift64-woo-search-blocks.php:832
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:122
 msgid "Clear search"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:241
+#: frontend/class-shift64-woo-search-frontend.php:272
+#: includes/class-shift64-woo-search-blocks.php:234
+#: build/blocks/modal-search/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: build/blocks/search/index.js:1
+#: src/blocks/search-panel/index.js:125
+#: src/blocks/shared/parent.js:156
 msgid "No products found"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:242
+#: frontend/class-shift64-woo-search-frontend.php:273
+#: includes/class-shift64-woo-search-blocks.php:241
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:59
 msgid "See all results"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:243
+#: frontend/class-shift64-woo-search-frontend.php:274
+#: includes/class-shift64-woo-search-blocks.php:230
 msgid "SEARCH SUGGESTIONS"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:244
+#: frontend/class-shift64-woo-search-frontend.php:275
+#: includes/class-shift64-woo-search-blocks.php:231
 msgid "CATEGORIES"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:245
+#: frontend/class-shift64-woo-search-frontend.php:276
+#: includes/class-shift64-woo-search-blocks.php:232
 msgid "BRANDS"
 msgstr ""
 
-#: frontend/class-shift64-woo-search-frontend.php:246
+#: frontend/class-shift64-woo-search-frontend.php:277
+#: includes/class-shift64-woo-search-blocks.php:233
 msgid "PRODUCTS"
 msgstr ""
 
-#: includes/class-shift64-woo-search-archive.php:634
+#: includes/class-shift64-woo-search-archive.php:766
 msgid "Search relevance"
 msgstr ""
 
-#: includes/class-shift64-woo-search-archive.php:805
-#: includes/class-shift64-woo-search-archive.php:912
+#: includes/class-shift64-woo-search-archive.php:943
+#: includes/class-shift64-woo-search-archive.php:1050
 msgid "Home"
 msgstr ""
 
-#: includes/class-shift64-woo-search-archive.php:807
-#: includes/class-shift64-woo-search-archive.php:914
+#: includes/class-shift64-woo-search-archive.php:945
+#: includes/class-shift64-woo-search-archive.php:1052
+#: includes/class-shift64-woo-search-blocks.php:450
 msgid "Search results"
 msgstr ""
 
-#: includes/class-shift64-woo-search-archive.php:810
-#: includes/class-shift64-woo-search-archive.php:857
+#: includes/class-shift64-woo-search-archive.php:948
+#: includes/class-shift64-woo-search-archive.php:995
 msgid "Search results for:"
 msgstr ""
 
 #. translators: %s: search query.
-#: includes/class-shift64-woo-search-archive.php:889
+#: includes/class-shift64-woo-search-archive.php:1027
 #, php-format
 msgid "Search results for: \"%s\""
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:64
-msgid "Shift64 Product Search"
+#: includes/class-shift64-woo-search-blocks.php:235
+msgid "Searching…"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:67
-msgid "A product search form with Shift64 autocomplete."
+#: includes/class-shift64-woo-search-blocks.php:236
+msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:70
-#: includes/class-shift64-woo-search-blocks.php:92
-msgid "products"
+#: includes/class-shift64-woo-search-blocks.php:237
+msgid "Quick search timed out. Use the search button."
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:71
-msgid "WooCommerce"
+#: includes/class-shift64-woo-search-blocks.php:238
+msgid "Quick search is unavailable. Use the search button."
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:86
-msgid "Shift64 Modal Product Search"
+#. Translators: %d is the number of search results available.
+#: includes/class-shift64-woo-search-blocks.php:240
+#, php-format
+msgid "%d results available"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:89
-msgid "A compact search icon that opens the Shift64 product search modal."
+#: includes/class-shift64-woo-search-blocks.php:395
+msgid "Close suggestions"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:93
-msgid "modal"
-msgstr ""
-
-#: includes/class-shift64-woo-search-blocks.php:476
+#: includes/class-shift64-woo-search-blocks.php:793
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:160
+#: src/blocks/search-panel/index.js:185
 msgid "Placeholder"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:481
+#: includes/class-shift64-woo-search-blocks.php:798
 msgid "Search button text"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:486
+#: includes/class-shift64-woo-search-blocks.php:803
 msgid "Accessible search label"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:503
+#: includes/class-shift64-woo-search-blocks.php:820
 msgid "Open button label"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:508
+#: includes/class-shift64-woo-search-blocks.php:825
 msgid "Close button label"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:513
+#: includes/class-shift64-woo-search-blocks.php:830
 msgid "Clear button label"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:518
-#: admin/js/shift64-woo-search-block-editor.js:92
+#: includes/class-shift64-woo-search-blocks.php:835
 msgid "Search icon"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:524
+#: includes/class-shift64-woo-search-blocks.php:841
 msgid "Trigger button style"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:530
+#: includes/class-shift64-woo-search-blocks.php:847
 msgid "Trigger icon color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:535
+#: includes/class-shift64-woo-search-blocks.php:852
 msgid "Trigger icon hover color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:540
+#: includes/class-shift64-woo-search-blocks.php:857
 msgid "Trigger background or outline color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:545
+#: includes/class-shift64-woo-search-blocks.php:862
 msgid "Trigger background or outline hover color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:550
+#: includes/class-shift64-woo-search-blocks.php:867
 msgid "Trigger border radius"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:555
+#: includes/class-shift64-woo-search-blocks.php:872
 msgid "Trigger icon size"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:560
+#: includes/class-shift64-woo-search-blocks.php:877
 msgid "Trigger padding"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:565
+#: includes/class-shift64-woo-search-blocks.php:882
 msgid "Trigger outline width"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:570
+#: includes/class-shift64-woo-search-blocks.php:887
 msgid "Modal search field style"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:576
-#: admin/js/shift64-woo-search-block-editor.js:255
+#: includes/class-shift64-woo-search-blocks.php:893
 msgid "Modal background color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:581
+#: includes/class-shift64-woo-search-blocks.php:898
 msgid "Modal background transparency"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:586
+#: includes/class-shift64-woo-search-blocks.php:903
 msgid "Search input text color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:591
+#: includes/class-shift64-woo-search-blocks.php:908
 msgid "Search input background color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:596
+#: includes/class-shift64-woo-search-blocks.php:913
 msgid "Search button icon color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:601
+#: includes/class-shift64-woo-search-blocks.php:918
 msgid "Search button background color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:606
+#: includes/class-shift64-woo-search-blocks.php:923
 msgid "Search button icon hover color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:611
+#: includes/class-shift64-woo-search-blocks.php:928
 msgid "Search button background hover color"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:616
+#: includes/class-shift64-woo-search-blocks.php:933
 msgid "Show modal preview in editor"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:684
-#: admin/js/shift64-woo-search-block-editor.js:246
+#: includes/class-shift64-woo-search-blocks.php:1001
 msgid "Pill"
 msgstr ""
 
-#: includes/class-shift64-woo-search-blocks.php:688
-#: admin/js/shift64-woo-search-block-editor.js:247
+#: includes/class-shift64-woo-search-blocks.php:1005
 msgid "Minimal"
 msgstr ""
 
-#: shift64-woo-search.php:37
+#: includes/class-shift64-woo-search-editor-facets-rest.php:64
+msgid "Sorry, you are not allowed to read facet configuration."
+msgstr ""
+
+#: includes/class-shift64-woo-search-filter-blocks.php:345
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:137
+msgid "Apply"
+msgstr ""
+
+#: includes/class-shift64-woo-search-filter-blocks.php:346
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:145
+msgid "Clear"
+msgstr ""
+
+#: includes/class-shift64-woo-search-filter-blocks.php:379
+msgid "Close filter options"
+msgstr ""
+
+#: includes/class-shift64-woo-search-filter-blocks.php:465
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:359
+#: src/blocks/product-filters/index.js:381
+msgid "Clear all"
+msgstr ""
+
+#: shift64-woo-search.php:41
 msgid "Shift64 Woo Search requires WooCommerce to be active."
 msgstr ""
 
-#: shift64-woo-search.php:577
-#: shift64-woo-search.php:590
+#: shift64-woo-search.php:595
+#: shift64-woo-search.php:608
 msgid "Shift64 Woo Search:"
 msgstr ""
 
-#: shift64-woo-search.php:578
+#: shift64-woo-search.php:596
 msgid "Redis connection not configured. Run: wp shift64-woo-search setup"
 msgstr ""
 
 #. translators: %1$s: Redis host, %2$s: Redis port.
-#: shift64-woo-search.php:594
+#: shift64-woo-search.php:612
 #, php-format
 msgid "Cannot connect to Redis at %1$s:%2$s. Search will fall back to default WooCommerce search."
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:55
+#: build/blocks/filter-pill/index.js:1
+#: src/blocks/shared/facets-helpers.js:16
+msgid "Enable it in Shift64 Results → Facets first."
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:1
+#: src/blocks/shared/facets-helpers.js:21
+msgid "Rebuild the search index to include it."
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:1
+#: src/blocks/shared/facets-helpers.js:26
+msgid "Its taxonomy is not registered on this site."
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:1
+#: src/blocks/filter-pill/index.js:29
+msgid "Select a facet…"
+msgstr ""
+
+#. translators: 1: facet label, 2: reason it is unavailable.
+#: build/blocks/filter-pill/index.js:2
+#: src/blocks/filter-pill/index.js:40
+#, js-format
+msgid "%1$s — unavailable: %2$s"
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:2
+#: src/blocks/filter-pill/index.js:151
+#: src/blocks/filter-pill/index.js:153
+msgid "Facet"
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:2
+#: src/blocks/filter-pill/index.js:161
+msgid "Loading available facets…"
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:2
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/filter-pill/index.js:173
+#: src/blocks/product-filters/index.js:415
+msgid "Open Facets settings"
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:2
+#: src/blocks/filter-pill/index.js:183
+msgid "Behavior"
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:2
+#: src/blocks/filter-pill/index.js:185
+msgid "Label"
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:2
+#: src/blocks/filter-pill/index.js:194
+msgid "Match products against"
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:2
+#: src/blocks/filter-pill/index.js:201
+msgid "Any selected value (OR)"
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:2
+#: src/blocks/filter-pill/index.js:208
+msgid "All selected values (AND)"
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:2
+#: src/blocks/filter-pill/index.js:221
+msgid "Selection, counts, ordering, and button labels are set once on the Product Filters block and apply to every pill."
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:2
+#: src/blocks/filter-pill/index.js:232
+msgid "Choose a facet for this pill in the block settings."
+msgstr ""
+
+#. translators: 1: facet label, 2: reason it is unavailable.
+#: build/blocks/filter-pill/index.js:3
+#: src/blocks/filter-pill/index.js:242
+#, js-format
+msgid "The %1$s facet is saved but not usable yet: %2$s This pill is skipped on the storefront."
+msgstr ""
+
+#: build/blocks/filter-pill/index.js:3
+#: src/blocks/filter-pill/index.js:253
+msgid "The saved facet is unknown on this site. This pill is skipped on the storefront."
+msgstr ""
+
+#: build/blocks/modal-search/index.js:1
+#: build/blocks/search/index.js:1
+#: src/blocks/shared/parent.js:250
+msgid "Legacy appearance was mapped to the nearest native child styles. Review Control and Panel before saving."
+msgstr ""
+
+#: build/blocks/modal-search/index.js:1
+#: build/blocks/search/index.js:1
+#: src/blocks/shared/parent.js:260
 msgid "Modal preview"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:59
-msgid "Show preview in editor"
+#: build/blocks/modal-search/index.js:1
+#: build/blocks/search/index.js:1
+#: src/blocks/shared/parent.js:261
+msgid "Suggestions preview"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:75
-msgid "Trigger button"
+#: build/blocks/modal-search/index.js:1
+#: build/blocks/search/index.js:1
+#: src/blocks/shared/parent.js:267
+msgid "Show open dialog in the editor"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:79
-msgid "Button style"
+#: build/blocks/modal-search/index.js:1
+#: build/blocks/search/index.js:1
+#: src/blocks/shared/parent.js:271
+msgid "Show suggestion tray in the editor"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:82
-msgid "Icon only"
+#: build/blocks/modal-search/index.js:1
+#: build/blocks/search/index.js:1
+#: src/blocks/shared/parent.js:286
+msgid "This search block has an unsupported child structure."
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:83
-#: admin/js/shift64-woo-search-block-editor.js:190
-#: admin/js/shift64-woo-search-block-editor.js:212
-msgid "Background"
+#: build/blocks/modal-search/index.js:1
+#: build/blocks/search/index.js:1
+#: src/blocks/shared/parent.js:301
+msgid "Repair search parts"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:84
-msgid "Outline"
-msgstr ""
-
-#: admin/js/shift64-woo-search-block-editor.js:95
-#: admin/js/shift64-woo-search-block-editor.js:245
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:37
 msgid "Default"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:96
-msgid "Alternative"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:38
+msgid "Hover"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:104
-msgid "Icon size"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:57
+msgid "Filter options"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:115
-msgid "Padding"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:61
+msgid "Selection"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:126
-msgid "Border radius"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:65
+msgid "Multiple choices"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:137
-msgid "Outline width"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:69
+msgid "Single choice"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:148
-msgid "Icon color"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:79
+msgid "Show result counts"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:155
-msgid "Icon hover color"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:85
+msgid "Hide options without results"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:162
-msgid "Background or outline color"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:89
+msgid "Selected options always stay visible."
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:169
-msgid "Background or outline hover color"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:99
+msgid "Order options by"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:179
-msgid "Search box input color"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:103
+msgid "Result count (descending)"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:183
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:110
+msgid "Name (A → Z)"
+msgstr ""
+
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:114
+msgid "Name (Z → A)"
+msgstr ""
+
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:123
+msgid "Maximum options (0 shows all)"
+msgstr ""
+
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:135
+msgid "Apply label"
+msgstr ""
+
+#: build/blocks/product-filters/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/product-filters/index.js:143
+#: src/blocks/search-panel/index.js:213
+msgid "Clear label"
+msgstr ""
+
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:188
+msgid "Pills"
+msgstr ""
+
+#: build/blocks/product-filters/index.js:1
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/product-filters/index.js:196
+#: src/blocks/search-control/index.js:222
+#: src/blocks/search-control/index.js:254
+#: src/blocks/search-panel/index.js:328
 msgid "Text"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:201
-msgid "Search button color"
+#: build/blocks/product-filters/index.js:1
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/product-filters/index.js:206
+#: src/blocks/search-control/index.js:228
+#: src/blocks/search-control/index.js:271
+#: src/blocks/search-control/index.js:480
+#: src/blocks/search-panel/index.js:343
+msgid "Background"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:205
-msgid "Icon"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:223
+msgid "Border"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:220
-msgid "Icon hover"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:238
+msgid "Hover styles also apply on keyboard focus. Anything left empty falls back to the default state."
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:227
-msgid "Background hover"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:248
+msgid "Border width"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:238
-msgid "Modal"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:270
+msgid "Border radius"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:242
-msgid "Search field style"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:361
+msgid "Show a Clear all control"
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:262
-msgid "Modal transparency"
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:365
+msgid "Rendered only while at least one of these filters is active."
 msgstr ""
 
-#: admin/js/shift64-woo-search-block-editor.js:267
-msgid "0% is opaque; 100% is fully transparent."
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:376
+msgid "Clear all label"
+msgstr ""
+
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:404
+msgid "Enable facets in Shift64 Results → Facets, rebuild the index, then return here."
+msgstr ""
+
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:408
+msgid "Enable facets in Shift64 Results → Facets, then return here."
+msgstr ""
+
+#: build/blocks/product-filters/index.js:1
+#: src/blocks/product-filters/index.js:425
+msgid "Facet availability could not be loaded. Saved pills keep their configuration."
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:25
+#: src/blocks/search-panel/index.js:116
+msgid "Search products…"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:151
+msgid "Search copy"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:153
+msgid "Accessible label"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:167
+#: src/blocks/search-panel/index.js:192
+msgid "Submit label"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:176
+msgid "Trigger label"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:188
+msgid "Trigger icon"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:202
+msgid "None"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:219
+msgid "Input colors"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:248
+#: src/blocks/search-panel/index.js:325
+msgid "Button colors"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:260
+#: src/blocks/search-panel/index.js:334
+msgid "Text (hover)"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-control/index.js:282
+#: src/blocks/search-control/index.js:486
+#: src/blocks/search-panel/index.js:349
+msgid "Background (hover)"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:308
+msgid "Shape"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:312
+msgid "Input radius"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:325
+msgid "Button radius"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:339
+msgid "Vertical padding"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:343
+msgid "Shared by the joined input and button."
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:361
+msgid "Input padding — vertical"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:374
+msgid "Button padding — vertical"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:387
+msgid "Gap between input and button"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:402
+msgid "Input padding — horizontal"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:415
+msgid "Button padding — horizontal"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:428
+msgid "Join input and button"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:432
+msgid "Fuse them into one bar with a shared edge."
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:459
+msgid "Trigger colors"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:462
+msgid "Text / icon"
+msgstr ""
+
+#: build/blocks/search-control/index.js:1
+#: src/blocks/search-control/index.js:471
+msgid "Text / icon (hover)"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:27
+#: src/blocks/search-panel/index.js:232
+msgid "Products"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:32
+msgid "Example product"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:45
+msgid "Example category"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:176
+msgid "Panel copy"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:178
+msgid "Input label"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:199
+msgid "Dialog label"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:206
+msgid "Close label"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:220
+msgid "No results label"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:228
+msgid "Quick search results"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:233
+msgid "Unset falls back to the plugin settings."
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:247
+#: src/blocks/search-panel/index.js:261
+msgid "0 hides the section; unset keeps the default."
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:260
+msgid "Suggestions"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:274
+msgid "Show SKU on products"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:282
+msgid "Show category on products"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:292
+msgid "Show brand on products"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:302
+msgid "Max width (px)"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:313
+msgid "Colors"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:316
+msgid "All results"
+msgstr ""
+
+#: build/blocks/search-panel/index.js:1
+#: src/blocks/search-panel/index.js:377
+msgid "Suggestions are closed. Enable the preview from the parent block settings."
+msgstr ""
+
+#: build/blocks/filter-pill/block.json
+#: src/blocks/filter-pill/block.json
+msgctxt "block title"
+msgid "Filter Pill"
+msgstr ""
+
+#: build/blocks/filter-pill/block.json
+#: src/blocks/filter-pill/block.json
+msgctxt "block description"
+msgid "One Redis facet rendered as a filter pill with a disclosure panel."
+msgstr ""
+
+#: build/blocks/modal-search/block.json
+#: src/blocks/modal-search/block.json
+msgctxt "block title"
+msgid "Shift64 Modal Product Search"
+msgstr ""
+
+#: build/blocks/modal-search/block.json
+#: src/blocks/modal-search/block.json
+msgctxt "block description"
+msgid "A composable trigger and native product search dialog."
+msgstr ""
+
+#: build/blocks/modal-search/block.json
+#: build/blocks/product-filters/block.json
+#: build/blocks/search/block.json
+#: src/blocks/modal-search/block.json
+#: src/blocks/product-filters/block.json
+#: src/blocks/search/block.json
+msgctxt "block keyword"
+msgid "Shift64"
+msgstr ""
+
+#: build/blocks/modal-search/block.json
+#: build/blocks/search/block.json
+#: src/blocks/modal-search/block.json
+#: src/blocks/search/block.json
+msgctxt "block keyword"
+msgid "products"
+msgstr ""
+
+#: build/blocks/modal-search/block.json
+#: src/blocks/modal-search/block.json
+msgctxt "block keyword"
+msgid "modal"
+msgstr ""
+
+#: build/blocks/product-filters/block.json
+#: src/blocks/product-filters/block.json
+msgctxt "block title"
+msgid "Product Filters (Shift64)"
+msgstr ""
+
+#: build/blocks/product-filters/block.json
+#: src/blocks/product-filters/block.json
+msgctxt "block description"
+msgid "Composable Redis-backed product filters for an inherited Product Collection."
+msgstr ""
+
+#: build/blocks/product-filters/block.json
+#: src/blocks/product-filters/block.json
+msgctxt "block keyword"
+msgid "filters"
+msgstr ""
+
+#: build/blocks/product-filters/block.json
+#: src/blocks/product-filters/block.json
+msgctxt "block keyword"
+msgid "facets"
+msgstr ""
+
+#: build/blocks/product-filters/block.json
+#: build/blocks/search/block.json
+#: src/blocks/product-filters/block.json
+#: src/blocks/search/block.json
+msgctxt "block keyword"
+msgid "WooCommerce"
+msgstr ""
+
+#: build/blocks/search-control/block.json
+#: src/blocks/search-control/block.json
+msgctxt "block title"
+msgid "Search Control"
+msgstr ""
+
+#: build/blocks/search-control/block.json
+#: src/blocks/search-control/block.json
+msgctxt "block description"
+msgid "The closed search control or modal trigger."
+msgstr ""
+
+#: build/blocks/search-panel/block.json
+#: src/blocks/search-panel/block.json
+msgctxt "block title"
+msgid "Search Panel"
+msgstr ""
+
+#: build/blocks/search-panel/block.json
+#: src/blocks/search-panel/block.json
+msgctxt "block description"
+msgid "The suggestion tray or open search dialog."
+msgstr ""
+
+#: build/blocks/search/block.json
+#: src/blocks/search/block.json
+msgctxt "block title"
+msgid "Shift64 Product Search"
+msgstr ""
+
+#: build/blocks/search/block.json
+#: src/blocks/search/block.json
+msgctxt "block description"
+msgid "A composable product search form with Shift64 autocomplete."
 msgstr ""

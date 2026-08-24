@@ -1,9 +1,15 @@
 {
   "name": "shift64-woo-search",
-  "version": "0.15.0",
+  "version": "0.17.1",
   "description": "Shift64 Woo Search — WooCommerce + RediSearch plugin",
   "private": true,
   "scripts": {
+    "build:blocks": "wp-scripts build --experimental-modules --webpack-copy-php",
+    "start:blocks": "wp-scripts start --experimental-modules --webpack-copy-php",
+    "validate:block-metadata": "node .ai/scripts/validate-block-metadata.mjs",
+    "lint:blocks": "wp-scripts lint-js src/blocks src/interactivity .ai/scripts/validate-block-metadata.mjs",
+    "test:unit": "wp-scripts test-unit-js",
+    "test:blocks": "npm run validate:block-metadata && npm run test:unit",
     "prepare": "husky",
     "lint:changed": "{ git diff --name-only --diff-filter=ACM; git ls-files --others --exclude-standard; } | sort -u | grep '.php$' | xargs -r ./vendor/bin/phpcs",
     "fix:changed": "{ git diff --name-only --diff-filter=ACM; git ls-files --others --exclude-standard; } | sort -u | grep '.php$' | xargs -r ./vendor/bin/phpcbf || true",
@@ -25,8 +31,24 @@
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.1",
+    "@wordpress/api-fetch": "^7.53.0",
+    "@wordpress/block-editor": "^16.1.0",
+    "@wordpress/blocks": "^15.25.0",
+    "@wordpress/components": "^38.0.0",
+    "@wordpress/data": "^10.52.0",
+    "@wordpress/element": "^8.4.0",
+    "@wordpress/i18n": "^6.25.0",
+    "@wordpress/interactivity": "^6.52.0",
+    "@wordpress/scripts": "^34.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.6",
     "semantic-release": "^25.0.0"
+  },
+  "overrides": {
+    "@cacheable/memory@2.2.1": "2.2.0",
+    "@cacheable/utils@2.5.1": "2.5.0",
+    "cacheable@2.5.1": "2.5.0",
+    "file-entry-cache@11.1.6": "11.1.5",
+    "flat-cache@6.1.24": "6.1.23"
   }
 }

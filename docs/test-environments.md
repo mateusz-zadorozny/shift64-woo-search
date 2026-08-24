@@ -19,7 +19,9 @@ That is the whole setup. When it returns, the launcher has:
 - started an isolated MariaDB/MySQL (native `mysqld` when the host has one,
   otherwise a Docker `mariadb:lts` container) and a RediSearch-capable Redis
   on run-scoped `127.0.0.1` ports;
-- installed WordPress + WooCommerce + Storefront via `bin/e2e-install-wp.sh`
+- installed WordPress + WooCommerce via `bin/e2e-install-wp.sh`, with Twenty
+  Twenty-Five active (the supported block-theme baseline) and Storefront
+  installed inactive for the classic-theme e2e projection
   and provisioned the plugin state (demo catalog, options, index) via
   `bin/e2e-provision.sh`;
 - installed `wordpress-tests-lib` and its test database via
@@ -34,7 +36,8 @@ That is the whole setup. When it returns, the launcher has:
   while you QA in the browser.
 
 Expected time-to-ready: ~2–4 minutes cold (network downloads dominate),
-seconds on a healthy reuse.
+seconds on a healthy reuse. The ready environment is owned independently of
+the shell or agent command that launched it; no terminal needs to stay open.
 
 Flags: `--allow-degraded` (accept a searchless storefront when phpredis
 cannot be installed), `--no-validate` (skip the background gate), `--force` (restart even if
@@ -56,16 +59,27 @@ Machine-readable validation state lives in `.ai/qa/validation-status.json`
 (per-command status, exit codes, timestamps); full output streams to
 `.ai/qa/logs/validation-<runId>.log`.
 
+`runId` remains stable for a worktree, while the additive `generationId`
+changes whenever the environment is rebuilt. The descriptor's
+`recoveryMode` is one of `reused`, `restarted-app`, or `rebuilt`. Validation
+results also carry `generationId`; `status --json` returns
+`validationStatus: null` for a missing or mismatched result. Running `up
+--no-validate` stops any owned validation supervisor and clears its status,
+so an earlier `passed` result is never presented as part of the current run.
+
 `status` never echoes a stale descriptor: every recorded PID, port, database,
 Redis instance, and the storefront HTTP endpoint is re-probed, and a
 `running` claim that fails any probe is rewritten to `unhealthy`.
 
 ## Recovery
 
-- **Dead or half-provisioned environment** — just run `bin/test-env.sh up`
-  again. It health-probes the recorded state, tears down only the resources
-  it owns (PIDs are verified against their recorded command lines before any
-  kill), and rebuilds what is missing.
+- **Dead application server** — just run `bin/test-env.sh up` again. When
+  MySQL, Redis, WordPress files, and the PHPUnit runtime are still healthy,
+  it restarts only `wp server`, keeps the same URL and catalog, and records
+  `recoveryMode: restarted-app`.
+- **Dead service or corrupt provisioning state** — `up` tears down only the
+  resources it owns (PIDs are verified against their recorded command lines
+  before any kill) and rebuilds the environment with a new `generationId`.
 - **Aborted degraded e2e run left Redis config broken** — `up` re-runs the
   idempotent provisioning, which restores a healthy config.
 - **Everything weird** — `bin/test-env.sh down && bin/test-env.sh up --fresh`.
@@ -108,7 +122,9 @@ worktrees run fully disjoint environments concurrently.
 
 Linux and macOS are both first-class. On macOS the launcher runs on the stock
 `/bin/bash` 3.2 (no arrays-under-`set -u` tricks, no `setsid`, no `/proc`, no
-GNU `sed -i` — PID ownership is verified via `ps -o command=` there), services
+GNU `sed -i` — PID ownership is verified via `ps -o command=` there), hands
+the app and validation supervisor to `launchd`, and uses `setsid` on Linux so
+both survive the launching shell. Services
 without a native binary fall back to Docker (`mariadb:lts`,
 `redis/redis-stack-server`), and a host without `redis-cli` is fine: probes go
 through `docker exec` into the run's container. The wp-cli shim also pins
@@ -116,13 +132,55 @@ through `docker exec` into the run's container. The wp-cli shim also pins
 128M default extracts WordPress without OOMing. Native Windows remains out of
 scope (`om-prepare-test-env` owns that path).
 
+No GNU coreutils are required on macOS. The per-worktree hash that names the
+run directory, the MySQL socket and both databases is a SHA-1 of the worktree
+path, computed with the first of `sha1sum`, `shasum` or `openssl` found on
+`PATH` — all three produce the same digest, and stock macOS satisfies the
+requirement through `shasum`. A host with none of the three stops immediately
+naming all three, rather than dying with a bare `command not found` before
+preflight can report anything.
+
+When a Docker fallback is required, preflight verifies the daemon rather than
+only the CLI. On macOS with `/Applications/Docker.app`, it starts Docker
+Desktop and waits up to 90 seconds. Other hosts fail before provisioning with
+an actionable `docker info` diagnosis. Image pulls retry three times and keep
+their stderr in the run log named by the failure.
+
 ## Environment variables
 
 | Variable | Effect |
 | --- | --- |
-| `TEST_ENV_PHP` | Absolute path of the PHP binary to use (default: newest `php`/`php8.x` ≥ 8.3 with `mysqli`) |
+| `TEST_ENV_PHP` | Absolute path of the PHP binary to use (default: every `php`/`php8.x` on `PATH` and in the usual prefixes is probed, preferring one that already has `mysqli` **and** `phpredis`) |
 | `TEST_ENV_SHARED_REDIS` | `host:port` of the shared-Redis fallback (default `127.0.0.1:6379`) |
-| `TMPDIR` | Root for the run directory (default `/tmp`); the wp-cli shim lives worktree-side because tmp roots are often `noexec` |
+| `TEST_ENV_RUN_ROOT` | Root for the run directory (default `${XDG_CACHE_HOME:-$HOME/.cache}/shift64-test-env`) |
+
+**The run directory deliberately ignores `$TMPDIR`.** It holds the WordPress
+docroot, the MySQL datadir and `wordpress-tests-lib` for the whole life of the
+environment, and agent harnesses (cezar) point `$TMPDIR` at a per-task scratch
+directory they recycle *while the environment is still running*. When that
+happened, `wp server` and `mysqld` stayed up on top of a deleted docroot and
+every page answered **HTTP 200 carrying a PHP fatal** (`chdir(): No such file
+or directory` from the wp-cli router) — an environment that looks healthy to a
+status-code check and is entirely dead. Anchoring to a stable per-user cache
+directory removes that failure mode; use `TEST_ENV_RUN_ROOT` to relocate it.
+The wp-cli shim still lives worktree-side, because tmp roots are often `noexec`.
+
+**The flip side is that nothing reaps the run root for you any more.** Each
+worktree gets its own `$RUN_ROOT/<runId>/` holding a WordPress core checkout,
+`wordpress-develop`, `wordpress-tests-lib` and a MySQL datadir — hundreds of MB
+— and `down` only removes the *current* worktree's directory. A worktree that
+is deleted without a `down` first leaves its run directory behind for good.
+Reclaim the space with `rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/shift64-test-env"`
+once no environment is running (`bin/test-env.sh status` in each worktree, or
+just after a reboot). Upgrading from a pre-`TEST_ENV_RUN_ROOT` checkout: run
+`bin/test-env.sh down` **before** updating, or the old `$TMPDIR`-anchored
+environment is orphaned — the new code cannot see it to stop it.
+
+PHP discovery enumerates candidates **by directory**, not by command name: on
+macOS, Local by Flywheel's phpredis-less `php` commonly shadows a Homebrew
+`php` that has the extension, and `command -v php` only ever returns the first
+of them — so a name-only search would silently pick the build that cannot talk
+to Redis, and then fail on `pecl install redis`.
 
 Managed servers that periodically strip exec bits under the web root (this
 repo's dev server does) are handled: invoke the launcher as
@@ -136,3 +194,13 @@ supervisor repair `vendor/bin/*` exec bits before relying on them.
 It is deliberately not part of the per-PR gate, and the launcher test — like
 Playwright — must never be added to `.ai/agentic.config.json`
 `validation.commands`.
+
+`tests/env/test-env-discovery.sh` is the cheap half: it sources `test-env.sh`
+(sourcing loads the helpers without dispatching a command) and asserts the pure
+logic — PHP discovery returns a bare executable path even when the candidate
+binary is noisy on stdout, `RUN_DIR` is anchored to `TEST_ENV_RUN_ROOT` /
+`$XDG_CACHE_HOME` and never to `$TMPDIR`, and `WORKTREE_HASH` is byte-identical
+whichever of `sha1sum`/`shasum`/`openssl` the host exposes. It provisions
+nothing, needs no PHP
+(the candidates are stubs) and runs in seconds, so it *is* part of the per-PR
+`Tests (PHP 8.3)` job.

@@ -22,10 +22,17 @@ export function wpCli(args: string[]): string {
 }
 
 /**
- * The block theme the block-theme project switches to. Installed (inactive) by
- * bin/e2e-install-wp.sh; override to match a differently-provisioned site.
+ * The block theme the environment runs by default (activated by
+ * bin/e2e-install-wp.sh); override to match a differently-provisioned site.
  */
 export const BLOCK_THEME = process.env.E2E_BLOCK_THEME || 'twentytwentyfive';
+
+/**
+ * The classic Woo theme the classic-theme project switches to. Installed
+ * (inactive) by bin/e2e-install-wp.sh; override to match a
+ * differently-provisioned site.
+ */
+export const CLASSIC_THEME = process.env.E2E_CLASSIC_THEME || 'storefront';
 
 /**
  * Where the degrade setup records the site's original Redis connection so the

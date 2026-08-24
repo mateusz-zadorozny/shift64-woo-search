@@ -38,6 +38,7 @@ yarn.lock
 tests
 vendor
 node_modules
+src
 playwright.config.ts
 playwright-report
 test-results

@@ -15,9 +15,14 @@ on:
 jobs:
   clean-room:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    # Ubuntu's packaged mysqld is confined by AppArmor and cannot initialize
+    # a datadir below /home/runner. Keep the launcher's durable per-user cache
+    # default for local use, but use the CI runner's short-lived /tmp here.
+    env:
+      TEST_ENV_RUN_ROOT: /tmp/shift64-test-env
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -39,3 +44,11 @@ jobs:
 
       - name: Clean-room launcher test
         run: bash tests/env/test-env-launcher.sh
+
+      - name: Preserve launcher diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-env-diagnostics
+          path: .ai/qa/logs/
+          if-no-files-found: ignore

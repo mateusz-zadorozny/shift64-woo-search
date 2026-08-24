@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "shift64-woo-search/search",
+  "version": "0.1.0",
+  "title": "Shift64 Product Search",
+  "category": "widgets",
+  "icon": "search",
+  "description": "A composable product search form with Shift64 autocomplete.",
+  "keywords": ["Shift64", "products", "WooCommerce"],
+  "textdomain": "shift64-woo-search",
+  "attributes": {
+    "instanceId": { "type": "string", "default": "" },
+    "runtimeId": { "type": "string", "default": "" },
+    "variant": { "type": "string", "enum": ["inline"], "default": "inline" },
+    "previewOpen": { "type": "boolean", "default": false },
+    "placeholder": { "type": "string" },
+    "button": { "type": "string" },
+    "label": { "type": "string" }
+  },
+  "providesContext": {
+    "shift64WooSearch/instanceId": "instanceId",
+    "shift64WooSearch/runtimeId": "runtimeId",
+    "shift64WooSearch/variant": "variant",
+    "shift64WooSearch/previewOpen": "previewOpen"
+  },
+  "supports": {
+    "align": ["wide", "full"],
+    "anchor": true,
+    "html": false,
+    "interactivity": true,
+    "spacing": { "margin": true, "padding": true }
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": ["shift64-woo-search", "file:./style-index.css"],
+  "viewScriptModule": "file:./view.js"
+}

@@ -45,26 +45,36 @@ wp shift64-woo-search health
 
 ## Search blocks
 
-On WordPress 7.0 or newer, the editor exposes two server-rendered blocks without
-a plugin-specific editor bundle:
+The editor exposes two composable, server-rendered parent blocks:
 
 - **Shift64 Product Search** — the full search field and submit button.
 - **Shift64 Modal Product Search** — a compact magnifier that opens the full-screen search.
 
-Both blocks provide inspector controls for their text and accessibility labels.
-The modal block also provides a choice of bundled search icons. Native block
-controls cover colors, typography, spacing, borders, alignment, and style
-variations. The editor uses the same PHP renderers as the frontend, including a
-contained open-modal preview.
+Each parent contains a locked **Search Control** and **Search Panel**. The
+children remain selectable, so the closed control and suggestion tray/dialog
+can be styled independently with native color, typography, spacing, border, and
+dimension tools. The modal parent includes an editor-only open-dialog preview.
 
-The blocks remain registered for server-side rendering on WordPress 6.x, but the
-automatic inserter and inspector UI require WordPress 7.0.
+Storefront markup is progressively enhanced: native `GET` forms continue to
+work without JavaScript or Redis, while the Interactivity API adds autocomplete,
+keyboard selection, request cancellation, and native `<dialog>` behavior. Old
+self-closing block comments continue to render through the legacy PHP fallback.
+See [Composable Search Blocks](docs/composable-search-blocks.md) for insertion,
+styling, migration, and development details.
 
 For block-theme archive grids, Shift64 integrates with one inherited
 WooCommerce Product Collection and leaves Product Template rendering,
 pagination, history, and accessibility to WooCommerce and WordPress. See
 [Block Theme Product Collection Integration](docs/block-theme-product-collection.md)
 for the supported Site Editor template and canonical URL contract.
+
+Beside that collection, the **Product Filters (Shift64)** container holds
+repeatable **Filter Pill** children, each exposing one enabled, indexed facet
+(category, brand, or a `pa_*` attribute) as a progressively enhanced pill with
+Redis-backed disjunctive counts and canonical `filter_{taxonomy}` URLs. See
+[Product Filters and Filter Pill Blocks](docs/product-filter-pill-blocks.md)
+for the merchant workflow and the shared pill primitive that the upcoming
+Product Sort block reuses.
 
 ## Search shortcodes
 
@@ -95,6 +105,8 @@ composer test
 composer lint
 composer makepot
 npm ci
+npm run build:blocks
+npm run test:blocks
 bash build-release.sh 0.1.0
 ```
 

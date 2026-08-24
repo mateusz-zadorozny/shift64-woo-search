@@ -1,0 +1,6 @@
+/*
+ * Filter Pill styles: entirely the shared pill trigger/panel primitive.
+ * Downstream controls (Product Sort) import the same partial to inherit the
+ * documented selector contract (docs/product-filter-pill-blocks.md).
+ */
+@import "../shared/pill-primitive";

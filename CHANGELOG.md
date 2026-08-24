@@ -1,3 +1,45 @@
+## [0.17.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.17.0...v0.17.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ci:** use AppArmor-compatible MySQL datadir ([#75](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/75)) ([696aa51](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/696aa51ee510490f597ecd8b7d88cac9138f6327))
+
+# [0.17.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.16.2...v0.17.0) (2026-08-24)
+
+
+### Features
+
+* **blocks:** add Product Filters and Filter Pill blocks ([#72](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/72)) ([243daec](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/243daecc99eaf2b18ff70b604a85355a6a751157))
+
+## [0.16.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.16.1...v0.16.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* **tooling:** resolve the worktree SHA-1 without GNU coreutils ([#69](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/69)) ([14644c8](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/14644c81943df57b24a5922f3628b9b4998ba7b7)), closes [#68](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/68)
+
+## [0.16.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.16.0...v0.16.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* **tooling:** anchor the test env outside $TMPDIR and find PHP by path ([#66](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/66)) ([66ef1f3](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/66ef1f3130571d7691934447fe3a352df6ba2a86))
+
+# [0.16.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.15.1...v0.16.0) (2026-08-18)
+
+
+### Features
+
+* **blocks:** add composable search blocks ([#60](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/60)) ([ca61b18](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/ca61b1803f593610e62b84e467684e0e39663972))
+
+## [0.15.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.15.0...v0.15.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* **tooling:** make isolated test environment reliable ([#61](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/61)) ([#62](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/62)) ([719a946](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/719a946e26bc102ceac84f989fe93bdc9975a30f))
+
 # [0.15.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.14.0...v0.15.0) (2026-07-31)
 
 
@@ -45,6 +87,7 @@
 
 * **sort:** native WooCommerce catalog sorting engine and Product Sort block ([#73](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/73))
 * **blocks:** integrate inherited WooCommerce Product Collections with Redis membership, marker-scoped totals, canonical URL state, and public Interactivity Router navigation while retaining WooCommerce rendering ownership ([#51](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/51))
+* **blocks:** replace PHP-only search blocks with composable Control/Panel children, progressive forms, scoped Interactivity API autocomplete, and native dialog behavior while preserving legacy parent content ([#60](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/60))
 
 ### Bug Fixes
 

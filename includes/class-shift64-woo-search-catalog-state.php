@@ -123,11 +123,24 @@ final class Shift64_Woo_Search_Catalog_State {
 		$operators = array();
 		foreach ( self::filter_taxonomies() as $taxonomy => $filter_key ) {
 			$param = 'filter_' . $taxonomy;
-			if ( empty( $request[ $param ] ) || ! is_scalar( $request[ $param ] ) ) {
+			// isset, not empty: "0" is a legitimate term slug.
+			if ( ! isset( $request[ $param ] ) ) {
 				continue;
 			}
 
-			$slugs = array_filter( array_map( 'sanitize_title', explode( ',', (string) $request[ $param ] ) ) );
+			// The canonical form is one comma-separated scalar; a no-JS Filter
+			// Pill checkbox form submits `filter_x[]=a&filter_x[]=b` instead,
+			// so normalize an array of scalars to the same comma form.
+			$raw = $request[ $param ];
+			if ( is_array( $raw ) ) {
+				$raw = implode( ',', array_map( 'strval', array_filter( $raw, 'is_scalar' ) ) );
+			}
+			if ( ! is_scalar( $raw ) || '' === (string) $raw ) {
+				continue;
+			}
+
+			// Not bare array_filter: "0" is a legitimate slug.
+			$slugs = array_filter( array_map( 'sanitize_title', explode( ',', (string) $raw ) ), 'strlen' );
 			$slugs = array_values( array_unique( $slugs ) );
 			sort( $slugs, SORT_STRING );
 			$names = array();
@@ -210,16 +223,22 @@ final class Shift64_Woo_Search_Catalog_State {
 	 * @return array<string,string> Taxonomy => Redis filter key.
 	 */
 	private static function filter_taxonomies() {
+		// Only ready eligibility entries survive request parsing: a facet that
+		// is enabled in settings but absent from the live index would build a
+		// Redis field expression that cannot exist (SEARCH_SYNTAX → the whole
+		// query silently falls to native fallback), and a filter honored by
+		// the query while invisible to every pill cannot be cleared.
 		$taxonomies = array();
-		if ( 'yes' === get_option( 'shift64_woo_search_filter_categories_enabled', 'yes' ) ) {
-			$taxonomies['product_cat'] = 'category';
-		}
-		if ( 'yes' === get_option( 'shift64_woo_search_filter_brands_enabled', 'no' ) && taxonomy_exists( 'product_brand' ) ) {
-			$taxonomies['product_brand'] = 'brand';
-		}
-		foreach ( Shift64_Woo_Search_Schema::get_filter_attributes() as $taxonomy ) {
-			if ( taxonomy_exists( $taxonomy ) ) {
-				$taxonomies[ $taxonomy ] = 'attr_' . $taxonomy;
+		foreach ( Shift64_Woo_Search_Facet_Eligibility::get_ready() as $entry ) {
+			switch ( $entry['type'] ) {
+				case Shift64_Woo_Search_Facet_Eligibility::TYPE_CATEGORY:
+					$taxonomies[ $entry['taxonomy'] ] = 'category';
+					break;
+				case Shift64_Woo_Search_Facet_Eligibility::TYPE_BRAND:
+					$taxonomies[ $entry['taxonomy'] ] = 'brand';
+					break;
+				default:
+					$taxonomies[ $entry['taxonomy'] ] = 'attr_' . $entry['taxonomy'];
 			}
 		}
 		return $taxonomies;
@@ -285,7 +304,11 @@ final class Shift64_Woo_Search_Catalog_State {
 		$port   = isset( $parts['port'] ) ? ':' . $parts['port'] : '';
 		$path   = $parts['path'] ?? '/';
 		$url    = $scheme . $host . $port . $path;
-		$url    = empty( $query ) ? $url : add_query_arg( $query, $url );
+		// parse_str() decoded the preserved values; add_query_arg() does not
+		// re-encode caller-supplied params, so encode them here or a literal
+		// `&`/`=`/`#` in a preserved value (e.g. s=black & decker) corrupts
+		// the rebuilt query string.
+		$url = empty( $query ) ? $url : add_query_arg( urlencode_deep( $query ), $url );
 		return isset( $parts['fragment'] ) ? $url . '#' . $parts['fragment'] : $url;
 	}
 

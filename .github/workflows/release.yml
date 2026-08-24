@@ -153,6 +153,13 @@ jobs:
       - name: Run PHP_CodeSniffer
         run: vendor/bin/phpcs
 
+      # Unit-level checks of bin/test-env.sh (PHP discovery, run-directory
+      # anchoring). Seconds, no servers — unlike the clean-room launcher test,
+      # which stays in the on-demand test-env workflow.
+      - name: Test-env discovery unit tests
+        if: matrix.php-version == '8.3'
+        run: bash tests/env/test-env-discovery.sh
+
       - name: Determine WordPress version
         id: wp-version
         run: |
@@ -265,8 +272,57 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Validate block sources and generated assets
+        run: |
+          npm run lint:blocks
+          npm run test:blocks
+          npm run build:blocks
+          git diff --exit-code -- build/
+
+      - name: Resolve Playwright version
+        id: playwright-version
+        # Keyed on the resolved Playwright version, NOT on hashFiles('package-lock.json').
+        # semantic-release rewrites the version field inside package-lock.json on every
+        # release, so a lockfile hash invalidates this cache every time a release lands —
+        # for a reason that has nothing to do with Playwright. Observed on this PR: runs
+        # 32238355177 and 32238622459 produced different keys minutes apart because
+        # `chore(release): 0.16.2` landed between them. The installed package's own
+        # version changes exactly when the browser revision does, which is the only thing
+        # this cache should track.
+        run: |
+          echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        # No `--with-deps` on purpose, and bounded on purpose. `--with-deps` shells
+        # out to apt as root, and a wedged Azure apt mirror hangs it with no output
+        # and no timeout of its own: in run 32228732727 this step printed the first
+        # mirrorlist line and then sat silent for 18 minutes until the job's
+        # `timeout-minutes: 20` killed it, never reaching the browser download at
+        # all. ubuntu-latest already ships Chromium's shared libraries, so the apt
+        # pass bought nothing but that tail. If a runner image ever drops one, the
+        # suite fails immediately on browser launch with an explicit missing-library
+        # error — the fix is a `playwright install-deps chromium` step wrapped in
+        # this same timeout/retry, NOT restoring `--with-deps` unbounded.
+        #
+        # The retry loop mirrors the readiness loop in "Start wp server" above:
+        # three bounded attempts cap the worst case at ~9 minutes and end in a real
+        # error, instead of silently consuming the whole job budget.
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 180 npx playwright install chromium; then
+              exit 0
+            fi
+            echo "playwright install attempt ${attempt} failed or timed out after 180s" >&2
+            sleep 5
+          done
+          echo "playwright install chromium failed after 3 bounded attempts" >&2
+          exit 1
 
       - name: Run Playwright suite
         env:
@@ -279,7 +335,7 @@ jobs:
 
       - name: Upload failure artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-artifacts
           path: |

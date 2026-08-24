@@ -1,0 +1,181 @@
+.wp-block-shift64-woo-search-search-control {
+	box-sizing: border-box;
+	position: relative;
+	z-index: calc(var(--s64ws-dropdown-z, 9999) + 1);
+
+	&.is-modal {
+		z-index: auto;
+	}
+
+	// Split mode (default): input and button are independent — centered, so
+	// each element's own vertical padding sets its height — with a small gap.
+	// Joined mode flips both: stretch equalizes heights, the gap disappears.
+	.shift64-woo-search-field {
+		align-items: center;
+		display: flex;
+		gap: 0.5em;
+		// Themes commonly give bare <form> a default bottom margin (Storefront:
+		// 1.618em) which collapses out of this wrapper and pushes the results
+		// panel away; spacing belongs to the blocks' own controls.
+		margin: 0;
+		width: 100%;
+	}
+
+	// Inline submit colors from the block's "Button colors" panel; gated by
+	// has-* classes so an unset color keeps the theme's wp-element-button
+	// styling untouched.
+	&.has-inline-button-color .shift64-woo-search-field__submit {
+		color: var(--s64ws-inline-button-color);
+	}
+
+	&.has-inline-button-background .shift64-woo-search-field__submit {
+		background: var(--s64ws-inline-button-background);
+	}
+
+	&.has-inline-button-hover-color .shift64-woo-search-field__submit:hover,
+	&.has-inline-button-hover-color .shift64-woo-search-field__submit:focus {
+		color: var(--s64ws-inline-button-hover-color);
+	}
+
+	&.has-inline-button-hover-background
+		.shift64-woo-search-field__submit:hover,
+	&.has-inline-button-hover-background
+		.shift64-woo-search-field__submit:focus {
+		background: var(--s64ws-inline-button-hover-background);
+		filter: none;
+	}
+
+	// The block's Font size setting should size the whole field, not just
+	// whichever element happens to inherit — inputs usually carry a fixed
+	// theme font-size.
+	.shift64-woo-search-field__input,
+	.shift64-woo-search-field__submit {
+		font-size: inherit;
+		font-style: inherit;
+		font-weight: inherit;
+	}
+
+	&.has-inline-input-color .shift64-woo-search-field__input {
+		color: var(--s64ws-inline-input-color);
+
+		&::placeholder {
+			color: var(--s64ws-inline-input-color);
+			opacity: 0.7;
+		}
+	}
+
+	&.has-inline-input-background .shift64-woo-search-field__input {
+		background: var(--s64ws-inline-input-background);
+	}
+
+	&.has-inline-input-padding .shift64-woo-search-field__input {
+		padding: var(--s64ws-inline-input-pad-y)
+			var(--s64ws-inline-input-pad-x);
+	}
+
+	&.has-inline-button-padding .shift64-woo-search-field__submit {
+		padding: var(--s64ws-inline-button-pad-y)
+			var(--s64ws-inline-button-pad-x);
+	}
+
+	&.has-inline-gap .shift64-woo-search-field {
+		gap: var(--s64ws-inline-gap);
+	}
+
+	&.has-inline-input-radius .shift64-woo-search-field__input {
+		border-radius: var(--s64ws-inline-input-radius);
+	}
+
+	&.has-inline-button-radius .shift64-woo-search-field__submit {
+		border-radius: var(--s64ws-inline-button-radius);
+	}
+
+	// Joined mode fuses input and button into one bar: no gap, the shared
+	// edge loses its rounding. Placed after the radius rules so the flattened
+	// corners win.
+	&.is-joined .shift64-woo-search-field {
+		align-items: stretch;
+		gap: 0;
+	}
+
+	&.is-joined .shift64-woo-search-field__input {
+		border-end-end-radius: 0;
+		border-start-end-radius: 0;
+		margin-right: 0;
+	}
+
+	&.is-joined .shift64-woo-search-field__submit {
+		border-end-start-radius: 0;
+		border-start-start-radius: 0;
+		margin-left: 0;
+	}
+
+	// The icon trigger must be self-sufficient: the editor iframe loads
+	// neither the theme's .screen-reader-text nor the legacy frontend
+	// stylesheet, so both the circle layout and the hidden label live here.
+	// Trigger colors come from the block's own color panel (Text / icon,
+	// Background, each with a hover variant) via --s64ws-trigger-* vars; the
+	// hover rule also overrides theme button:hover styles (e.g. Storefront's
+	// grey pill).
+	.shift64-woo-search-modal__trigger {
+		background: var(--s64ws-trigger-surface-color, transparent);
+		border: 0;
+		color: var(--s64ws-trigger-icon-color, currentColor);
+
+		&:hover,
+		&:focus {
+			background: var(
+				--s64ws-trigger-surface-hover-color,
+				var(
+					--s64ws-trigger-surface-color,
+					color-mix(in srgb, currentColor 8%, transparent)
+				)
+			);
+			color: var(
+				--s64ws-trigger-icon-hover-color,
+				var(--s64ws-trigger-icon-color, currentColor)
+			);
+		}
+	}
+
+	.shift64-woo-search-modal__trigger:not(.shift64-woo-search-modal__trigger--text) {
+		align-items: center;
+		border-radius: 999px;
+		display: inline-grid;
+		height: 44px;
+		justify-items: center;
+		line-height: 0;
+		padding: 0;
+		position: relative;
+		width: 44px;
+
+		> svg {
+			height: 24px;
+			width: 24px;
+		}
+
+		.shift64-woo-search-modal__trigger-label {
+			clip: rect(1px, 1px, 1px, 1px);
+			clip-path: inset(50%);
+			height: 1px;
+			margin: -1px;
+			overflow: hidden;
+			padding: 0;
+			position: absolute;
+			width: 1px;
+			word-wrap: normal;
+		}
+	}
+
+	// Icon triggers use the shared icon-button styles; only the text-only
+	// variant (trigger icon "none") needs an auto-sized flex layout.
+	.shift64-woo-search-modal__trigger.shift64-woo-search-modal__trigger--text {
+		align-items: center;
+		display: inline-flex;
+		gap: 0.5em;
+		height: auto;
+		line-height: inherit;
+		padding: 0.5em 0.75em;
+		width: auto;
+	}
+}
