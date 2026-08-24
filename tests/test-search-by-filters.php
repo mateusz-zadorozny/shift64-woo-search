@@ -180,4 +180,46 @@ class Search_By_Filters_Test extends WP_UnitTestCase {
 
 		$this->assertSame( array( 999 ), $result['ids'] );
 	}
+
+	/**
+	 * The composite sort runs FT.AGGREGATE on dialect 2, like every FT.SEARCH.
+	 *
+	 * Under the default dialect the scope and exclusion clauses are not applied,
+	 * so a category archive sorted by `menu_order` — WooCommerce's default —
+	 * would silently list the whole catalog.
+	 */
+	public function test_composite_sort_keeps_scope_and_requests_dialect_two() {
+		$captured_args = null;
+
+		$redis = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$redis->method( 'get_index_name' )->willReturn( 'shift64_woo_search_product_idx' );
+		$redis->method( 'raw_command' )
+			->willReturnCallback(
+				function () use ( &$captured_args ) {
+					$captured_args = func_get_args();
+					return array( 0 );
+				}
+			);
+
+		$query = new Shift64_Woo_Search_Query( $redis );
+		$query->search_by_filters(
+			array( 'category' => array( 'Shift64 Stella' ) ),
+			array(),
+			12,
+			1,
+			array(
+				'menu_order' => 'ASC',
+				'title'      => 'ASC',
+			)
+		);
+
+		$this->assertSame( 'FT.AGGREGATE', $captured_args[0] ?? null );
+		$this->assertStringContainsString( '@categories:{Shift64\\ Stella}', (string) ( $captured_args[2] ?? '' ) );
+
+		$dialect_pos = array_search( 'DIALECT', $captured_args, true );
+		$this->assertNotFalse( $dialect_pos, 'FT.AGGREGATE must request an explicit dialect' );
+		$this->assertSame( '2', (string) $captured_args[ $dialect_pos + 1 ] );
+	}
 }

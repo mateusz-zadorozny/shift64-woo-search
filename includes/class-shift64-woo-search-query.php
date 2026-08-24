@@ -1318,6 +1318,12 @@ class Shift64_Woo_Search_Query {
 		$args[] = 'LIMIT';
 		$args[] = (string) $offset;
 		$args[] = (string) $limit;
+		// Same dialect as every FT.SEARCH the plugin issues. Under the default
+		// dialect 1 the scope and exclusion clauses (`@categories:{…}`,
+		// `-@visibility:{hidden}`) are not applied, so a category archive sorted
+		// by menu_order would silently return the whole catalog.
+		$args[] = 'DIALECT';
+		$args[] = '2';
 
 		$raw = $this->redis->raw_command( ...$args );
 		if ( false === $raw || ! is_array( $raw ) || empty( $raw ) ) {
