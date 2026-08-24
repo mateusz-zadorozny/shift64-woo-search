@@ -604,6 +604,97 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An inherited collection is sized by the archive, not by its own attribute.
+	 *
+	 * WooCommerce sizes product archives with `loop_shop_per_page`, which rarely
+	 * matches the `perPage` a template author saved on the block. Scoping the
+	 * query turns `inherit` off, so the saved attribute is what WooCommerce then
+	 * composes — and a Redis slice cut to it would drop the tail of the page the
+	 * archive is about to render, with no second page to reach it.
+	 */
+	public function test_inherited_collection_is_sized_by_the_main_query() {
+		$this->go_to( '/?post_type=product' );
+		$GLOBALS['wp_query']->set( 'posts_per_page', 16 );
+
+		$context = Shift64_Woo_Search_Product_Collection_Context::from_block(
+			array(
+				'post_type'      => 'product',
+				'posts_per_page' => 10,
+			),
+			$this->product_collection_block(),
+			1,
+			array(
+				'is_admin'          => false,
+				'is_rest'           => false,
+				'is_feed'           => false,
+				'is_product_search' => false,
+				'is_shop'           => true,
+				'taxonomy'          => '',
+				'taxonomy_enabled'  => false,
+				'search_term'       => '',
+			)
+		);
+
+		$this->assertInstanceOf( Shift64_Woo_Search_Product_Collection_Context::class, $context );
+		$this->assertSame( 16, $context->get_per_page() );
+	}
+
+	/**
+	 * The resolved page size travels with the result into the query vars.
+	 */
+	public function test_query_adapter_applies_the_resolved_page_size() {
+		$result = new Shift64_Woo_Search_Product_Collection_Result(
+			'pc-7-page-size',
+			array( 11, 12, 13 ),
+			12,
+			1,
+			16,
+			'menu_order',
+			array(),
+			array(),
+			Shift64_Woo_Search_Product_Collection_Result::STATUS_REDIS
+		);
+
+		$adapted = Shift64_Woo_Search_Product_Collection_Query::apply_result(
+			array(
+				'post_type'      => 'product',
+				'posts_per_page' => 10,
+			),
+			$result
+		);
+
+		$this->assertSame( 16, $adapted['posts_per_page'] );
+		$this->assertSame( array( 11, 12, 13 ), $adapted['post__in'] );
+	}
+
+	/**
+	 * Pass-through keeps native paging, so the composed page size stands.
+	 */
+	public function test_query_adapter_leaves_pass_through_page_size_alone() {
+		$result = new Shift64_Woo_Search_Product_Collection_Result(
+			'pc-7-pass-through',
+			array( 11, 12, 13 ),
+			3,
+			1,
+			16,
+			'date',
+			array(),
+			array(),
+			Shift64_Woo_Search_Product_Collection_Result::STATUS_WC_PASS_THROUGH
+		);
+
+		$adapted = Shift64_Woo_Search_Product_Collection_Query::apply_result(
+			array(
+				'post_type'      => 'product',
+				'posts_per_page' => 10,
+			),
+			$result
+		);
+
+		$this->assertSame( 10, $adapted['posts_per_page'] );
+	}
+
+	/**
 	 * Empty results use an impossible post__in and keep unrelated vars.
 	 */
 	public function test_query_adapter_applies_empty_result_safely() {

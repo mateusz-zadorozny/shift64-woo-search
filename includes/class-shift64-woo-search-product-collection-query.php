@@ -372,6 +372,11 @@ class Shift64_Woo_Search_Product_Collection_Query {
 			$query_vars['orderby'] = 'post__in';
 			$query_vars['paged']   = 1;
 			$query_vars['offset']  = 0;
+			// The IDs are already exactly one page of the archive's own size.
+			// Leaving the block's saved `perPage` in place would re-slice them
+			// and drop the tail of the page, so the page size travels with the
+			// result. Pass-through keeps native paging and is left alone.
+			$query_vars['posts_per_page'] = $result->get_per_page();
 		}
 
 		return $query_vars;
