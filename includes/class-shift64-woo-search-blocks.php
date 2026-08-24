@@ -93,19 +93,51 @@ class Shift64_Woo_Search_Blocks {
 	 */
 	public function add_runtime_id( $parsed_block, $source_block ) {
 		unset( $source_block );
-		if ( ! in_array( $parsed_block['blockName'] ?? '', array( 'shift64-woo-search/search', 'shift64-woo-search/modal-search', 'shift64-woo-search/product-filters' ), true ) ) {
-			return $parsed_block;
+		return $this->prepare_runtime_ids( $parsed_block );
+	}
+
+	/**
+	 * Assign runtime IDs throughout one parsed block tree before it is rendered.
+	 *
+	 * WordPress applies render_block_data() to blocks passed through
+	 * render_block(), but recursively rendered inner blocks are instantiated
+	 * directly by WP_Block. Preparing descendants here keeps parent-provided
+	 * context intact when a search block is nested in a Group, Column, or
+	 * Template Part.
+	 *
+	 * @param array<string,mixed> $parsed_block Parsed block data.
+	 * @return array<string,mixed>
+	 */
+	private function prepare_runtime_ids( $parsed_block ) {
+		$parent_blocks = array(
+			'shift64-woo-search/search',
+			'shift64-woo-search/modal-search',
+			'shift64-woo-search/product-filters',
+		);
+
+		if (
+			in_array( $parsed_block['blockName'] ?? '', $parent_blocks, true ) &&
+			empty( $parsed_block['_shift64WooSearchRuntimePrepared'] )
+		) {
+			$attributes = isset( $parsed_block['attrs'] ) && is_array( $parsed_block['attrs'] ) ? $parsed_block['attrs'] : array();
+			$base       = isset( $attributes['instanceId'] ) ? sanitize_html_class( $attributes['instanceId'] ) : '';
+			if ( '' === $base ) {
+				$base = 'shift64-woo-search/product-filters' === $parsed_block['blockName'] ? 'shift64-woo-search-filters' : 'shift64-woo-search-instance';
+			}
+			$count                      = ( $this->runtime_ids[ $base ] ?? 0 ) + 1;
+			$this->runtime_ids[ $base ] = $count;
+			$attributes['runtimeId']    = 1 === $count ? $base : $base . '-' . $count;
+			$parsed_block['attrs']      = $attributes;
+			$parsed_block['_shift64WooSearchRuntimePrepared'] = true;
 		}
 
-		$attributes = isset( $parsed_block['attrs'] ) && is_array( $parsed_block['attrs'] ) ? $parsed_block['attrs'] : array();
-		$base       = isset( $attributes['instanceId'] ) ? sanitize_html_class( $attributes['instanceId'] ) : '';
-		if ( '' === $base ) {
-			$base = 'shift64-woo-search/product-filters' === $parsed_block['blockName'] ? 'shift64-woo-search-filters' : 'shift64-woo-search-instance';
+		if ( isset( $parsed_block['innerBlocks'] ) && is_array( $parsed_block['innerBlocks'] ) ) {
+			foreach ( $parsed_block['innerBlocks'] as $index => $inner_block ) {
+				if ( is_array( $inner_block ) ) {
+					$parsed_block['innerBlocks'][ $index ] = $this->prepare_runtime_ids( $inner_block );
+				}
+			}
 		}
-		$count                      = ( $this->runtime_ids[ $base ] ?? 0 ) + 1;
-		$this->runtime_ids[ $base ] = $count;
-		$attributes['runtimeId']    = 1 === $count ? $base : $base . '-' . $count;
-		$parsed_block['attrs']      = $attributes;
 
 		return $parsed_block;
 	}
