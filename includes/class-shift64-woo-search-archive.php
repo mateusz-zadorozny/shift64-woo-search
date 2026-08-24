@@ -922,7 +922,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		}
 
 		$filtered = array(
-			'relevance' => __( 'Relevance', 'shift64-woo-search' ),
+			'relevance' => __( 'Search relevance', 'shift64-woo-search' ),
 		);
 
 		foreach ( $options as $key => $label ) {
