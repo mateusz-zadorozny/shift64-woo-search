@@ -1092,6 +1092,7 @@ class Shift64_Woo_Search_Blocks {
 
 		$context = array(
 			'isOpen'      => false,
+			'alignEnd'    => false,
 			'queryId'     => $query_id,
 			'activeSort'  => $effective_sort,
 			'activeLabel' => $active_label,
@@ -1134,6 +1135,7 @@ class Shift64_Woo_Search_Blocks {
 			<div
 				class="shift64-woo-search-pill__panel"
 				data-wp-bind--hidden="!context.isOpen"
+				data-wp-class--is-aligned-end="context.alignEnd"
 				role="listbox"
 				aria-label="<?php esc_attr_e( 'Sort options', 'shift64-woo-search' ); ?>"
 				hidden

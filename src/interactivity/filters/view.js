@@ -13,6 +13,7 @@ import {
 	navigate,
 	observeProductResultsCount,
 } from '../../../frontend/js/shift64-woo-search-catalog-navigation';
+import { panelAlignsToEnd } from '../../../frontend/js/shift64-woo-search-pill-align';
 import {
 	clearAllChanges,
 	selectionChanges,
@@ -250,6 +251,12 @@ const { state, actions } = store( NAMESPACE, {
 			if ( ref.open ) {
 				closePills( ref, ref );
 				state.open[ context.parentId ] = context.pillId;
+				// The disclosure has already laid the panel out by the time
+				// `toggle` fires, so its box is measurable right here.
+				context.alignEnd = panelAlignsToEnd(
+					ref.querySelector( '.shift64-woo-search-pill__trigger' ),
+					ref.querySelector( '.shift64-woo-search-pill__panel' )
+				);
 			} else if ( state.open[ context.parentId ] === context.pillId ) {
 				state.open[ context.parentId ] = '';
 			}

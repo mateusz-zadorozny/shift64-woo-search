@@ -6,6 +6,7 @@
 
 import { store, getContext, getElement } from '@wordpress/interactivity';
 import { buildCatalogUrl, navigate } from 'shift64-woo-search/catalog-navigation';
+import { panelAlignsToEnd } from './shift64-woo-search-pill-align.js';
 
 const { state } = store('shift64/woo-search-product-sort', {
 	state: {
@@ -20,14 +21,34 @@ const { state } = store('shift64/woo-search-product-sort', {
 		},
 	},
 	actions: {
-		toggleDropdown(event) {
+		*toggleDropdown(event) {
 			if (event) {
 				event.stopPropagation();
 			}
 			const context = getContext();
-			if (context) {
-				context.isOpen = !context.isOpen;
+			if (!context) {
+				return;
 			}
+			// The directive sits on the trigger, so the element handed to this
+			// action is the button — the panel is its sibling. Resolve the pill
+			// root now, while the scope is still ours to read.
+			const root = getElement()?.ref?.closest('.shift64-woo-search-pill');
+
+			context.isOpen = !context.isOpen;
+			if (!context.isOpen) {
+				return;
+			}
+
+			// The panel is `hidden` until this flip renders, and a hidden
+			// element has no box to measure — so the alignment is decided one
+			// frame later, before the shopper can perceive either position.
+			yield new Promise((resolve) => {
+				requestAnimationFrame(resolve);
+			});
+			context.alignEnd = panelAlignsToEnd(
+				root?.querySelector('.shift64-woo-search-pill__trigger'),
+				root?.querySelector('.shift64-woo-search-pill__panel')
+			);
 		},
 		closeDropdown() {
 			const context = getContext();

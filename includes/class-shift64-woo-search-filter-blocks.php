@@ -327,6 +327,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 			'pillId'      => $taxonomy . '-' . self::$pill_sequence,
 			'taxonomy'    => $taxonomy,
 			'operatorAnd' => $operator_and,
+			'alignEnd'    => false,
 		);
 
 		$html  = '<details class="shift64-woo-search-pill__disclosure" data-wp-context="' . esc_attr( wp_json_encode( $pill_context ) ) . '" data-wp-bind--open="state.isPillOpen" data-wp-on--toggle="actions.pillToggled" data-wp-on--keydown="actions.panelKeydown">';
@@ -338,7 +339,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 		$html .= '<span class="shift64-woo-search-pill__chevron" aria-hidden="true"></span>';
 		$html .= '</summary>';
 
-		$html .= '<div class="shift64-woo-search-pill__panel">';
+		$html .= '<div class="shift64-woo-search-pill__panel" data-wp-class--is-aligned-end="context.alignEnd">';
 
 		// On a narrow screen the panel becomes a tray whose backdrop covers the
 		// pill, so tapping the trigger again can no longer close it. This is the
