@@ -30,6 +30,15 @@
 	 * makes "set only a hover background" behave the way a merchant expects.
 	 */
 	&__trigger {
+		/*
+		 * A pill trigger is a `<summary>` when it discloses a panel and a
+		 * `<button>` when it applies a choice. A summary inherits the theme's
+		 * typography; a button silently takes the browser's form-control font
+		 * (13.33px), which left two pills on the same row at different sizes —
+		 * and, since the padding below is in `em`, at different heights too.
+		 */
+		font: inherit;
+
 		align-items: center;
 		background: var(--s64ws-pill-bg, transparent);
 		border: var(--s64ws-pill-border-width, 1px) solid
@@ -152,10 +161,16 @@
 		}
 	}
 
+	/*
+	 * Option lists share one height rule so two open panels line up. A facet
+	 * list is unbounded — a category tree can run to hundreds of terms — so the
+	 * default caps it and scrolls. A control whose options are a short fixed
+	 * set raises the token instead of inventing its own rule.
+	 */
 	&__options {
 		list-style: none;
 		margin: 0;
-		max-height: 16rem;
+		max-height: var(--s64ws-pill-options-max-height, 16rem);
 		overflow: auto;
 		padding: 0;
 	}

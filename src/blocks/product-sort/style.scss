@@ -13,6 +13,14 @@
 @import "../shared/pill-primitive";
 
 .shift64-woo-search-product-sort {
+	/*
+	 * Sort options are a closed set — seven canonical WooCommerce orders at
+	 * most — so the list is raised past the shared cap and shows them all.
+	 * Scrolling a seven-item menu hides choices for no reason. The viewport
+	 * still wins on a short screen, where a taller panel would run off it.
+	 */
+	--s64ws-pill-options-max-height: min(28rem, 60vh);
+
 	display: inline-block;
 
 	.shift64-woo-search-pill__panel[hidden] {
