@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "shift64-woo-search/product-sort",
+  "version": "0.1.0",
+  "title": "Shift64 Product Sort",
+  "category": "woocommerce",
+  "icon": "sort",
+  "description": "A product sorting pill powered by Shift64 and RediSearch.",
+  "keywords": ["Shift64", "sort", "orderby", "WooCommerce"],
+  "textdomain": "shift64-woo-search",
+  "usesContext": ["query", "queryId"],
+  "attributes": {
+    "orderedOptions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [
+        "menu_order",
+        "popularity",
+        "rating",
+        "date",
+        "price",
+        "price-desc"
+      ]
+    },
+    "labels": { "type": "object", "default": {} },
+    "pillStyle": { "type": "object", "default": {} }
+  },
+  "supports": {
+    "anchor": true,
+    "html": false,
+    "interactivity": true,
+    "inserter": true,
+    "color": false,
+    "border": false,
+    "typography": { "fontSize": true, "lineHeight": true },
+    "spacing": { "margin": true, "padding": true }
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": ["shift64-woo-search", "file:./style-index.css"]
+}

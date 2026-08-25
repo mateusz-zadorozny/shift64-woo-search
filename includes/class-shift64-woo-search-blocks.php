@@ -65,6 +65,7 @@ class Shift64_Woo_Search_Blocks {
 			'search-panel'    => array( $this, 'render_search_panel' ),
 			'product-filters' => array( $this->filter_blocks, 'render_product_filters' ),
 			'filter-pill'     => array( $this->filter_blocks, 'render_filter_pill' ),
+			'product-sort'    => array( $this, 'render_product_sort_block' ),
 		);
 
 		foreach ( $blocks as $directory => $callback ) {
@@ -1037,5 +1038,213 @@ class Shift64_Woo_Search_Blocks {
 				'label' => __( 'Minimal', 'shift64-woo-search' ),
 			),
 		);
+	}
+
+	/**
+	 * Render the product sort block.
+	 *
+	 * @param array<string, mixed> $attributes Block attributes.
+	 * @param string               $content    Block content.
+	 * @param WP_Block|null        $block      Block instance.
+	 * @return string Rendered HTML.
+	 */
+	public function render_product_sort_block( $attributes = array(), $content = '', $block = null ) {
+		if ( function_exists( 'wp_enqueue_script_module' ) ) {
+			wp_enqueue_script_module( Shift64_Woo_Search_Catalog_Navigation::PRODUCT_SORT_MODULE_ID );
+		}
+
+		$query_context = ( $block instanceof WP_Block && isset( $block->context['query'] ) ) ? $block->context['query'] : array();
+		$query_id      = ( $block instanceof WP_Block && isset( $block->context['queryId'] ) ) ? $block->context['queryId'] : null;
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public storefront state.
+		$post_type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public storefront state.
+		$is_search = is_search() || ! empty( $query_context['search'] ) || ( 'product' === $post_type && isset( $_GET['s'] ) );
+
+		$default_labels = array(
+			'relevance'  => __( 'Search relevance', 'shift64-woo-search' ),
+			'menu_order' => __( 'Default sorting', 'shift64-woo-search' ),
+			'popularity' => __( 'Sort by popularity', 'shift64-woo-search' ),
+			'rating'     => __( 'Sort by average rating', 'shift64-woo-search' ),
+			'date'       => __( 'Sort by latest', 'shift64-woo-search' ),
+			'price'      => __( 'Sort by price: low to high', 'shift64-woo-search' ),
+			'price-desc' => __( 'Sort by price: high to low', 'shift64-woo-search' ),
+		);
+
+		$configured_options = ! empty( $attributes['orderedOptions'] ) && is_array( $attributes['orderedOptions'] )
+			? $attributes['orderedOptions']
+			: array( 'menu_order', 'popularity', 'rating', 'date', 'price', 'price-desc' );
+
+		// Remap menu_order to relevance in search context if relevance was not explicitly positioned.
+		if ( $is_search ) {
+			$remapped      = array();
+			$has_relevance = in_array( 'relevance', $configured_options, true );
+			foreach ( $configured_options as $opt ) {
+				if ( 'menu_order' === $opt ) {
+					if ( ! $has_relevance ) {
+						$remapped[]    = 'relevance';
+						$has_relevance = true;
+					}
+					continue;
+				}
+				$remapped[] = $opt;
+			}
+			$configured_options = $remapped;
+		}
+
+		$available_keys = $is_search
+			? array( 'relevance', 'popularity', 'rating', 'date', 'price', 'price-desc' )
+			: array( 'menu_order', 'popularity', 'rating', 'date', 'price', 'price-desc' );
+
+		$active_keys = array_values( array_intersect( $configured_options, $available_keys ) );
+		if ( empty( $active_keys ) ) {
+			return '';
+		}
+
+		$custom_labels    = ( isset( $attributes['labels'] ) && is_array( $attributes['labels'] ) ) ? $attributes['labels'] : array();
+		$rendered_options = array();
+		foreach ( $active_keys as $key ) {
+			$rendered_options[ $key ] = ! empty( $custom_labels[ $key ] ) ? $custom_labels[ $key ] : ( $default_labels[ $key ] ?? $key );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public storefront state.
+		$requested_sort = isset( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : null;
+		$effective_sort = Shift64_Woo_Search_Sort::get_effective_sort( $requested_sort, $is_search );
+
+		if ( ! empty( $requested_sort ) && ! isset( $rendered_options[ $requested_sort ] ) ) {
+			$fallback_label   = $default_labels[ $requested_sort ] ?? ucfirst( str_replace( array( '-', '_' ), ' ', $requested_sort ) );
+			$rendered_options = array( $requested_sort => $fallback_label ) + $rendered_options;
+		}
+
+		static $instance_count = 0;
+		++$instance_count;
+		$select_id = 'shift64-sort-' . $instance_count;
+
+		$active_label = $rendered_options[ $effective_sort ] ?? reset( $rendered_options );
+
+		$context = array(
+			'isOpen'      => false,
+			'alignEnd'    => false,
+			'queryId'     => $query_id,
+			'activeSort'  => $effective_sort,
+			'activeLabel' => $active_label,
+		);
+
+		// One token map for every pill-shaped control, so a sort pill and a
+		// filter pill styled with the same values render identically.
+		$style_vars = Shift64_Woo_Search_Pill_Style::pill_vars( $attributes['pillStyle'] ?? array() );
+
+		$wrapper_args = array(
+			'class'                      => 'shift64-woo-search-product-sort shift64-woo-search-pill',
+			'data-wp-interactive'        => 'shift64/woo-search-product-sort',
+			'data-wp-context'            => wp_json_encode( $context ),
+			'data-wp-on-window--click'   => 'actions.onClickOutside',
+			'data-wp-on-window--keydown' => 'actions.onKeyDown',
+		);
+		if ( '' !== $style_vars ) {
+			$wrapper_args['style'] = $style_vars;
+		}
+
+		$wrapper_attrs = get_block_wrapper_attributes( $wrapper_args );
+
+		ob_start();
+		?>
+		<div <?php echo $wrapper_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+			<button
+				type="button"
+				class="shift64-woo-search-pill__trigger"
+				data-wp-on--click="actions.toggleDropdown"
+				data-wp-bind--aria-expanded="context.isOpen"
+				aria-haspopup="listbox"
+				aria-label="<?php esc_attr_e( 'Sort products by', 'shift64-woo-search' ); ?>"
+			>
+				<span class="shift64-woo-search-pill__label" data-wp-text="context.activeLabel">
+					<?php echo esc_html( $active_label ); ?>
+				</span>
+				<span class="shift64-woo-search-pill__chevron" data-wp-class--is-open="context.isOpen" aria-hidden="true"></span>
+			</button>
+
+			<div
+				class="shift64-woo-search-pill__panel"
+				data-wp-bind--hidden="!context.isOpen"
+				data-wp-class--is-aligned-end="context.alignEnd"
+				role="listbox"
+				aria-label="<?php esc_attr_e( 'Sort options', 'shift64-woo-search' ); ?>"
+				hidden
+			>
+				<ul class="shift64-woo-search-pill__options" role="presentation">
+					<?php
+					foreach ( $rendered_options as $slug => $label ) :
+						$is_selected  = ( $effective_sort === $slug );
+						$item_context = wp_json_encode(
+							array(
+								'slug'  => $slug,
+								'label' => $label,
+							)
+						);
+						?>
+						<li
+							class="shift64-woo-search-pill__option"
+							role="presentation"
+							data-wp-context="<?php echo esc_attr( $item_context ); ?>"
+						>
+							<button
+								type="button"
+								role="option"
+								class="shift64-woo-search-product-sort__option<?php echo $is_selected ? ' is-selected' : ''; ?>"
+								data-slug="<?php echo esc_attr( $slug ); ?>"
+								data-label="<?php echo esc_attr( $label ); ?>"
+								data-wp-on--click="actions.selectOption"
+								data-wp-class--is-selected="state.isSelected"
+								data-wp-bind--aria-selected="state.isSelected"
+								aria-selected="<?php echo $is_selected ? 'true' : 'false'; ?>"
+							>
+								<span class="shift64-woo-search-pill__option-label">
+									<?php echo esc_html( $label ); ?>
+								</span>
+								<span class="shift64-woo-search-product-sort__check" aria-hidden="true"></span>
+							</button>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
+
+			<form class="woocommerce-ordering shift64-woo-search-product-sort__fallback" method="get">
+				<label for="<?php echo esc_attr( $select_id ); ?>" class="screen-reader-text">
+					<?php esc_html_e( 'Sort by', 'shift64-woo-search' ); ?>
+				</label>
+				<select
+					id="<?php echo esc_attr( $select_id ); ?>"
+					name="orderby"
+					class="orderby shift64-woo-search-product-sort__select"
+					aria-label="<?php esc_attr_e( 'Shop order', 'shift64-woo-search' ); ?>"
+					data-wp-on--change="actions.onSortChange"
+				>
+					<?php foreach ( $rendered_options as $slug => $label ) : ?>
+						<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $effective_sort, $slug ); ?>>
+							<?php echo esc_html( $label ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+				<?php
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				foreach ( $_GET as $key => $val ) {
+					$clean_key = sanitize_key( $key );
+					if ( in_array( $clean_key, array( 'orderby', 'submit', 'paged', 'query-page' ), true ) || preg_match( '/^query-\d+-page$/', $clean_key ) ) {
+						continue;
+					}
+					if ( is_array( $val ) ) {
+						foreach ( $val as $inner_val ) {
+							echo '<input type="hidden" name="' . esc_attr( $clean_key ) . '[]" value="' . esc_attr( sanitize_text_field( wp_unslash( $inner_val ) ) ) . '" />';
+						}
+					} else {
+						echo '<input type="hidden" name="' . esc_attr( $clean_key ) . '" value="' . esc_attr( sanitize_text_field( wp_unslash( $val ) ) ) . '" />';
+					}
+				}
+				?>
+			</form>
+		</div>
+		<?php
+		return trim( ob_get_clean() );
 	}
 }

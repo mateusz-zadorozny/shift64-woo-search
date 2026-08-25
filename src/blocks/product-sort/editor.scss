@@ -1,0 +1,25 @@
+// Sort option rows: a checkbox, its reorder buttons, and the custom label
+// field belong together, so each option gets a separated block in the panel.
+.shift64-woo-search-sort-option {
+	margin-bottom: 16px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid #e0e0e0;
+
+	&:last-child {
+		margin-bottom: 0;
+		padding-bottom: 0;
+		border-bottom: 0;
+	}
+
+	&__row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+	}
+
+	&__move {
+		display: flex;
+		gap: 4px;
+	}
+}

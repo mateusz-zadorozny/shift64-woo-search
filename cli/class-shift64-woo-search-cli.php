@@ -307,6 +307,12 @@ class Shift64_Woo_Search_CLI {
 			'Value' => $published,
 		);
 
+		$date_indexed = Shift64_Woo_Search_Sort::is_date_indexed();
+		$data[]       = array(
+			'Field' => 'Date Sort Index',
+			'Value' => $date_indexed ? 'Indexed (Redis SORTBY)' : 'Pending reindex (WooCommerce pass-through)',
+		);
+
 		WP_CLI\Utils\format_items( 'table', $data, array( 'Field', 'Value' ) );
 	}
 
@@ -532,6 +538,14 @@ class Shift64_Woo_Search_CLI {
 		$wc_count  = wp_count_posts( 'product' );
 		$published = isset( $wc_count->publish ) ? $wc_count->publish : 0;
 		WP_CLI::log( "WC published products: {$published}" );
+
+		// Check date sort index status.
+		$date_indexed = Shift64_Woo_Search_Sort::is_date_indexed();
+		if ( $date_indexed ) {
+			WP_CLI::log( 'Date sort index: OK' );
+		} else {
+			WP_CLI::log( 'Date sort index: Pending reindex (safe fallback active)' );
+		}
 
 		WP_CLI::success( 'Health check complete.' );
 	}

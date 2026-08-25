@@ -74,6 +74,17 @@ public block — that other Shift64 controls reuse. The Product Sort block
 this primitive with radio choices; it must not import the Product Filters
 interactivity store.
 
+Two details matter for a consumer whose trigger is a `<button>` rather than a
+`<summary>`, as Product Sort's is:
+
+- The trigger declares `font: inherit`. A button otherwise takes the browser's
+  form-control font, which puts two pills on one row at different sizes — and
+  at different heights, since the trigger's padding is in `em`.
+- The option list's height is the `--s64ws-pill-options-max-height` token,
+  defaulting to `16rem`. A facet list is unbounded and scrolls at that cap; a
+  control with a short fixed set of options (Product Sort has at most seven)
+  raises the token rather than writing its own rule.
+
 Sources:
 
 - Styles: `src/blocks/shared/pill-primitive.scss` (imported by the Filter

@@ -82,7 +82,7 @@ final class Shift64_Woo_Search_Catalog_State {
 	 */
 	public function __construct( $page, $sort, $search, array $selected_filters, array $redis_filters, array $operators ) {
 		$this->page             = max( 1, (int) $page );
-		$this->sort             = in_array( $sort, self::SORT_SLUGS, true ) ? $sort : 'relevance';
+		$this->sort             = sanitize_key( $sort );
 		$this->search           = sanitize_text_field( $search );
 		$this->selected_filters = $selected_filters;
 		$this->redis_filters    = $redis_filters;
@@ -107,10 +107,9 @@ final class Shift64_Woo_Search_Catalog_State {
 
 		$page = self::requested_page( $context->get_page(), $request, $request_uri, $context->get_query_id() );
 
-		$sort = isset( $request['orderby'] ) ? sanitize_key( $request['orderby'] ) : 'relevance';
-		if ( ! in_array( $sort, self::SORT_SLUGS, true ) ) {
-			$sort = 'relevance';
-		}
+		$is_search      = ( 'search' === $context->get_visibility_policy() || '' !== $context->get_search_term() || ( 'product' === ( $request['post_type'] ?? '' ) && isset( $request['s'] ) ) );
+		$requested_sort = isset( $request['orderby'] ) ? sanitize_key( $request['orderby'] ) : null;
+		$sort           = Shift64_Woo_Search_Sort::get_effective_sort( $requested_sort, $is_search );
 
 		$search = '';
 		if ( 'product' === ( $request['post_type'] ?? '' ) && isset( $request['s'] ) ) {

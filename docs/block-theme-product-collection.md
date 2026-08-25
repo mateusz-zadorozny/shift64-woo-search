@@ -53,8 +53,17 @@ variables unchanged, so the Product Collection remains usable through native
 WooCommerce retrieval.
 
 The bridge and adapter never render a template, product card, grid, pager,
-spinner, or live region. They do not mutate `$_GET`, parsed block attributes,
-the main query, or WooCommerce loop globals.
+spinner, or live region. They do not mutate parsed block attributes, the main
+query, or WooCommerce loop globals.
+
+They touch `$_GET` in exactly one place, and only on a paged archive URL.
+Scoping the collection turns `inherit` off, and a non-inherited Query Loop
+reads its current page from `$_GET['query-{queryId}-page']` alone — core offers
+no filter for it — so on `/shop/page/2/` the pager would sit under page two's
+products still showing page one as current. The page the archive already
+resolved is therefore published under that key when it is absent. Every other
+reader of it resolves the same number, so the request stays consistent with
+itself.
 
 ## Canonical URL state
 
@@ -66,6 +75,11 @@ Product Collection and future block-native controls. It validates:
 - `filter_{taxonomy}` values against enabled taxonomies and existing term slugs;
 - `query_type_{taxonomy}` as only `and` or `or`;
 - `query-{queryId}-page`, `query-page`, `paged`, and `/page/N/`.
+
+All four paging forms are read, but only one is written: pagination links are
+emitted as the archive's own permalink (`/shop/page/2/`, carrying the live sort
+and facet parameters), the same URL an unscoped collection would produce. A
+bookmarked `?query-0-page=2` keeps resolving to the same page.
 
 Changing search, sort, or facets removes every paging form. Page-only navigation
 preserves the remaining state. Safe unrelated parameters remain, while nonces

@@ -298,6 +298,7 @@ class Shift64_Woo_Search_Indexer {
 				'menu_order'      => (int) $product->get_menu_order(),
 				'total_sales'     => (int) $product->get_total_sales(),
 				'average_rating'  => (float) $product->get_average_rating(),
+				'date'            => ( method_exists( $product, 'get_date_created' ) && $product->get_date_created() instanceof WC_DateTime ) ? (int) $product->get_date_created()->getTimestamp() : (int) get_post_time( 'U', false, $product->get_id() ),
 				'post_id'         => (int) $product->get_id(),
 			),
 			$attr_tag_data

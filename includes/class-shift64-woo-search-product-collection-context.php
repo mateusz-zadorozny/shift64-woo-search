@@ -192,6 +192,38 @@ final class Shift64_Woo_Search_Product_Collection_Context {
 	}
 
 	/**
+	 * Resolve the page size the archive actually renders.
+	 *
+	 * An inherited Product Collection takes its page size from the main query,
+	 * not from its own `perPage` attribute — WooCommerce sizes product archives
+	 * with `loop_shop_per_page` (4 columns x 4 rows by default), while the
+	 * attribute keeps whatever the template author saved. Scoping the query
+	 * turns `inherit` off, so unless the main query's size is honored here the
+	 * Redis slice is smaller than the page WordPress is about to render and the
+	 * remaining products disappear with no second page to reach them.
+	 *
+	 * @param array $query_vars Composed query variables, when available.
+	 * @param array $query      Block query context.
+	 * @return int Page size, at least 1.
+	 */
+	private static function resolve_per_page( array $query_vars, array $query ) {
+		$inherits = true === ( $query['inherit'] ?? false )
+			|| true === ( $query[ self::SCOPED_INHERIT_MARKER ] ?? false );
+
+		if ( $inherits ) {
+			$main = $GLOBALS['wp_query'] ?? null;
+			if ( $main instanceof WP_Query ) {
+				$main_per_page = (int) $main->get( 'posts_per_page' );
+				if ( $main_per_page > 0 ) {
+					return $main_per_page;
+				}
+			}
+		}
+
+		return max( 1, (int) ( $query_vars['posts_per_page'] ?? $query['perPage'] ?? get_option( 'posts_per_page', 12 ) ) );
+	}
+
+	/**
 	 * Resolve Product Collection pagination before its child query is built.
 	 *
 	 * @param mixed $raw_query_id Product Collection query ID.
@@ -236,7 +268,7 @@ final class Shift64_Woo_Search_Product_Collection_Context {
 		}
 
 		$query_id    = null === $raw_query_id ? null : absint( $raw_query_id );
-		$per_page    = max( 1, (int) ( $query_vars['posts_per_page'] ?? $query['perPage'] ?? get_option( 'posts_per_page', 12 ) ) );
+		$per_page    = self::resolve_per_page( $query_vars, $query );
 		$search_term = $is_search ? sanitize_text_field( $facts['search_term'] ?? '' ) : '';
 
 		return new self(

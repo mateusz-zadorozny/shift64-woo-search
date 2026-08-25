@@ -125,138 +125,18 @@ class Shift64_Woo_Search_Filter_Blocks {
 	private static $pill_sequence = 0;
 
 	/**
-	 * Pill style tokens, mirroring src/blocks/shared/pill-style.js.
-	 *
-	 * WordPress 7.1's per-block interactive states are gated on a hardcoded
-	 * core allowlist (WP_Theme_JSON::VALID_BLOCK_PSEUDO_SELECTORS, and the
-	 * matching VALID_BLOCK_PSEUDO_STATES in the editor bundle), so a
-	 * third-party block cannot register for the native States UI. The parent
-	 * therefore stores one `pillStyle` attribute in core's own `style` shape —
-	 * `:hover` key included — and resolves it to custom properties the shared
-	 * pill primitive consumes. Styling belongs to the parent because the
-	 * pill's own block wrapper is the box *around* the control.
-	 *
-	 * @var array<string,array<int,string>>
-	 */
-	private const PILL_STYLE_VARS = array(
-		'--s64ws-pill-color'              => array( 'color', 'text' ),
-		'--s64ws-pill-bg'                 => array( 'color', 'background' ),
-		'--s64ws-pill-border-color'       => array( 'border', 'color' ),
-		'--s64ws-pill-border-width'       => array( 'border', 'width' ),
-		'--s64ws-pill-radius'             => array( 'border', 'radius' ),
-		'--s64ws-pill-color-hover'        => array( ':hover', 'color', 'text' ),
-		'--s64ws-pill-bg-hover'           => array( ':hover', 'color', 'background' ),
-		'--s64ws-pill-border-color-hover' => array( ':hover', 'border', 'color' ),
-	);
-
-	/**
-	 * Parent-owned mobile action-button tokens shared by Apply and Clear.
-	 *
-	 * @var array<string,array<int,string>>
-	 */
-	private const ACTION_STYLE_VARS = array(
-		'--s64ws-action-font-size' => array( 'typography', 'fontSize' ),
-		'--s64ws-action-radius'    => array( 'border', 'radius' ),
-	);
-
-	/**
-	 * Resolve a theme preset reference to a CSS custom property reference.
-	 *
-	 * Mirrors core's wp_normalize_state_preset_vars(), which is 7.1-only while
-	 * this plugin still supports WordPress 6.0.
-	 *
-	 * @param string $value Stored style value.
-	 * @return string CSS-ready value.
-	 */
-	private static function normalize_preset_value( $value ) {
-		if ( ! str_starts_with( $value, 'var:preset|' ) ) {
-			return $value;
-		}
-
-		return 'var(--wp--' . str_replace( '|', '--', substr( $value, strlen( 'var:' ) ) ) . ')';
-	}
-
-	/**
-	 * Accept only value shapes a colour or length control can produce.
-	 *
-	 * Core's safecss_filter_attr() drops the *entire* style attribute when one
-	 * declaration looks hostile, so a single bad stored value would silently
-	 * strip every other token. Filtering per value keeps the blast radius to
-	 * the offending token.
-	 *
-	 * @param mixed $value Stored style value.
-	 * @return string Safe CSS value, or '' when unusable.
-	 */
-	private static function sanitize_style_value( $value ) {
-		if ( ! is_string( $value ) ) {
-			return '';
-		}
-
-		$value = trim( self::normalize_preset_value( trim( $value ) ) );
-		if ( '' === $value ) {
-			return '';
-		}
-
-		// Accepted shapes: hex colours, the rgb/rgba/hsl/hsla colour
-		// functions, a custom-property reference with an optional fallback,
-		// CSS lengths, and bare keywords such as `transparent`.
-		$patterns = array(
-			'/^#[0-9a-f]{3,8}$/i',
-			'/^(rgb|rgba|hsl|hsla)\(\s*[0-9a-z%.,\/\s+-]+\)$/i',
-			'/^var\(\s*--[a-z0-9-]+\s*(,\s*[#a-z0-9%.\s-]+)?\)$/i',
-			'/^-?[0-9]*\.?[0-9]+(px|em|rem|%|vh|vw|ch)?$/i',
-			'/^[a-z-]+$/i',
-		);
-
-		foreach ( $patterns as $pattern ) {
-			if ( 1 === preg_match( $pattern, $value ) ) {
-				return $value;
-			}
-		}
-
-		return '';
-	}
-
-	/**
-	 * Build inline custom-property declarations for a style attribute.
-	 *
-	 * @param mixed $style     Stored style attribute.
-	 * @param array $variables Token-to-path map.
-	 * @return string Declarations without a trailing semicolon; '' when unstyled.
-	 */
-	private static function style_vars( $style, $variables ) {
-		if ( ! is_array( $style ) || empty( $style ) ) {
-			return '';
-		}
-
-		$declarations = array();
-		foreach ( $variables as $token => $path ) {
-			$value = $style;
-			foreach ( $path as $key ) {
-				if ( ! is_array( $value ) || ! isset( $value[ $key ] ) ) {
-					$value = null;
-					break;
-				}
-				$value = $value[ $key ];
-			}
-
-			$value = self::sanitize_style_value( $value );
-			if ( '' !== $value ) {
-				$declarations[] = $token . ':' . $value;
-			}
-		}
-
-		return implode( ';', $declarations );
-	}
-
-	/**
 	 * Build the pill trigger style declarations.
+	 *
+	 * Styling belongs to this parent rather than to each pill: a pill's own
+	 * block wrapper is the box *around* the control, so a wrapper background
+	 * would paint the gap instead of the pill. The token map itself is shared
+	 * with every other pill-shaped Shift64 control.
 	 *
 	 * @param mixed $pill_style Stored pill style attribute.
 	 * @return string
 	 */
 	private static function pill_style_vars( $pill_style ) {
-		return self::style_vars( $pill_style, self::PILL_STYLE_VARS );
+		return Shift64_Woo_Search_Pill_Style::pill_vars( $pill_style );
 	}
 
 	/**
@@ -266,7 +146,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 * @return string
 	 */
 	private static function action_style_vars( $action_style ) {
-		return self::style_vars( $action_style, self::ACTION_STYLE_VARS );
+		return Shift64_Woo_Search_Pill_Style::action_vars( $action_style );
 	}
 
 	/**
@@ -447,6 +327,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 			'pillId'      => $taxonomy . '-' . self::$pill_sequence,
 			'taxonomy'    => $taxonomy,
 			'operatorAnd' => $operator_and,
+			'alignEnd'    => false,
 		);
 
 		$html  = '<details class="shift64-woo-search-pill__disclosure" data-wp-context="' . esc_attr( wp_json_encode( $pill_context ) ) . '" data-wp-bind--open="state.isPillOpen" data-wp-on--toggle="actions.pillToggled" data-wp-on--keydown="actions.panelKeydown">';
@@ -458,7 +339,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 		$html .= '<span class="shift64-woo-search-pill__chevron" aria-hidden="true"></span>';
 		$html .= '</summary>';
 
-		$html .= '<div class="shift64-woo-search-pill__panel">';
+		$html .= '<div class="shift64-woo-search-pill__panel" data-wp-class--is-aligned-end="context.alignEnd">';
 
 		// On a narrow screen the panel becomes a tray whose backdrop covers the
 		// pill, so tapping the trigger again can no longer close it. This is the

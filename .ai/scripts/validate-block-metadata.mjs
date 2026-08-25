@@ -12,7 +12,10 @@ const filtersParent = [ 'shift64-woo-search/product-filters' ];
 // - interactive parents must ship a view module;
 // - template-locked search children stay out of every inserter;
 // - the repeatable Filter Pill is constrained to its parent but stays
-//   insertable there (merchants add/remove/reorder pills themselves).
+//   insertable there (merchants add/remove/reorder pills themselves);
+// - a standalone interactive block has no parent at all, and enqueues its
+//   view module from PHP because that module is shared with the catalog
+//   navigation contract rather than built per block.
 const contracts = {
 	'shift64-woo-search/search': { kind: 'interactive-parent' },
 	'shift64-woo-search/modal-search': { kind: 'interactive-parent' },
@@ -29,6 +32,7 @@ const contracts = {
 		kind: 'repeatable-child',
 		parents: filtersParent,
 	},
+	'shift64-woo-search/product-sort': { kind: 'standalone-interactive' },
 };
 
 const expectedNames = new Set( Object.keys( contracts ) );
@@ -68,6 +72,15 @@ for ( const file of metadataFiles ) {
 		) {
 			throw new Error(
 				`${ file } must declare its interactive view module.`
+			);
+		}
+	} else if ( contract.kind === 'standalone-interactive' ) {
+		if ( metadata.supports?.interactivity !== true ) {
+			throw new Error( `${ file } must declare interactivity support.` );
+		}
+		if ( metadata.parent || metadata.ancestor ) {
+			throw new Error(
+				`${ file } is standalone and must not be restricted to a parent.`
 			);
 		}
 	} else {

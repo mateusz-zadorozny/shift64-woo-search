@@ -1,0 +1,91 @@
+/*
+ * Product Sort rides the shared pill primitive: same trigger, same panel, same
+ * `pillStyle` tokens as a Filter Pill, so a merchant styling one row of pills
+ * gets one look. Only the parts the primitive has no opinion about live here.
+ *
+ * Two differences from the Filter Pill are structural, not cosmetic. The
+ * trigger is a `<button>` rather than a `<summary>`, because picking a sort
+ * navigates instead of disclosing a form — so the panel is toggled by the
+ * store's `hidden` binding rather than by `<details open>`, and the chevron
+ * rotates off an `is-open` class rather than `[open]`. And each option is a
+ * button, not a checkbox: one choice, applied immediately.
+ */
+@import "../shared/pill-primitive";
+
+.shift64-woo-search-product-sort {
+	/*
+	 * Sort options are a closed set — seven canonical WooCommerce orders at
+	 * most — so the list is raised past the shared cap and shows them all.
+	 * Scrolling a seven-item menu hides choices for no reason. The viewport
+	 * still wins on a short screen, where a taller panel would run off it.
+	 */
+	--s64ws-pill-options-max-height: min(28rem, 60vh);
+
+	display: inline-block;
+
+	.shift64-woo-search-pill__panel[hidden] {
+		display: none;
+	}
+
+	.shift64-woo-search-pill__chevron.is-open {
+		transform: rotate(225deg) translateY(-0.1em);
+	}
+
+	&__option {
+		align-items: center;
+		background: none;
+		border: 0;
+		border-radius: 4px;
+		color: inherit;
+		cursor: pointer;
+		display: flex;
+		font: inherit;
+		gap: 0.5em;
+		justify-content: space-between;
+		padding: 0.35em 0.5em;
+		text-align: start;
+		width: 100%;
+
+		&:hover,
+		&:focus-visible {
+			background: rgba(0, 0, 0, 0.05);
+		}
+
+		&:focus-visible {
+			outline: 2px solid currentColor;
+			outline-offset: -2px;
+		}
+
+		&.is-selected {
+			font-weight: 600;
+		}
+	}
+
+	/*
+	 * The check is drawn rather than shipped as an icon so it inherits the
+	 * merchant's pill colour, and it reserves its box in both states — a
+	 * checkmark appearing must not reflow the option list.
+	 */
+	&__check {
+		border-right: 2px solid currentColor;
+		border-bottom: 2px solid currentColor;
+		flex: none;
+		height: 0.6em;
+		opacity: 0;
+		transform: rotate(45deg) translateY(-0.15em);
+		width: 0.3em;
+	}
+
+	&__option.is-selected &__check {
+		opacity: 1;
+	}
+
+	/*
+	 * The no-JS form is the progressive-enhancement floor: it submits a plain
+	 * GET when the store never hydrates. The store's own control is the pill,
+	 * so the select only surfaces where the pill cannot work.
+	 */
+	&__fallback {
+		display: none;
+	}
+}

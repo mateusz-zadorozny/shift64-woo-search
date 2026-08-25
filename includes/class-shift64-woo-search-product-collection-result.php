@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Shift64_Woo_Search_Product_Collection_Result {
 
 	const STATUS_REDIS           = 'redis';
+	const STATUS_WC_PASS_THROUGH = 'wc-pass-through';
 	const STATUS_NATIVE_FALLBACK = 'native-fallback';
 	const STATUS_INVALID_STATE   = 'invalid-state';
 
@@ -103,7 +104,7 @@ final class Shift64_Woo_Search_Product_Collection_Result {
 		$this->sort             = sanitize_key( $sort );
 		$this->selected_filters = $selected_filters;
 		$this->facets           = $facets;
-		$this->status           = in_array( $status, array( self::STATUS_REDIS, self::STATUS_NATIVE_FALLBACK, self::STATUS_INVALID_STATE ), true )
+		$this->status           = in_array( $status, array( self::STATUS_REDIS, self::STATUS_WC_PASS_THROUGH, self::STATUS_NATIVE_FALLBACK, self::STATUS_INVALID_STATE ), true )
 			? $status
 			: self::STATUS_INVALID_STATE;
 	}

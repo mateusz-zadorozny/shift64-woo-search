@@ -1,5 +1,4 @@
 import {
-	ColorPalette,
 	FontSizePicker,
 	InnerBlocks,
 	InspectorControls,
@@ -8,17 +7,14 @@ import {
 } from '@wordpress/block-editor';
 import { createBlock, registerBlockType } from '@wordpress/blocks';
 import {
-	BaseControl,
 	ExternalLink,
 	Notice,
 	PanelBody,
 	RadioControl,
 	RangeControl,
 	SelectControl,
-	TabPanel,
 	TextControl,
 	ToggleControl,
-	useBaseControlProps,
 } from '@wordpress/components';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
@@ -29,20 +25,12 @@ import {
 	actionStyleToVars,
 	pillStyleToVars,
 	setActionStyleValue,
-	setPillStyleValue,
 } from '../shared/pill-style';
+import { pxToNumber, StylePanel } from '../shared/pill-style-panel';
 import './editor.scss';
 import './style.scss';
 
 const PILL_BLOCK = 'shift64-woo-search/filter-pill';
-
-// Core's own States UI is closed to third-party blocks in WP 7.1, so the pill
-// exposes the same two states core surfaces for buttons — the default one and
-// the pointer/keyboard one — as tabs over a single set of controls.
-const STATE_TABS = [
-	{ name: 'default', title: __( 'Default', 'shift64-woo-search' ) },
-	{ name: 'hover', title: __( 'Hover', 'shift64-woo-search' ) },
-];
 
 // One filter row, one behavior: these settings describe how every pill in this
 // container presents its options, so they live here and reach the pills as
@@ -151,156 +139,6 @@ function PillOptionsPanel( { attributes, setAttributes } ) {
 				placeholder={ __( 'Clear', 'shift64-woo-search' ) }
 				onChange={ ( next ) => setAttributes( { clearLabel: next } ) }
 			/>
-		</PanelBody>
-	);
-}
-
-// A px integer round-trips through the stored CSS length without a unit
-// control, and matches the border widths core's own controls offer.
-function pxToNumber( value ) {
-	const parsed = parseInt( value, 10 );
-	return Number.isNaN( parsed ) ? undefined : parsed;
-}
-
-function PillColorControl( { label, value, onChange } ) {
-	const { baseControlProps, controlProps } = useBaseControlProps( { label } );
-
-	return (
-		<BaseControl { ...baseControlProps } __nextHasNoMarginBottom>
-			<ColorPalette
-				{ ...controlProps }
-				value={ value }
-				clearable
-				onChange={ ( next ) => onChange( next ) }
-			/>
-		</BaseControl>
-	);
-}
-
-function StylePanel( {
-	title,
-	styleValue,
-	onChange,
-	setValue = setPillStyleValue,
-} ) {
-	const write = ( path, value ) =>
-		onChange( setValue( styleValue, path, value ) );
-
-	const read = ( path ) =>
-		path.reduce(
-			( carry, key ) =>
-				carry && typeof carry === 'object' ? carry[ key ] : undefined,
-			styleValue
-		);
-
-	return (
-		<PanelBody title={ title } initialOpen>
-			<TabPanel tabs={ STATE_TABS }>
-				{ ( tab ) => {
-					const prefix = 'hover' === tab.name ? [ ':hover' ] : [];
-
-					return (
-						<>
-							<PillColorControl
-								label={ __( 'Text', 'shift64-woo-search' ) }
-								value={ read( [ ...prefix, 'color', 'text' ] ) }
-								onChange={ ( next ) =>
-									write(
-										[ ...prefix, 'color', 'text' ],
-										next
-									)
-								}
-							/>
-							<PillColorControl
-								label={ __(
-									'Background',
-									'shift64-woo-search'
-								) }
-								value={ read( [
-									...prefix,
-									'color',
-									'background',
-								] ) }
-								onChange={ ( next ) =>
-									write(
-										[ ...prefix, 'color', 'background' ],
-										next
-									)
-								}
-							/>
-							<PillColorControl
-								label={ __( 'Border', 'shift64-woo-search' ) }
-								value={ read( [
-									...prefix,
-									'border',
-									'color',
-								] ) }
-								onChange={ ( next ) =>
-									write(
-										[ ...prefix, 'border', 'color' ],
-										next
-									)
-								}
-							/>
-							{ 'hover' === tab.name ? (
-								<p className="shift64-woo-search-pill-style__hint">
-									{ __(
-										'Hover styles also apply on keyboard focus. Anything left empty falls back to the default state.',
-										'shift64-woo-search'
-									) }
-								</p>
-							) : (
-								<>
-									<RangeControl
-										__nextHasNoMarginBottom
-										__next40pxDefaultSize
-										label={ __(
-											'Border width',
-											'shift64-woo-search'
-										) }
-										value={ pxToNumber(
-											read( [ 'border', 'width' ] )
-										) }
-										min={ 0 }
-										max={ 8 }
-										allowReset
-										onChange={ ( next ) =>
-											write(
-												[ 'border', 'width' ],
-												undefined === next
-													? ''
-													: `${ next }px`
-											)
-										}
-									/>
-									<RangeControl
-										__nextHasNoMarginBottom
-										__next40pxDefaultSize
-										label={ __(
-											'Border radius',
-											'shift64-woo-search'
-										) }
-										value={ pxToNumber(
-											read( [ 'border', 'radius' ] )
-										) }
-										min={ 0 }
-										max={ 50 }
-										allowReset
-										onChange={ ( next ) =>
-											write(
-												[ 'border', 'radius' ],
-												undefined === next
-													? ''
-													: `${ next }px`
-											)
-										}
-									/>
-								</>
-							) }
-						</>
-					);
-				} }
-			</TabPanel>
 		</PanelBody>
 	);
 }

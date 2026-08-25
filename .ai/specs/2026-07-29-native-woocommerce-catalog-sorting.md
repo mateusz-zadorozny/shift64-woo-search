@@ -1,6 +1,6 @@
 # Native WooCommerce Catalog Sorting Engine and Product Sort Block
 
-> **Status:** draft
+> **Status:** implemented — PR #73, 2026-08-19
 
 ## TLDR
 

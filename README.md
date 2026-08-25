@@ -73,8 +73,15 @@ repeatable **Filter Pill** children, each exposing one enabled, indexed facet
 (category, brand, or a `pa_*` attribute) as a progressively enhanced pill with
 Redis-backed disjunctive counts and canonical `filter_{taxonomy}` URLs. See
 [Product Filters and Filter Pill Blocks](docs/product-filter-pill-blocks.md)
-for the merchant workflow and the shared pill primitive that the upcoming
-Product Sort block reuses.
+for the merchant workflow and the shared pill primitive.
+
+The **Shift64 Product Sort** block is the third control on that primitive: the
+same trigger, panel, and `pillStyle` tokens as a Filter Pill, so a sort control
+standing next to a filter row is styled once and matches. It exposes
+WooCommerce's canonical catalog orders — including `popularity`, `rating`, and
+`date`, which the Redis sorting engine resolves natively — with per-option
+labels and ordering chosen in the Site Editor, and it falls back to a plain
+`GET` form where JavaScript never arrives.
 
 ## Search shortcodes
 

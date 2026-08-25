@@ -30,6 +30,15 @@
 	 * makes "set only a hover background" behave the way a merchant expects.
 	 */
 	&__trigger {
+		/*
+		 * A pill trigger is a `<summary>` when it discloses a panel and a
+		 * `<button>` when it applies a choice. A summary inherits the theme's
+		 * typography; a button silently takes the browser's form-control font
+		 * (13.33px), which left two pills on the same row at different sizes —
+		 * and, since the padding below is in `em`, at different heights too.
+		 */
+		font: inherit;
+
 		align-items: center;
 		background: var(--s64ws-pill-bg, transparent);
 		border: var(--s64ws-pill-border-width, 1px) solid
@@ -110,10 +119,27 @@
 		color: var(--wp--preset--color--contrast, currentColor);
 		left: 0;
 		min-width: 16rem;
+		/*
+		 * The floor under the flip below: a panel can never be wider than the
+		 * window, so even an unflipped one cannot widen the document and give
+		 * the whole page a horizontal scrollbar.
+		 */
+		max-width: calc(100vw - 2rem);
 		padding: 1rem;
 		position: absolute;
 		top: calc(100% + 0.4rem);
 		z-index: var(--s64ws-pill-panel-z);
+	}
+
+	/*
+	 * A pill near the end of its row opens a panel that runs off the page.
+	 * CSS cannot know where the trigger landed, so each store measures once on
+	 * open (frontend/js/shift64-woo-search-pill-align.js) and sets this class,
+	 * which re-anchors the panel to the trigger's end edge.
+	 */
+	&__panel.is-aligned-end {
+		left: auto;
+		right: 0;
 	}
 
 	&__heading {
@@ -152,10 +178,16 @@
 		}
 	}
 
+	/*
+	 * Option lists share one height rule so two open panels line up. A facet
+	 * list is unbounded — a category tree can run to hundreds of terms — so the
+	 * default caps it and scrolls. A control whose options are a short fixed
+	 * set raises the token instead of inventing its own rule.
+	 */
 	&__options {
 		list-style: none;
 		margin: 0;
-		max-height: 16rem;
+		max-height: var(--s64ws-pill-options-max-height, 16rem);
 		overflow: auto;
 		padding: 0;
 	}
@@ -297,6 +329,14 @@
 			@supports (max-height: 70dvh) {
 				max-height: 70dvh;
 			}
+		}
+
+		// The tray spans the full width, so there is no end edge to flip to.
+		// This has to restate `left` because the flip's two-class selector
+		// outranks the tray's single-class one whatever the source order.
+		&__panel.is-aligned-end {
+			left: 0;
+			right: 0;
 		}
 
 		// Leave room for the close button in the tray's top-right corner.
