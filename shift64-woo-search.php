@@ -73,6 +73,7 @@ require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-archiv
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-attribute-auto-register.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-taxonomy-archive.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'frontend/class-shift64-woo-search-frontend.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-pill-style.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-filter-blocks.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-blocks.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'frontend/class-shift64-woo-search-filters.php';

@@ -37,51 +37,21 @@
       "type": "object",
       "default": {}
     },
-    "text_color": {
-      "type": "string",
-      "default": ""
-    },
-    "text_hover_color": {
-      "type": "string",
-      "default": ""
-    },
-    "background_color": {
-      "type": "string",
-      "default": ""
-    },
-    "background_hover_color": {
-      "type": "string",
-      "default": ""
-    },
-    "border_color": {
-      "type": "string",
-      "default": ""
-    },
-    "border_hover_color": {
-      "type": "string",
-      "default": ""
-    },
-    "border_radius": {
-      "type": [
-        "number",
-        "string"
-      ],
-      "default": 9999
-    },
-    "border_width": {
-      "type": [
-        "number",
-        "string"
-      ],
-      "default": 1
+    "pillStyle": {
+      "type": "object",
+      "default": {}
     }
   },
   "supports": {
+    "anchor": true,
     "html": false,
     "interactivity": true,
     "inserter": true,
+    "color": false,
+    "border": false,
     "typography": {
-      "fontSize": true
+      "fontSize": true,
+      "lineHeight": true
     },
     "spacing": {
       "margin": true,
@@ -90,5 +60,8 @@
   },
   "editorScript": "file:./index.js",
   "editorStyle": "file:./index.css",
-  "style": "shift64-woo-search"
+  "style": [
+    "shift64-woo-search",
+    "file:./style-index.css"
+  ]
 }

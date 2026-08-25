@@ -1097,43 +1097,18 @@ class Shift64_Woo_Search_Blocks {
 			'activeLabel' => $active_label,
 		);
 
-		$css_vars = array();
-
-		if ( ! empty( $attributes['text_color'] ) ) {
-			$css_vars[] = '--s64ws-sort-text: ' . esc_attr( $attributes['text_color'] );
-		}
-		if ( ! empty( $attributes['text_hover_color'] ) ) {
-			$css_vars[] = '--s64ws-sort-text-hover: ' . esc_attr( $attributes['text_hover_color'] );
-		}
-		if ( ! empty( $attributes['background_color'] ) ) {
-			$css_vars[] = '--s64ws-sort-bg: ' . esc_attr( $attributes['background_color'] );
-		}
-		if ( ! empty( $attributes['background_hover_color'] ) ) {
-			$css_vars[] = '--s64ws-sort-bg-hover: ' . esc_attr( $attributes['background_hover_color'] );
-		}
-		if ( ! empty( $attributes['border_color'] ) ) {
-			$css_vars[] = '--s64ws-sort-border: ' . esc_attr( $attributes['border_color'] );
-		}
-		if ( ! empty( $attributes['border_hover_color'] ) ) {
-			$css_vars[] = '--s64ws-sort-border-hover: ' . esc_attr( $attributes['border_hover_color'] );
-		}
-		if ( isset( $attributes['border_radius'] ) && '' !== $attributes['border_radius'] ) {
-			$css_vars[] = '--s64ws-sort-radius: ' . esc_attr( absint( $attributes['border_radius'] ) ) . 'px';
-		}
-		if ( isset( $attributes['border_width'] ) && '' !== $attributes['border_width'] ) {
-			$css_vars[] = '--s64ws-sort-border-width: ' . esc_attr( absint( $attributes['border_width'] ) ) . 'px';
-		}
-
-		$style_vars = ! empty( $css_vars ) ? implode( '; ', $css_vars ) . ';' : '';
+		// One token map for every pill-shaped control, so a sort pill and a
+		// filter pill styled with the same values render identically.
+		$style_vars = Shift64_Woo_Search_Pill_Style::pill_vars( $attributes['pillStyle'] ?? array() );
 
 		$wrapper_args = array(
-			'class'                      => 'shift64-woo-search-product-sort',
+			'class'                      => 'shift64-woo-search-product-sort shift64-woo-search-pill',
 			'data-wp-interactive'        => 'shift64/woo-search-product-sort',
 			'data-wp-context'            => wp_json_encode( $context ),
 			'data-wp-on-window--click'   => 'actions.onClickOutside',
 			'data-wp-on-window--keydown' => 'actions.onKeyDown',
 		);
-		if ( ! empty( $style_vars ) ) {
+		if ( '' !== $style_vars ) {
 			$wrapper_args['style'] = $style_vars;
 		}
 
@@ -1142,72 +1117,62 @@ class Shift64_Woo_Search_Blocks {
 		ob_start();
 		?>
 		<div <?php echo $wrapper_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
-			<div class="shift64-woo-search-product-sort__pill">
-				<button
-					type="button"
-					class="shift64-woo-search-product-sort__trigger"
-					data-wp-on--click="actions.toggleDropdown"
-					data-wp-bind--aria-expanded="context.isOpen"
-					aria-haspopup="listbox"
-					aria-label="<?php esc_attr_e( 'Sort products by', 'shift64-woo-search' ); ?>"
-				>
-					<span class="shift64-woo-search-product-sort__label" data-wp-text="context.activeLabel">
-						<?php echo esc_html( $active_label ); ?>
-					</span>
-					<span class="shift64-woo-search-product-sort__chevron" data-wp-class--is-open="context.isOpen" aria-hidden="true">
-						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-							<polyline points="6 9 12 15 18 9"></polyline>
-						</svg>
-					</span>
-				</button>
+			<button
+				type="button"
+				class="shift64-woo-search-pill__trigger"
+				data-wp-on--click="actions.toggleDropdown"
+				data-wp-bind--aria-expanded="context.isOpen"
+				aria-haspopup="listbox"
+				aria-label="<?php esc_attr_e( 'Sort products by', 'shift64-woo-search' ); ?>"
+			>
+				<span class="shift64-woo-search-pill__label" data-wp-text="context.activeLabel">
+					<?php echo esc_html( $active_label ); ?>
+				</span>
+				<span class="shift64-woo-search-pill__chevron" data-wp-class--is-open="context.isOpen" aria-hidden="true"></span>
+			</button>
 
-				<div
-					class="shift64-woo-search-product-sort__tray"
-					data-wp-bind--hidden="!context.isOpen"
-					role="listbox"
-					aria-label="<?php esc_attr_e( 'Sort options', 'shift64-woo-search' ); ?>"
-					hidden
-				>
-					<ul class="shift64-woo-search-product-sort__list" role="presentation">
-						<?php
-						foreach ( $rendered_options as $slug => $label ) :
-							$is_selected  = ( $effective_sort === $slug );
-							$item_context = wp_json_encode(
-								array(
-									'slug'  => $slug,
-									'label' => $label,
-								)
-							);
-							?>
-							<li
-								class="shift64-woo-search-product-sort__item"
-								role="presentation"
-								data-wp-context="<?php echo esc_attr( $item_context ); ?>"
+			<div
+				class="shift64-woo-search-pill__panel"
+				data-wp-bind--hidden="!context.isOpen"
+				role="listbox"
+				aria-label="<?php esc_attr_e( 'Sort options', 'shift64-woo-search' ); ?>"
+				hidden
+			>
+				<ul class="shift64-woo-search-pill__options" role="presentation">
+					<?php
+					foreach ( $rendered_options as $slug => $label ) :
+						$is_selected  = ( $effective_sort === $slug );
+						$item_context = wp_json_encode(
+							array(
+								'slug'  => $slug,
+								'label' => $label,
+							)
+						);
+						?>
+						<li
+							class="shift64-woo-search-pill__option"
+							role="presentation"
+							data-wp-context="<?php echo esc_attr( $item_context ); ?>"
+						>
+							<button
+								type="button"
+								role="option"
+								class="shift64-woo-search-product-sort__option<?php echo $is_selected ? ' is-selected' : ''; ?>"
+								data-slug="<?php echo esc_attr( $slug ); ?>"
+								data-label="<?php echo esc_attr( $label ); ?>"
+								data-wp-on--click="actions.selectOption"
+								data-wp-class--is-selected="state.isSelected"
+								data-wp-bind--aria-selected="state.isSelected"
+								aria-selected="<?php echo $is_selected ? 'true' : 'false'; ?>"
 							>
-								<button
-									type="button"
-									role="option"
-									class="shift64-woo-search-product-sort__option<?php echo $is_selected ? ' is-selected' : ''; ?>"
-									data-slug="<?php echo esc_attr( $slug ); ?>"
-									data-label="<?php echo esc_attr( $label ); ?>"
-									data-wp-on--click="actions.selectOption"
-									data-wp-class--is-selected="state.isSelected"
-									data-wp-bind--aria-selected="state.isSelected"
-									aria-selected="<?php echo $is_selected ? 'true' : 'false'; ?>"
-								>
-									<span class="shift64-woo-search-product-sort__option-label">
-										<?php echo esc_html( $label ); ?>
-									</span>
-									<span class="shift64-woo-search-product-sort__option-check" aria-hidden="true">
-										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-											<polyline points="20 6 9 17 4 12"></polyline>
-										</svg>
-									</span>
-								</button>
-							</li>
-						<?php endforeach; ?>
-					</ul>
-				</div>
+								<span class="shift64-woo-search-pill__option-label">
+									<?php echo esc_html( $label ); ?>
+								</span>
+								<span class="shift64-woo-search-product-sort__check" aria-hidden="true"></span>
+							</button>
+						</li>
+					<?php endforeach; ?>
+				</ul>
 			</div>
 
 			<form class="woocommerce-ordering shift64-woo-search-product-sort__fallback" method="get">
