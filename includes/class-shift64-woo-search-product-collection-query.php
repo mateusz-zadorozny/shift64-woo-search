@@ -61,6 +61,7 @@ class Shift64_Woo_Search_Product_Collection_Query {
 		add_filter( 'render_block_context', array( $this, 'scope_inherited_query_context' ), 99, 2 );
 		add_filter( 'pre_render_block', array( $this, 'track_results_count_block' ), 10, 3 );
 		add_filter( 'render_block', array( $this, 'restore_count_loop' ), 10, 3 );
+		add_filter( 'render_block', array( $this, 'restore_archive_pagination_links' ), 10, 3 );
 		add_filter( 'query_loop_block_query_vars', array( $this, 'filter_query_vars' ), 99, 3 );
 		add_filter( 'found_posts', array( $this, 'filter_found_posts' ), 99, 2 );
 	}
@@ -193,6 +194,112 @@ class Shift64_Woo_Search_Product_Collection_Query {
 	}
 
 	/**
+	 * Tell core's pagination which page a pretty archive URL is on.
+	 *
+	 * A non-inherited Query Loop reads its current page from
+	 * `$_GET['query-{id}-page']` alone — the archive's own `/page/2/` permalink
+	 * means nothing to it. Scoping the collection turns `inherit` off, so on a
+	 * pretty paged URL core would render page two's products under a pagination
+	 * widget still pointing at page one.
+	 *
+	 * The archive already resolved that page into the main query, so this
+	 * publishes it under the key core reads. Every other reader of this key
+	 * (Shift64_Woo_Search_Catalog_State, the sort block's hidden fields) either
+	 * resolves the same number or skips page keys outright, so the request stays
+	 * internally consistent.
+	 *
+	 * @param array<string,mixed> $context Product Collection block context.
+	 */
+	private function bridge_archive_page_to_query_param( array $context ) {
+		$paged = max( 1, (int) get_query_var( 'paged' ) );
+		if ( $paged < 2 ) {
+			return;
+		}
+
+		$query_id = isset( $context['queryId'] ) ? absint( $context['queryId'] ) : null;
+		$page_key = null !== $query_id ? 'query-' . $query_id . '-page' : 'query-page';
+		if ( isset( $_GET[ $page_key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public storefront state.
+			return;
+		}
+
+		$_GET[ $page_key ] = (string) $paged;
+	}
+
+	/**
+	 * Give a scoped collection back the archive's own paginated URLs.
+	 *
+	 * Core builds pagination links from `query.inherit`: an inherited collection
+	 * gets the archive's `/page/2/` permalink, a standalone one gets
+	 * `?query-0-page=2`. Scoping to Redis membership turns `inherit` off, so the
+	 * archive silently traded its canonical URLs for a query parameter — the
+	 * page is the same page, addressed two ways, which costs the shopper a
+	 * shareable link and the store a crawlable one.
+	 *
+	 * Only the emitted `href` changes. Both shapes stay readable on the way in
+	 * (Shift64_Woo_Search_Catalog_State::requested_page() resolves either), so a
+	 * bookmarked `?query-0-page=2` keeps working.
+	 *
+	 * @param string              $block_content Rendered block HTML.
+	 * @param array<string,mixed> $parsed_block  Parsed block.
+	 * @param WP_Block|null       $block         Block instance.
+	 * @return string
+	 */
+	public function restore_archive_pagination_links( $block_content, $parsed_block, $block = null ) {
+		$pagination_blocks = array(
+			'core/query-pagination-next',
+			'core/query-pagination-previous',
+			'core/query-pagination-numbers',
+		);
+		if (
+			! in_array( $parsed_block['blockName'] ?? '', $pagination_blocks, true )
+			|| ! $block instanceof WP_Block
+			|| false === strpos( $block_content, 'href=' )
+		) {
+			return $block_content;
+		}
+
+		$query = is_array( $block->context['query'] ?? null ) ? $block->context['query'] : array();
+		if ( true !== ( $query[ Shift64_Woo_Search_Product_Collection_Context::SCOPED_INHERIT_MARKER ] ?? false ) ) {
+			return $block_content;
+		}
+
+		$query_id = isset( $block->context['queryId'] ) ? absint( $block->context['queryId'] ) : null;
+		$page_key = null !== $query_id ? 'query-' . $query_id . '-page' : 'query-page';
+		// Only the block's own page parameters come out. `paged` stays: under
+		// plain permalinks it is exactly how get_pagenum_link() expresses the
+		// page, so stripping it would rewrite every link back to page one.
+		$page_keys = array_unique( array( $page_key, 'query-page' ) );
+
+		return (string) preg_replace_callback(
+			'/href="([^"]*)"/',
+			static function ( $matches ) use ( $page_key, $page_keys ) {
+				$args = array();
+				$href = html_entity_decode( $matches[1], ENT_QUOTES );
+				$url  = wp_parse_url( $href );
+				if ( ! empty( $url['query'] ) ) {
+					parse_str( $url['query'], $args );
+				}
+
+				// Core drops the parameter entirely for page one, so an anchor
+				// without it inside a pagination block is the way back to the
+				// first page — not something to leave alone.
+				$page = isset( $args[ $page_key ] ) ? absint( $args[ $page_key ] ) : 1;
+				if ( $page < 1 ) {
+					return $matches[0];
+				}
+
+				// get_pagenum_link() reads the current request, so it carries
+				// the live facet and sort parameters into the paged URL; the
+				// page itself moves into the permalink, so the parameter forms
+				// have to come back out or the two would disagree.
+				$pretty = remove_query_arg( $page_keys, get_pagenum_link( $page, false ) );
+				return 'href="' . esc_url( $pretty ) . '"';
+			},
+			$block_content
+		);
+	}
+
+	/**
 	 * Route inherited Product Collection query consumers through a scoped query.
 	 *
 	 * WooCommerce clones the already-executed main query for inherited
@@ -224,6 +331,8 @@ class Shift64_Woo_Search_Product_Collection_Query {
 		) {
 			return $context;
 		}
+
+		$this->bridge_archive_page_to_query_param( $context );
 
 		$signature = $this->context_signature( $context );
 		if ( ! array_key_exists( $signature, $this->prepared_results ) ) {

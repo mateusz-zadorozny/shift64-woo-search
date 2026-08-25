@@ -604,6 +604,80 @@ class Product_Collection_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Build a pagination block instance carrying a scoped collection's context.
+	 *
+	 * @param bool $scoped Whether the collection was scoped to Redis membership.
+	 * @return WP_Block
+	 */
+	private function pagination_block( $scoped = true ) {
+		$query = array(
+			'isProductCollectionBlock' => true,
+			'inherit'                  => false,
+		);
+		if ( $scoped ) {
+			$query[ Shift64_Woo_Search_Product_Collection_Context::SCOPED_INHERIT_MARKER ] = true;
+		}
+
+		return new WP_Block(
+			array( 'blockName' => 'core/query-pagination-numbers' ),
+			array(
+				'queryId' => 0,
+				'query'   => $query,
+			)
+		);
+	}
+
+	/**
+	 * A scoped collection keeps the archive's paginated links, not the block's.
+	 */
+	public function test_pagination_links_return_to_the_archive_permalink() {
+		$this->go_to( '/?post_type=product' );
+		$block = $this->pagination_block();
+
+		$rendered = ( new Shift64_Woo_Search_Product_Collection_Query() )->restore_archive_pagination_links(
+			'<a class="page-numbers" href="?query-0-page=3">3</a>',
+			array( 'blockName' => 'core/query-pagination-numbers' ),
+			$block
+		);
+
+		$this->assertStringNotContainsString( 'query-0-page', $rendered );
+		$this->assertStringContainsString( esc_url( get_pagenum_link( 3, false ) ), $rendered );
+	}
+
+	/**
+	 * Core omits the parameter on the way back to page one; that link counts too.
+	 */
+	public function test_pagination_links_rewrite_the_first_page_link() {
+		$this->go_to( '/?post_type=product&paged=2' );
+		$block = $this->pagination_block();
+
+		$rendered = ( new Shift64_Woo_Search_Product_Collection_Query() )->restore_archive_pagination_links(
+			'<a class="page-numbers" href="?cst">1</a>',
+			array( 'blockName' => 'core/query-pagination-numbers' ),
+			$block
+		);
+
+		$this->assertStringNotContainsString( 'cst', $rendered );
+		$this->assertStringContainsString( esc_url( get_pagenum_link( 1, false ) ), $rendered );
+	}
+
+	/**
+	 * An untouched collection keeps whatever core rendered.
+	 */
+	public function test_pagination_links_are_left_alone_without_a_scoped_collection() {
+		$this->go_to( '/?post_type=product' );
+		$content = '<a class="page-numbers" href="?query-0-page=3">3</a>';
+
+		$rendered = ( new Shift64_Woo_Search_Product_Collection_Query() )->restore_archive_pagination_links(
+			$content,
+			array( 'blockName' => 'core/query-pagination-numbers' ),
+			$this->pagination_block( false )
+		);
+
+		$this->assertSame( $content, $rendered );
+	}
+
+	/**
 	 * An inherited collection is sized by the archive, not by its own attribute.
 	 *
 	 * WooCommerce sizes product archives with `loop_shop_per_page`, which rarely
