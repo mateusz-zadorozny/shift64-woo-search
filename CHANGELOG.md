@@ -1,3 +1,10 @@
+# [0.18.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.17.1...v0.18.0) (2026-08-25)
+
+
+### Features
+
+* **search:** native WooCommerce catalog sorting engine and Product Sort block ([#73](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/73)) ([eaef990](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/eaef990ff83640e5f0eb89cd5d6b9cecacede635))
+
 ## [0.17.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.17.0...v0.17.1) (2026-08-24)
 
 
