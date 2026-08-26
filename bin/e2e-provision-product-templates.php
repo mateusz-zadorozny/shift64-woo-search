@@ -18,6 +18,7 @@ $registry   = WP_Block_Type_Registry::get_instance();
 $blocks     = array_filter(
 	array(
 		'shift64-woo-search/product-filters',
+		'shift64-woo-search/filter-pill',
 		'shift64-woo-search/product-sort',
 	),
 	static function ( $block_name ) use ( $registry ) {

@@ -53,6 +53,12 @@ function shift64_woo_search_test_env_transform_product_template( $template, arra
 		$template = str_replace( $sort_marker, $sort_block, $template );
 	}
 
+	$filter_blocks_available = in_array( 'shift64-woo-search/product-filters', $registered_blocks, true )
+		&& in_array( 'shift64-woo-search/filter-pill', $registered_blocks, true );
+	if ( ! $filter_blocks_available ) {
+		return $template;
+	}
+
 	$results_marker = '<!-- wp:woocommerce/product-results-count /-->';
 	if ( false === strpos( $template, $results_marker ) ) {
 		throw new UnexpectedValueException( 'WooCommerce product template has no product-results-count marker.' );

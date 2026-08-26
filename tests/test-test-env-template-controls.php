@@ -35,7 +35,7 @@ class Shift64_Test_Env_Template_Controls_Test extends WP_UnitTestCase {
 		$source = "<!-- wp:woocommerce/product-results-count /-->\n<!-- wp:woocommerce/catalog-sorting /-->";
 		$actual = shift64_woo_search_test_env_transform_product_template(
 			$source,
-			array( 'shift64-woo-search/product-filters', 'shift64-woo-search/product-sort' ),
+			array( 'shift64-woo-search/product-filters', 'shift64-woo-search/filter-pill', 'shift64-woo-search/product-sort' ),
 			'archive-product'
 		);
 
@@ -57,7 +57,7 @@ class Shift64_Test_Env_Template_Controls_Test extends WP_UnitTestCase {
 		$source = "<!-- wp:woocommerce/product-results-count /-->\n<!-- wp:woocommerce/catalog-sorting /-->";
 		$actual = shift64_woo_search_test_env_transform_product_template(
 			$source,
-			array( 'shift64-woo-search/product-filters' ),
+			array( 'shift64-woo-search/product-filters', 'shift64-woo-search/filter-pill' ),
 			'product-search-results'
 		);
 
@@ -67,13 +67,29 @@ class Shift64_Test_Env_Template_Controls_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A checkout without the filter blocks does not persist invalid block markup.
+	 */
+	public function test_missing_product_filters_keeps_the_template_valid() {
+		$source = "<!-- wp:woocommerce/product-results-count /-->\n<!-- wp:woocommerce/catalog-sorting /-->";
+		$actual = shift64_woo_search_test_env_transform_product_template(
+			$source,
+			array( 'shift64-woo-search/product-sort' ),
+			'archive-product'
+		);
+
+		$this->assertStringContainsString( 'shift64-woo-search/product-sort', $actual );
+		$this->assertStringNotContainsString( 'shift64-woo-search/product-filters', $actual );
+		$this->assertStringNotContainsString( 'shift64-woo-search/filter-pill', $actual );
+	}
+
+	/**
 	 * Rerunning provisioning does not duplicate the filter parent.
 	 */
 	public function test_transform_is_idempotent() {
 		$source = '<!-- wp:woocommerce/product-results-count /--><!-- wp:woocommerce/catalog-sorting /-->';
 		$once   = shift64_woo_search_test_env_transform_product_template(
 			$source,
-			array( 'shift64-woo-search/product-filters', 'shift64-woo-search/product-sort' ),
+			array( 'shift64-woo-search/product-filters', 'shift64-woo-search/filter-pill', 'shift64-woo-search/product-sort' ),
 			'taxonomy-product_attribute'
 		);
 
@@ -81,7 +97,7 @@ class Shift64_Test_Env_Template_Controls_Test extends WP_UnitTestCase {
 			$once,
 			shift64_woo_search_test_env_transform_product_template(
 				$once,
-				array( 'shift64-woo-search/product-filters', 'shift64-woo-search/product-sort' ),
+				array( 'shift64-woo-search/product-filters', 'shift64-woo-search/filter-pill', 'shift64-woo-search/product-sort' ),
 				'taxonomy-product_attribute'
 			)
 		);
