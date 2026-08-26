@@ -222,13 +222,11 @@ test.describe('block theme + enhanced pagination (WooCommerce owns navigation)',
 		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
 		const page2FirstProduct = await productCards(page).first().innerText();
 
-		const amber = page
-			.locator(`${SEL.filterCheckbox}[data-taxonomy="pa_color"][data-slug="amber-musk"]`)
+		const filters = page.locator(SEL.productFilters).first();
+		const amber = filters
+			.locator(`${SEL.productFilterCheckbox}[name="filter_pa_color[]"][value="amber-musk"]`)
 			.first();
-		await page
-			.locator('.shift64-woo-search-filter[data-filter-key="pa_color"]')
-			.locator('.shift64-woo-search-filter__pill')
-			.click();
+		await filters.locator('details', { hasText: /color/i }).locator('summary').click();
 		await expect(amber).toBeVisible();
 		await amber.check();
 

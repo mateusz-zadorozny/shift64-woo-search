@@ -19,9 +19,9 @@ test('category archive is intercepted and renders the facet bar', async ({ page 
 		await expect(cards.nth(i)).toContainText(/Shirt/);
 	}
 
-	const filters = page.locator(SEL.filters).first();
+	const filters = page.locator(SEL.productFilters).first();
 	await expect(filters).toBeVisible();
 	await expect(
-		filters.locator(`${SEL.filterCheckbox}[data-taxonomy="pa_color"]`).first()
+		filters.locator(`${SEL.productFilterCheckbox}[name="filter_pa_color[]"]`).first()
 	).toBeAttached();
 });
