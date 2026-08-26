@@ -181,10 +181,13 @@ results and more exact ones; nothing needs to be reset.
 Under `mixed` with `OR`, a multi-word query re-ranks by how many search terms each product matches
 across its title, SKU, categories, brands, and attributes, so a product matched only through its
 description now sorts below one matched by name. This reorders, it does not drop: the minimum match
-ratio is disabled for the single-pass strategies, and the score threshold is applied to the raw
-Redis score *before* the re-rank scales it, so a body-only match that cleared the threshold on its
-own merits still appears. `shift64_woo_search_fallback_score_threshold` continues to decide what is
-too weak to show.
+ratio is disabled for the single-pass strategies, and a hybrid pass is never score-filtered.
+
+That last point narrows `_fallback_score_threshold` further than the paragraph above. It now applies
+to the `fuzzy` pass alone — the one where every token was fuzzed and nothing matched exactly.
+`mixed` and `token_fuzzy` match each token as prefix OR fuzzy, so they carry exact matches whose
+TFIDF score tracks how common the term is, and filtering them is what #26 forbade: on a catalog
+where a query term is frequent, an exact match scores under the threshold and the pass empties.
 
 `_archive_debug_enabled` (default `no`) gates the storefront debug panel. It is a *new* key rather
 than a re-defaulted one, but it does change behavior for installs that never set it: the panel

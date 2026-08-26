@@ -70,7 +70,7 @@ The OR pass first applies term-coverage filtering and scoring. Order is material
 | Logic | `shift64_woo_search_logic` | `AND` | Token AND/OR logic. Fresh installs only — see below |
 | Strategy | `shift64_woo_search_strategy` | `mixed` | Cascade or mixed strategy. Fresh installs only — see below |
 | Fallback | `shift64_woo_search_fallback_trigger` | `low_score` | Empty-only or low-score fallback |
-| Fallback | `shift64_woo_search_fallback_score_threshold` | `0.5` | Score filter for fuzzy passes |
+| Fallback | `shift64_woo_search_fallback_score_threshold` | `0.5` | Score filter for the all-fuzzed pass only |
 | Fuzzy | `shift64_woo_search_fallback_fuzzy_level` | `1` | Final fallback distance |
 | Mixed fuzzy | `shift64_woo_search_fuzzy_level` | `1` | Mixed-strategy distance |
 | Token reduction | `shift64_woo_search_token_reduction_enabled` | `yes` | Enables pass two |

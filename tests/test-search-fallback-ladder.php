@@ -326,12 +326,12 @@ class Search_Fallback_Ladder_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A per-token fuzzy pass whose every hit falls under the score threshold is
-	 * not an answer. Declaring it terminal before filtering returned an empty
-	 * dropdown while the archive — which filters inside the pass, then re-tests
-	 * emptiness — carried on to the broader passes.
+	 * A common term scores low on an exact prefix match, and the per-token
+	 * fuzzy pass carries exact matches, so it is never score-filtered. Filtering
+	 * it would end the ladder empty here while the archive carried on — and
+	 * filtering the same shape on the archive is what emptied the results page.
 	 */
-	public function test_token_fuzzy_pass_that_scores_below_the_threshold_keeps_falling_back() {
+	public function test_token_fuzzy_pass_is_not_score_filtered() {
 		$query = $this->make_query(
 			array(
 				'strategy'                 => 'strict_first',
@@ -339,22 +339,22 @@ class Search_Fallback_Ladder_Test extends WP_UnitTestCase {
 				'token_reduction_enabled'  => false,
 				'fallback_score_threshold' => 100.0,
 			),
-			$this->ft_reply( 'Aero Orchid Sheet Mask Lightweight Cedarwood', 12.5 )
+			$this->ft_reply( 'Aero Cedar Kettle Handcrafted Deep Teal', 12.5 )
 		);
 
-		$response = $query->search( 'aero cedar table', 'autocomplete' );
+		$response = $query->search( 'aero cedat', 'autocomplete' );
 
-		$this->assertNotSame( 'token_fuzzy', $response['search_pass'] );
-		$this->assertArrayHasKey( 'fuzzy', $response['debug_queries'] );
+		$this->assertSame( 'token_fuzzy', $response['search_pass'] );
+		$this->assertCount( 1, $response['results'] );
 	}
 
 	/**
 	 * The single-pass strategies re-rank by term coverage; they must not drop.
 	 *
 	 * `boost_term_match_count()` scales a score by ratio², so a body-only match
-	 * lands on 0. Filtering after that removed it — the exact behaviour the
-	 * "ranking, not filtering" comment denied. The threshold is applied to the
-	 * raw Redis score instead, and the trailing filter skips the pass.
+	 * lands on 0. With `min_ratio 0` it is kept and merely sorted last, and
+	 * because a hybrid pass is never score-filtered nothing removes it later —
+	 * which is what "ranking, not filtering" has to mean to be true.
 	 */
 	public function test_mixed_pass_reranks_body_only_matches_without_dropping_them() {
 		$query = $this->make_query(
@@ -376,20 +376,23 @@ class Search_Fallback_Ladder_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A row genuinely below the threshold is still removed — on its raw score,
-	 * before the re-rank has a chance to scale it.
+	 * The score threshold still bites where every token was fuzzed and nothing
+	 * matched exactly — the one pass whose hits are approximate throughout.
 	 */
-	public function test_mixed_pass_still_drops_a_row_below_the_raw_score_threshold() {
-		$query = $this->make_query(
-			array(
-				'strategy'                 => 'mixed',
-				'logic'                    => 'OR',
-				'fallback_score_threshold' => 20.0,
-			),
-			$this->ft_reply( 'Aero Cedar Side Table Natural Oak', 12.5 )
+	public function test_fuzzy_pass_still_drops_rows_below_the_threshold() {
+		$this->assertSame(
+			array(),
+			Shift64_Woo_Search_Query::filter_low_scores(
+				array(
+					array(
+						'title'  => 'Aero Cedar Side Table',
+						'_score' => 12.5,
+					),
+				),
+				20.0
+			)
 		);
-
-		$this->assertSame( array(), $query->search( 'aero cedar table', 'autocomplete' )['results'] );
+		$this->assertTrue( Shift64_Woo_Search_Query::pass_is_fuzzy( 'fuzzy' ) );
 	}
 
 	/**

@@ -98,12 +98,30 @@ class Low_Score_Filtering_Test extends WP_UnitTestCase {
 	 */
 	public function test_only_fuzzy_passes_are_score_filtered() {
 		$this->assertTrue( Shift64_Woo_Search_Query::pass_is_fuzzy( 'fuzzy' ) );
-		$this->assertTrue( Shift64_Woo_Search_Query::pass_is_fuzzy( 'mixed' ) );
-		$this->assertTrue( Shift64_Woo_Search_Query::pass_is_fuzzy( 'token_fuzzy' ) );
 
 		$this->assertFalse( Shift64_Woo_Search_Query::pass_is_fuzzy( 'strict' ) );
 		$this->assertFalse( Shift64_Woo_Search_Query::pass_is_fuzzy( 'token_reduced' ) );
 		$this->assertFalse( Shift64_Woo_Search_Query::pass_is_fuzzy( 'or_prefix' ) );
+	}
+
+	/**
+	 * #26 again, on the passes that match every token as prefix OR fuzzy.
+	 *
+	 * `mixed` and `token_fuzzy` carry exact prefix matches alongside
+	 * approximate ones, so the rule above covers them: score-filtering them
+	 * drops an exact match on a common term for being common. Filtering the
+	 * archive's `mixed` pass — the shipped default — emptied the results page
+	 * for the query "series" and took the pagination and filter pills with it.
+	 */
+	public function test_hybrid_passes_are_not_score_filtered() {
+		$this->assertFalse(
+			Shift64_Woo_Search_Query::pass_is_fuzzy( 'mixed' ),
+			'mixed matches every token as prefix OR fuzzy, so it holds exact matches.'
+		);
+		$this->assertFalse(
+			Shift64_Woo_Search_Query::pass_is_fuzzy( 'token_fuzzy' ),
+			'token_fuzzy has the same shape as mixed, at the fallback fuzzy level.'
+		);
 	}
 
 	/**

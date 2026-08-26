@@ -294,6 +294,39 @@ class Archive_Fallback_Ladder_Test extends WP_UnitTestCase {
 		$this->assertSame( array( 'strict:default' ), $this->calls );
 	}
 
+	/**
+	 * The regression the block-theme pagination suite caught.
+	 *
+	 * Score-filtering the archive's `mixed` pass dropped exact matches on a
+	 * frequent term — TFIDF tracks term rarity, so "series" scores near zero on
+	 * a catalog where most titles carry it — and `ft_search_relevance()` then
+	 * replaces the RediSearch total with the surviving row count. The results
+	 * page lost its products, its pagination, and its filter pills at once.
+	 */
+	public function test_mixed_pass_on_the_archive_is_not_score_filtered() {
+		$this->replies = array(
+			array(
+				30,
+				'shift64_woo_search:product:101',
+				'0.12',
+				array( 'post_id', '101', 'title', 'Athena Series Hoodie', 'stock_status', 'instock' ),
+			),
+		);
+
+		$result = $this->run_archive_search(
+			$this->recording_query( array( 'series' ) ),
+			'mixed',
+			array(
+				'logic'                    => 'AND',
+				'outofstock_mode'          => 'exclude',
+				'fallback_score_threshold' => 0.5,
+			)
+		);
+
+		$this->assertSame( array( 101 ), $result['ids'], 'A common-term exact match must survive its low TFIDF score.' );
+		$this->assertSame( 30, $result['total'], 'The RediSearch total drives pagination and must not follow a filtered count.' );
+	}
+
 	// ── Product Collection catalog query ────────────────────────
 
 	/**

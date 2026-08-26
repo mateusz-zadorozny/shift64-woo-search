@@ -136,22 +136,12 @@ class Shift64_Woo_Search_Query {
 		$terms    = $this->get_search_terms( $query );
 		$or_logic = ( 'OR' === strtoupper( $this->config['logic'] ) );
 
-		$score_threshold = (float) ( $this->config['fallback_score_threshold'] ?? 0.5 );
-		// Set by any pass that already filtered its own output on raw scores.
-		$score_filtered = false;
-
 		if ( 'mixed' === $strategy ) {
 			// One query: every token matches as prefix OR fuzzy.
 			$ft_query      = $this->build_hybrid_query( $terms, $filters, null, $visibility_policy );
 			$results       = $this->execute_ft_search( $ft_query, $fetch_limit );
 			$search_pass   = 'mixed';
 			$debug_queries = array( 'mixed' => $ft_query );
-			// Score-filter here, on the raw Redis score, and skip the trailing
-			// filter for this pass. Filtering afterwards would judge a score the
-			// coverage re-rank had already scaled by ratio² and drop rows the
-			// re-rank was only meant to order.
-			$results        = self::filter_low_scores( $results, $score_threshold );
-			$score_filtered = true;
 			if ( $or_logic ) {
 				// min_ratio 0: 'mixed' is single-pass, so a dropped row has no
 				// later pass to catch it. Re-rank by term coverage, but keep a
@@ -202,16 +192,10 @@ class Shift64_Woo_Search_Query {
 				$ft_query                     = $this->build_hybrid_query( $terms, $filters, $this->resolve_fuzzy_level(), $visibility_policy );
 				$debug_queries['token_fuzzy'] = $ft_query;
 				$candidate                    = $this->execute_ft_search( $ft_query, $fetch_limit );
-				// Score-filter before deciding the pass won. Without this an
-				// all-filtered fuzzy pass would end the ladder here and return
-				// nothing, while the archive — which filters inside the pass and
-				// then re-tests emptiness — would carry on to the passes below.
-				$candidate = self::filter_low_scores( $candidate, $score_threshold );
 				if ( ! empty( $candidate ) ) {
-					$results        = $or_logic ? self::boost_term_match_count( $terms, $candidate, 0.0 ) : $candidate;
-					$search_pass    = 'token_fuzzy';
-					$resolved       = true;
-					$score_filtered = true;
+					$results     = $or_logic ? self::boost_term_match_count( $terms, $candidate, 0.0 ) : $candidate;
+					$search_pass = 'token_fuzzy';
+					$resolved    = true;
 				}
 			}
 
@@ -239,11 +223,9 @@ class Shift64_Woo_Search_Query {
 		// Filter out low-score garbage from fuzzy passes only. Prefix passes
 		// are exact matches — see filter_low_scores(). The archive path
 		// (Shift64_Woo_Search_Archive::execute_search) applies the same rule,
-		// so both modes agree on which products match. Passes that filtered
-		// their own raw scores are skipped: re-filtering a score the coverage
-		// re-rank has scaled would drop rows the re-rank only reordered.
-		if ( ! $score_filtered && self::pass_is_fuzzy( $search_pass ) ) {
-			$results = self::filter_low_scores( $results, $score_threshold );
+		// so both modes agree on which products match.
+		if ( self::pass_is_fuzzy( $search_pass ) ) {
+			$results = self::filter_low_scores( $results, (float) ( $this->config['fallback_score_threshold'] ?? 0.5 ) );
 		}
 
 		$elapsed = ( microtime( true ) - $start_time ) * 1000;
@@ -2301,16 +2283,23 @@ class Shift64_Woo_Search_Query {
 	/**
 	 * Whether a search pass produced fuzzy (approximate) matches.
 	 *
-	 * Only these passes are score-filtered. Prefix passes return exact
-	 * lexical matches, whose TFIDF score reflects term rarity rather than
-	 * match quality — filtering them would drop legitimate matches purely
-	 * for being common. See filter_low_scores().
+	 * Only this pass is score-filtered. Prefix passes return exact lexical
+	 * matches, whose TFIDF score reflects term rarity rather than match
+	 * quality — filtering them would drop legitimate matches purely for
+	 * being common. See filter_low_scores().
+	 *
+	 * `mixed` and `token_fuzzy` match every token as prefix OR fuzzy, so they
+	 * carry exact prefix matches alongside approximate ones and fall under the
+	 * same rule: filtering them re-opened #26 on the archive, where a common
+	 * term ("series") scored under the threshold on an exact match and left the
+	 * results page empty. Only `fuzzy`, where every token is fuzzed and nothing
+	 * matched exactly, is approximate throughout.
 	 *
 	 * @param string $search_pass Pass name recorded by search().
 	 * @return bool
 	 */
 	public static function pass_is_fuzzy( $search_pass ) {
-		return in_array( $search_pass, array( 'fuzzy', 'mixed', 'token_fuzzy' ), true );
+		return 'fuzzy' === $search_pass;
 	}
 
 	/**

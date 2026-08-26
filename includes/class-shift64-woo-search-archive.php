@@ -572,12 +572,16 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			: $search_query->build_strict_query( $terms, $filters, null, 'search' );
 		$this->log( 'mixed' === $strategy ? 'Pass 1 (mixed)' : 'Pass 1 (strict)', $ft_query );
 		$t0 = microtime( true );
-		// 'mixed' is the single-pass strategy, so it is tuned like the dropdown's
-		// mixed pass: filter on the raw score, then re-rank by term coverage
-		// without dropping — there is no later pass to catch what it discards.
-		// The strict pass is exact, so it is neither filtered nor ratio-capped.
+		// Neither pass is score-filtered. 'strict' is exact, and 'mixed' matches
+		// every token as prefix OR fuzzy, so it carries exact matches whose TFIDF
+		// tracks how common the term is — see Query::pass_is_fuzzy(). Filtering it
+		// dropped exact matches for the frequent term "series", which emptied the
+		// results page and took its pagination with it, and `$total` follows the
+		// filtered count so the page count collapsed with it.
+		// 'mixed' is single-pass, so it also re-ranks by term coverage without
+		// dropping: no later pass would catch what a match ratio discards.
 		$result = 'mixed' === $strategy
-			? $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, $min_score, $needles, 0.0 )
+			? $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $needles, 0.0 )
 			: $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $needles );
 		$this->log( 'Pass 1 result', sprintf( 'total=%d ids=%d cov=%.2f (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, $result['coverage'] ?? 0, ( microtime( true ) - $t0 ) * 1000 ) );
 
@@ -608,7 +612,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 				$ft_query = $search_query->build_hybrid_query( $terms, $filters, $config['fallback_fuzzy_level'] ?? null, 'search' );
 				$this->log( 'Pass 3 (token_fuzzy)', $ft_query );
 				$t0        = microtime( true );
-				$candidate = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, $min_score, $needles, 0.0 );
+				$candidate = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $needles, 0.0 );
 				$this->log( 'Pass 3 result', sprintf( 'total=%d ids=%d (%.1fms)', $candidate ? $candidate['total'] : 0, $candidate ? count( $candidate['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 				if ( ! $this->is_empty_result( $candidate ) ) {
 					$result   = $candidate;
