@@ -178,11 +178,13 @@ retrieval pass hands over to the next — term coverage does. It still filters w
 matches are shown. A store that had tuned it to force more fallbacks will see fewer fuzzy
 results and more exact ones; nothing needs to be reset.
 
-Under `mixed` with `OR`, a multi-word query no longer returns a product whose only match is in
-`short_desc` or `description` when other candidates match its title, brand, or category: the
-single pass re-ranks by term coverage over the identity fields. Ranking, not filtering — the
-minimum match ratio is disabled for this single-pass case precisely so nothing is dropped without
-a later pass to catch it.
+Under `mixed` with `OR`, a multi-word query re-ranks by how many search terms each product matches
+across its title, SKU, categories, brands, and attributes, so a product matched only through its
+description now sorts below one matched by name. This reorders, it does not drop: the minimum match
+ratio is disabled for the single-pass strategies, and the score threshold is applied to the raw
+Redis score *before* the re-rank scales it, so a body-only match that cleared the threshold on its
+own merits still appears. `shift64_woo_search_fallback_score_threshold` continues to decide what is
+too weak to show.
 
 `_archive_debug_enabled` (default `no`) gates the storefront debug panel. It is a *new* key rather
 than a re-defaulted one, but it does change behavior for installs that never set it: the panel

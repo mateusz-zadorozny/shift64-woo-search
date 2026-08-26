@@ -349,6 +349,50 @@ class Search_Fallback_Ladder_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The single-pass strategies re-rank by term coverage; they must not drop.
+	 *
+	 * `boost_term_match_count()` scales a score by ratio², so a body-only match
+	 * lands on 0. Filtering after that removed it — the exact behaviour the
+	 * "ranking, not filtering" comment denied. The threshold is applied to the
+	 * raw Redis score instead, and the trailing filter skips the pass.
+	 */
+	public function test_mixed_pass_reranks_body_only_matches_without_dropping_them() {
+		$query = $this->make_query(
+			array(
+				'strategy'                 => 'mixed',
+				'logic'                    => 'OR',
+				'fallback_score_threshold' => 0.5,
+			),
+			$this->ft_reply( 'Iris Bloom Kettle Compact Slate', 12.5 )
+		);
+
+		$response = $query->search( 'aero cedar table', 'autocomplete' );
+
+		$this->assertCount(
+			1,
+			$response['results'],
+			'A row matching no term keeps ratio 0 and would be filtered out if the threshold ran after the re-rank.'
+		);
+	}
+
+	/**
+	 * A row genuinely below the threshold is still removed — on its raw score,
+	 * before the re-rank has a chance to scale it.
+	 */
+	public function test_mixed_pass_still_drops_a_row_below_the_raw_score_threshold() {
+		$query = $this->make_query(
+			array(
+				'strategy'                 => 'mixed',
+				'logic'                    => 'OR',
+				'fallback_score_threshold' => 20.0,
+			),
+			$this->ft_reply( 'Aero Cedar Side Table Natural Oak', 12.5 )
+		);
+
+		$this->assertSame( array(), $query->search( 'aero cedar table', 'autocomplete' )['results'] );
+	}
+
+	/**
 	 * `no_results` still means what it says: never leave a pass that returned
 	 * anything, however poorly it matched.
 	 */

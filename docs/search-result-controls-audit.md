@@ -27,7 +27,7 @@ The `strict_first` strategy runs:
 4. OR prefix fallback when the configured logic is AND;
 5. fuzzy fallback.
 
-Pass acceptance depends on either an empty result or no result in the leading five covering every search term. Coverage reads all indexed TEXT fields and accepts a synonym variant in place of the term the shopper typed. Pass 3 is terminal on any hit: its matches are approximate by design, so re-testing coverage would always fail and hand a good answer to the broader passes below it.
+Pass acceptance depends on either an empty result or no result in the leading five covering every search term. On the results page this rule applies under relevance sorting; the other sort modes and the WooCommerce-sort candidate pass fetch IDs without document fields and hand over on an empty result only. Coverage reads all indexed TEXT fields and accepts a synonym variant in place of the term the shopper typed. Pass 3 is terminal on any hit: its matches are approximate by design, so re-testing coverage would always fail and hand a good answer to the broader passes below it.
 
 Term coverage replaced a raw-score threshold here. RediSearch TF-IDF is unbounded and routinely lands in the tens, so comparing the best score against `shift64_woo_search_fallback_score_threshold` (`0.5`) was true only for an empty result set — which collapsed `low_score` into `no_results` and left a typo in one word of a multi-word query uncorrectable. That option still gates which fuzzy-pass matches are shown.
 
