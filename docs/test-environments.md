@@ -87,10 +87,12 @@ The seeded templates cover the product-list entry points:
 - `product-search-results` — product search results;
 - `taxonomy-product_attribute` — product attribute archives.
 
-For manual QA, open `/` for the shop archive, `/?s=series&post_type=product`
-for product search results, and a generated attribute URL such as
-`/pa_color/copper/`. Each page should show the Shift64 filter pills and Product
-Sort while retaining the WooCommerce product collection.
+For manual QA, open `/` for the shop archive and
+`/?s=series&post_type=product` for product search results. If attribute
+archives are enabled in the WooCommerce environment, open the generated
+`/pa_color/<term>/` URL as well. Each available page should show the Shift64
+filter pills and Product Sort while retaining the WooCommerce product
+collection.
 
 The related-products collection inside `single-product` is intentionally not
 treated as an archive and is not modified. Re-running `bin/e2e-provision.sh`
