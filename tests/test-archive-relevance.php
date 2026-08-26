@@ -36,10 +36,11 @@ class Archive_Relevance_Test extends WP_UnitTestCase {
 
 		$search_query = $this->getMockBuilder( Shift64_Woo_Search_Query::class )
 			->disableOriginalConstructor()
-			->onlyMethods( array( 'sanitize_query', 'get_search_terms', 'build_strict_query' ) )
+			->onlyMethods( array( 'sanitize_query', 'get_search_terms', 'build_strict_query', 'term_coverage_needles' ) )
 			->getMock();
 		$search_query->method( 'sanitize_query' )->willReturn( 'fixture' );
 		$search_query->method( 'get_search_terms' )->willReturn( array( 'fixture' ) );
+		$search_query->method( 'term_coverage_needles' )->willReturn( array( array( 'fixture' ) ) );
 		$search_query->expects( $this->once() )
 			->method( 'build_strict_query' )
 			->with(

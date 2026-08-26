@@ -82,12 +82,18 @@ class Search_Fallback_Ladder_Test extends WP_UnitTestCase {
 	 * per-token fuzzy that repairs typos in the same query.
 	 */
 	public function test_defaults_are_and_logic_and_mixed_strategy() {
-		$query = $this->make_query();
+		$query = $this->make_query( array(), $this->ft_reply( 'Nova Athena Polo Shirt Brushed Lilac' ) );
 
 		$this->assertStringContainsString(
 			'(nova* athena*)',
 			$query->build_strict_query( array( 'nova', 'athena' ) ),
 			'Default logic must join terms with AND (a space), not with |.'
+		);
+
+		$this->assertSame(
+			'mixed',
+			$query->search( 'nova athena', 'autocomplete' )['search_pass'],
+			'Default strategy must be the single hybrid pass.'
 		);
 	}
 
@@ -317,6 +323,29 @@ class Search_Fallback_Ladder_Test extends WP_UnitTestCase {
 		$this->assertSame( 'token_fuzzy', $response['search_pass'] );
 		$this->assertArrayNotHasKey( 'or_prefix', $response['debug_queries'] );
 		$this->assertArrayNotHasKey( 'fuzzy', $response['debug_queries'] );
+	}
+
+	/**
+	 * A per-token fuzzy pass whose every hit falls under the score threshold is
+	 * not an answer. Declaring it terminal before filtering returned an empty
+	 * dropdown while the archive — which filters inside the pass, then re-tests
+	 * emptiness — carried on to the broader passes.
+	 */
+	public function test_token_fuzzy_pass_that_scores_below_the_threshold_keeps_falling_back() {
+		$query = $this->make_query(
+			array(
+				'strategy'                 => 'strict_first',
+				'logic'                    => 'OR',
+				'token_reduction_enabled'  => false,
+				'fallback_score_threshold' => 100.0,
+			),
+			$this->ft_reply( 'Aero Orchid Sheet Mask Lightweight Cedarwood', 12.5 )
+		);
+
+		$response = $query->search( 'aero cedar table', 'autocomplete' );
+
+		$this->assertNotSame( 'token_fuzzy', $response['search_pass'] );
+		$this->assertArrayHasKey( 'fuzzy', $response['debug_queries'] );
 	}
 
 	/**

@@ -18,7 +18,7 @@
     "phpunit/phpunit": "^9.6"
   },
   "scripts": {
-    "makepot": "wp i18n make-pot . languages/shift64-woo-search.pot",
+    "makepot": "wp i18n make-pot . languages/shift64-woo-search.pot --slug=shift64-woo-search",
     "lint": "phpcs",
     "fix": "phpcbf",
     "test": "phpunit"

@@ -128,12 +128,20 @@ conventions live in [AGENTS.md](AGENTS.md).
 Search field -> SHORTINIT endpoint -> FT.SEARCH -> ranked product IDs -> WooCommerce rendering
 ```
 
-The query engine uses a strict-first cascade:
+By default the query engine runs a single hybrid pass: every word of the query
+matches as a prefix OR a fuzzy match, and the words are ANDed, so a typo in one
+word is repaired while the rest stay required. Words of four characters or fewer
+stay prefix-only.
+
+The alternative `Strict first, fuzzy fallback` mode runs a cascade instead,
+advancing whenever a pass returns nothing or no leading result covers every word
+of the query:
 
 1. AND prefix search.
 2. AND prefix search after optional weak-token reduction.
-3. OR prefix fallback with term-coverage scoring and a minimum match ratio.
-4. Fuzzy fallback.
+3. Per-token fuzzy search — the hybrid shape, at the fallback fuzzy level.
+4. OR prefix fallback with term-coverage scoring and a minimum match ratio.
+5. Fuzzy fallback.
 
 Results can then be re-ranked by exact title position, SKU match, category or tag rules, promoted-product status, and stock status.
 

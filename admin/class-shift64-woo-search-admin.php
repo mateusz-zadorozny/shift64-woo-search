@@ -1435,8 +1435,8 @@ class Shift64_Woo_Search_Admin {
 					'shift64_woo_search_logic',
 					__( 'Search Logic', 'shift64-woo-search' ),
 					array(
-						'AND' => 'AND — all terms must match (recommended)',
-						'OR'  => 'OR — any term matches',
+						'AND' => __( 'AND — all terms must match (recommended)', 'shift64-woo-search' ),
+						'OR'  => __( 'OR — any term matches', 'shift64-woo-search' ),
 					),
 					__( 'OR retrieval ranks a product matching two of three words above one matching all three. Use it only when recall matters more than precision.', 'shift64-woo-search' )
 				);
@@ -2773,24 +2773,6 @@ class Shift64_Woo_Search_Admin {
 	 * @return array Search configuration.
 	 */
 	private function build_search_config() {
-		return array(
-			'min_query_length'              => (int) get_option( 'shift64_woo_search_min_query', 2 ),
-			'autocomplete_limit'            => (int) get_option( 'shift64_woo_search_autocomplete_limit', 7 ),
-			'full_limit'                    => (int) get_option( 'shift64_woo_search_full_limit', 20 ),
-			'outofstock_mode'               => get_option( 'shift64_woo_search_outofstock_mode', 'exclude' ),
-			'outofstock_demote_factor'      => (float) get_option( 'shift64_woo_search_outofstock_demote_factor', 0.3 ),
-			'fuzzy_level'                   => (int) get_option( 'shift64_woo_search_fuzzy_level', 1 ),
-			'logic'                         => get_option( 'shift64_woo_search_logic', 'AND' ),
-			'strategy'                      => get_option( 'shift64_woo_search_strategy', 'mixed' ),
-			'fallback_trigger'              => get_option( 'shift64_woo_search_fallback_trigger', 'low_score' ),
-			'fallback_score_threshold'      => (float) get_option( 'shift64_woo_search_fallback_score_threshold', 0.5 ),
-			'fallback_fuzzy_level'          => (int) get_option( 'shift64_woo_search_fallback_fuzzy_level', 1 ),
-			'token_reduction_enabled'       => get_option( 'shift64_woo_search_token_reduction_enabled', 'yes' ) === 'yes',
-			'weak_tokens'                   => get_option( 'shift64_woo_search_weak_tokens', 'do,na,z,i,w,od,po,za,ze,we,o,u,a,e' ),
-			'drop_trailing_weak_token_only' => get_option( 'shift64_woo_search_drop_trailing_weak_token_only', 'yes' ) === 'yes',
-			'fuzzy_synonyms'                => get_option( 'shift64_woo_search_fuzzy_synonyms', 'no' ) === 'yes',
-			'category_boost_rules'          => get_option( 'shift64_woo_search_category_boost_rules', '' ),
-			'category_suggest_fuzzy'        => get_option( 'shift64_woo_search_category_suggest_fuzzy', 'no' ) === 'yes',
-		);
+		return Shift64_Woo_Search_Settings::search_config();
 	}
 }

@@ -158,17 +158,31 @@ while any one token still prefix-matched, "aero cedat" returned everything start
 and nothing resembling "cedar". `AND` + `mixed` answers both, and answers them faster, because AND
 cuts the candidate set before scoring.
 
-This only affects installs that never saved either setting. Their generated
-`mu-plugins/shift64-woo-search/config.php` still holds the old values and keeps the old behavior
-until it is rewritten — which happens on the next plugin upgrade, on activation, on any settings
-save, and on `wp shift64-woo-search rebuild`. A store that wants the previous behavior sets
-**Relevance → Search Logic** to `OR` and **Search Mode** to `Strict first, fuzzy fallback`
-explicitly; an explicitly stored value is never overwritten.
+**This reaches fresh installs only, and that is deliberate.** `set_default_options()` has seeded
+both keys with `add_option()` since 0.1.0, and it runs on every activation, so an install that has
+ever been activated holds `OR` and `strict_first` as *stored* values. `get_option()` never sees the
+new default there, and regenerating `mu-plugins/shift64-woo-search/config.php` faithfully writes the
+stored pair back out. Upgraded stores therefore keep the behavior they have today — including the
+two wrong-result cases above — until someone changes the setting.
+
+No migration flips them, because a stored `OR` is indistinguishable from the seeded `OR`: this
+section forbids overwriting a merchant's explicit choice, and there is no signal that separates the
+two. A store that wants the new behavior sets **Relevance → Search Logic** to `AND` and
+**Search Mode** to `Mixed`; both take effect on save, which also rewrites `config.php`.
+
+The repaired fallback ladder itself is *not* gated on the defaults — every install gets it on
+upgrade, in whichever logic and strategy it has stored.
 
 `_fallback_score_threshold` keeps its key, type, and `0.5` default, but no longer decides when one
 retrieval pass hands over to the next — term coverage does. It still filters which fuzzy-pass
 matches are shown. A store that had tuned it to force more fallbacks will see fewer fuzzy
 results and more exact ones; nothing needs to be reset.
+
+Under `mixed` with `OR`, a multi-word query no longer returns a product whose only match is in
+`short_desc` or `description` when other candidates match its title, brand, or category: the
+single pass re-ranks by term coverage over the identity fields. Ranking, not filtering — the
+minimum match ratio is disabled for this single-pass case precisely so nothing is dropped without
+a later pass to catch it.
 
 `_archive_debug_enabled` (default `no`) gates the storefront debug panel. It is a *new* key rather
 than a re-defaulted one, but it does change behavior for installs that never set it: the panel

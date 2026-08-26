@@ -67,6 +67,7 @@
 .shift64-woo-search-badge--warning { background: #fff3cd; color: #856404; }
 .shift64-woo-search-badge--pass-strict { background: #d4edda; color: #155724; }
 .shift64-woo-search-badge--pass-token_reduced { background: #fff3cd; color: #856404; }
+.shift64-woo-search-badge--pass-token_fuzzy { background: #dbe7ff; color: #0a3678; }
 .shift64-woo-search-badge--pass-or_prefix { background: #ffe0cc; color: #8a4500; }
 .shift64-woo-search-badge--pass-fuzzy { background: #cfe2ff; color: #084298; }
 .shift64-woo-search-badge--pass-mixed { background: #e2e3e5; color: #41464b; }

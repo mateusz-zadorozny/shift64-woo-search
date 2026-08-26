@@ -143,7 +143,10 @@ class Shift64_Woo_Search_Query {
 			$search_pass   = 'mixed';
 			$debug_queries = array( 'mixed' => $ft_query );
 			if ( $or_logic ) {
-				$results = self::boost_term_match_count( $terms, $results );
+				// min_ratio 0: 'mixed' is single-pass, so a dropped row has no
+				// later pass to catch it. Re-rank by term coverage, but keep a
+				// product whose only match is in the description.
+				$results = self::boost_term_match_count( $terms, $results, 0.0 );
 			}
 		} else {
 			// Strict-first, fuzzy-fallback.
@@ -186,9 +189,14 @@ class Shift64_Woo_Search_Query {
 			// The result set is a superset of pass 1, so accepting any hit here can
 			// only add recall.
 			if ( ! $resolved ) {
-				$ft_query                     = $this->build_hybrid_query( $terms, $filters, $this->fallback_fuzzy_level(), $visibility_policy );
+				$ft_query                     = $this->build_hybrid_query( $terms, $filters, $this->resolve_fuzzy_level(), $visibility_policy );
 				$debug_queries['token_fuzzy'] = $ft_query;
 				$candidate                    = $this->execute_ft_search( $ft_query, $fetch_limit );
+				// Score-filter before deciding the pass won. Without this an
+				// all-filtered fuzzy pass would end the ladder here and return
+				// nothing, while the archive — which filters inside the pass and
+				// then re-tests emptiness — would carry on to the passes below.
+				$candidate = self::filter_low_scores( $candidate, (float) ( $this->config['fallback_score_threshold'] ?? 0.5 ) );
 				if ( ! empty( $candidate ) ) {
 					$results     = $or_logic ? self::boost_term_match_count( $terms, $candidate ) : $candidate;
 					$search_pass = 'token_fuzzy';
@@ -328,7 +336,7 @@ class Shift64_Woo_Search_Query {
 
 		// Per-token fuzzy pass — the shape the 'mixed' strategy runs on its own.
 		$passes['token_fuzzy'] = $this->run_tuning_pass(
-			$this->build_hybrid_query( $terms, $filters, $this->fallback_fuzzy_level(), $visibility_policy ),
+			$this->build_hybrid_query( $terms, $filters, $this->resolve_fuzzy_level(), $visibility_policy ),
 			$terms,
 			$query,
 			$fetch_limit,
@@ -937,15 +945,6 @@ class Shift64_Woo_Search_Query {
 	}
 
 	/**
-	 * Fuzzy level for fallback passes, as configured.
-	 *
-	 * @return int
-	 */
-	private function fallback_fuzzy_level() {
-		return $this->resolve_fuzzy_level( null );
-	}
-
-	/**
 	 * Build the FT.SEARCH query string (legacy mixed mode).
 	 *
 	 * Superseded by build_hybrid_query(), which takes pre-split terms and
@@ -1274,7 +1273,7 @@ class Shift64_Woo_Search_Query {
 					$queries[] = $this->build_strict_query( $reduced, $filters, null, $visibility_policy, $filter_operators );
 				}
 			}
-			$queries[] = $this->build_hybrid_query( $terms, $filters, $this->fallback_fuzzy_level(), $visibility_policy, $filter_operators );
+			$queries[] = $this->build_hybrid_query( $terms, $filters, $this->resolve_fuzzy_level(), $visibility_policy, $filter_operators );
 			if ( 'AND' === strtoupper( $this->config['logic'] ) ) {
 				$queries[] = $this->build_strict_query( $terms, $filters, 'OR', $visibility_policy, $filter_operators );
 			}
@@ -1484,10 +1483,13 @@ class Shift64_Woo_Search_Query {
 	 * expands to, so a result matched through a synonym still counts as
 	 * covering the term the shopper typed.
 	 *
+	 * Public so the archive path can build the same needles and reach the same
+	 * hand-over decision as the dropdown.
+	 *
 	 * @param array $terms Search terms.
 	 * @return array<int,string[]>
 	 */
-	private function term_coverage_needles( $terms ) {
+	public function term_coverage_needles( $terms ) {
 		$needles = array();
 
 		foreach ( $this->expand_terms( $terms ) as $item ) {

@@ -67,8 +67,8 @@ The OR pass first applies term-coverage filtering and scoring. Order is material
 | Query | `shift64_woo_search_min_query` | `2` | Minimum query length |
 | Limit | `shift64_woo_search_autocomplete_limit` | `7` | Product autocomplete limit |
 | Limit | `shift64_woo_search_full_limit` | `20` | Full endpoint limit |
-| Logic | `shift64_woo_search_logic` | `AND` | Token AND/OR logic |
-| Strategy | `shift64_woo_search_strategy` | `mixed` | Cascade or mixed strategy |
+| Logic | `shift64_woo_search_logic` | `AND` | Token AND/OR logic. Fresh installs only — see below |
+| Strategy | `shift64_woo_search_strategy` | `mixed` | Cascade or mixed strategy. Fresh installs only — see below |
 | Fallback | `shift64_woo_search_fallback_trigger` | `low_score` | Empty-only or low-score fallback |
 | Fallback | `shift64_woo_search_fallback_score_threshold` | `0.5` | Score filter for fuzzy passes |
 | Fuzzy | `shift64_woo_search_fallback_fuzzy_level` | `1` | Final fallback distance |
@@ -89,6 +89,11 @@ The OR pass first applies term-coverage filtering and scoring. Order is material
 | Category suggestions | `shift64_woo_search_category_pin_rules` | empty | Query-to-category pins |
 | Category suggestions | `shift64_woo_search_category_boosts` | empty | Category tie-break multipliers |
 | Category suggestions | `shift64_woo_search_category_suggest_exclude` | empty | Hidden suggestion categories |
+
+The `Logic` and `Strategy` defaults above describe a fresh install. `set_default_options()` seeds
+both keys on activation, so an install that has ever been activated holds the previous pair
+(`OR`, `strict_first`) as stored values and keeps it until a merchant changes the setting. See
+`BACKWARD_COMPATIBILITY.md` §6.
 
 Synonym expansion currently has no master switch: saved synonyms are always active.
 
