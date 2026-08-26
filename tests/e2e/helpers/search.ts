@@ -3,8 +3,9 @@ import type { Locator, Page, Request } from '@playwright/test';
 /**
  * Central selector contract. A markup refactor should only ever touch this file.
  *
- * Note: the filter bar element carries BOTH id="shift64-woo-search-filters" and
- * the class; the JS targets the class, so helpers do too.
+ * Block themes use the Product Filters block, while classic themes keep the
+ * legacy filter bar. Keep both contracts here so each project can select the
+ * component it actually owns.
  */
 export const SEL = {
 	input: '.shift64-woo-search-field__input',
@@ -24,11 +25,14 @@ export const SEL = {
 	modalClose: '[data-shift64-woo-search-modal-close]',
 	modalClear: '[data-shift64-woo-search-clear]',
 	filters: '.shift64-woo-search-filters',
+	productFilters: '.shift64-woo-search-product-filters',
 	filterCheckbox: '.shift64-woo-search-filter__checkbox',
+	productFilterCheckbox: '.shift64-woo-search-pill__form input[type="checkbox"]',
 	// Theme-agnostic product grid (mirrors the AJAX pagination script's list).
 	productsGrid:
 		'.kwt-products-wrap, ul.products, .products, .wc-block-grid__products, .wp-block-woocommerce-product-template',
 	orderbySelect: '.woocommerce-ordering select.orderby',
+	productSortTrigger: '.shift64-woo-search-product-sort .shift64-woo-search-pill__trigger',
 	// Classic Woo markup plus the blockified nav block themes render instead
 	// (mirrors the AJAX pagination script's SELECTORS.pagination).
 	pagination: 'nav.woocommerce-pagination, nav.wp-block-query-pagination',

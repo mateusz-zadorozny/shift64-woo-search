@@ -37,10 +37,13 @@ test.describe('search results page (Redis takeover)', () => {
 		// Block themes render the ordering control once (via WooCommerce's
 		// blockified compatibility layer); Storefront renders it twice (above
 		// and below the loop) — assert on the first so both hold.
-		const orderby = page.locator(SEL.orderbySelect).first();
+		const orderby = page.locator(SEL.productSortTrigger).first();
 		await expect(orderby).toBeVisible();
-		await expect(orderby).toHaveValue('relevance');
-		await expect(orderby.locator('option[value="relevance"]')).toHaveText('Search relevance');
+		await expect(orderby).toContainText('Search relevance');
+		await expect(page.locator('.shift64-woo-search-product-sort').first()).toHaveAttribute(
+			'data-wp-context',
+			/"activeSort":"relevance"/
+		);
 	});
 
 	test('excludes catalog-only products from search surfaces while keeping direct access', async ({
@@ -76,12 +79,14 @@ test.describe('search results page (Redis takeover)', () => {
 	test('checking a color facet filters the grid and updates the URL', async ({ page }) => {
 		await page.goto(BROAD_QUERY);
 
-		const filters = page.locator(SEL.filters).first();
+		const filters = page.locator(SEL.productFilters).first();
 		await expect(filters).toBeVisible();
 
 		// Desktop pills keep their checkbox lists inside a dropdown — open it first.
-		await filters.locator('[data-filter-key] .shift64-woo-search-filter__pill', { hasText: /color/i }).click();
-		await filters.locator(`${SEL.filterCheckbox}[data-taxonomy="pa_color"][data-slug="copper"]`).check();
+		await filters.locator('details', { hasText: /color/i }).locator('summary').click();
+		await filters
+			.locator(`${SEL.productFilterCheckbox}[name="filter_pa_color[]"][value="copper"]`)
+			.check();
 
 		await expect(page).toHaveURL(/filter_pa_color=copper/);
 

@@ -148,6 +148,9 @@ wpc option update shift64_woo_search_taxonomy_archive_scopes '["product_cat"]' -
 # renders no filter bar at all (its scope map exposes attr_pa_* only).
 wpc option update shift64_woo_search_filter_attributes '["pa_color"]' --format=json
 
+log "Seed block-theme product archive templates with Shift64 filters and sorting"
+wpc eval-file "$SCRIPT_DIR/e2e-provision-product-templates.php"
+
 if [ "${SKIP_REDIS_WIRING:-}" = "1" ]; then
 	log "SKIP_REDIS_WIRING=1 — skipping Redis setup/rebuild (native WooCommerce search fallback)"
 else

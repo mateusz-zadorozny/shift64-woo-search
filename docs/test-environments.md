@@ -72,6 +72,32 @@ block by its provisioned `instanceId` (`search-e2e-*` on `/search-e2e/` and
 `shift64-e2e-header-*` in the header), so multiple instances of the same block
 never collide.
 
+## Product archive controls
+
+Every newly provisioned block-theme environment also creates theme-scoped
+overrides for WooCommerce's blockified product-list templates. The overrides
+are based on the installed WooCommerce templates, so their product grid and
+page shell stay aligned with the WooCommerce version in the environment. They
+add Shift64 Product Filters with category and color pills, plus Shift64 Product
+Sort beside the result count.
+
+The seeded templates cover the product-list entry points:
+
+- `archive-product` — the shared shop, product-category, and product-tag archive;
+- `product-search-results` — product search results;
+- `taxonomy-product_attribute` — product attribute archives.
+
+For manual QA, open `/` for the shop archive and
+`/?s=series&post_type=product` for product search results. If attribute
+archives are enabled in the WooCommerce environment, open the generated
+`/pa_color/<term>/` URL as well. Each available page should show the Shift64
+filter pills and Product Sort while retaining the WooCommerce product
+collection.
+
+The related-products collection inside `single-product` is intentionally not
+treated as an archive and is not modified. Re-running `bin/e2e-provision.sh`
+updates the same theme-scoped overrides without duplicating the filter blocks.
+
 ## Status, logs, and validation progress
 
 ```bash
