@@ -57,7 +57,7 @@ an older WooCommerce/plugin checkout lacks one of the blocks.
 
 ### Phase 1: Provision archive templates
 
-- [x] 1.1 Add a pure template transformer plus a WP-CLI provisioning runner that creates or updates the active theme's database template overrides. — 95e5616, 8b18d5e
+- [x] 1.1 Add a pure template transformer plus a WP-CLI provisioning runner that creates or updates the active theme's database template overrides. — 95e5616, 8b18d5e, 4023145
 - [x] 1.2 Wire `bin/e2e-provision.sh` to run the template seeding after plugin and catalog setup, keeping reruns safe and allowing missing upstream template files to be reported without corrupting the environment. — 95e5616
 
 ### Phase 2: Verify and document
