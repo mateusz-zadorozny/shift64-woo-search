@@ -63,4 +63,4 @@ an older WooCommerce/plugin checkout lacks one of the blocks.
 ### Phase 2: Verify and document
 
 - [x] 2.1 Add PHPUnit coverage for the three target templates, both custom controls, the legacy sort fallback, and idempotent transformation behavior. — cd67196
-- [ ] 2.2 Update test-environment documentation with the seeded template matrix and the manual QA URLs/expectations.
+- [x] 2.2 Update test-environment documentation with the seeded template matrix and the manual QA URLs/expectations. — 97f447c
