@@ -473,12 +473,18 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		$sanitized  = $search_query->sanitize_query( $search_term );
 		$terms      = $search_query->get_search_terms( $sanitized );
 
-		// Pass 1: Strict (prefix).
-		$ft_query = $search_query->build_strict_query( $terms, $filters, null, 'search' );
-		$this->log( 'Candidate Pass 1 (strict)', $ft_query );
+		// Pass 1: Strict (prefix), or the hybrid single pass under 'mixed'.
+		$ft_query = 'mixed' === $strategy
+			? $search_query->build_hybrid_query( $terms, $filters, null, 'search' )
+			: $search_query->build_strict_query( $terms, $filters, null, 'search' );
+		$this->log( 'mixed' === $strategy ? 'Candidate Pass 1 (mixed)' : 'Candidate Pass 1 (strict)', $ft_query );
 		$t0     = microtime( true );
 		$result = $this->ft_search_with_offset( $redis, $index_name, $ft_query, 0, $limit, null );
 		$this->log( 'Candidate Pass 1 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+
+		if ( 'mixed' === $strategy ) {
+			return $result;
+		}
 
 		// Pass 2: Token reduction fallback.
 		if ( $this->is_empty_result( $result ) && ! empty( $config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
@@ -492,22 +498,31 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			}
 		}
 
-		// Pass 3: OR prefix fallback.
-		if ( $this->is_empty_result( $result ) && 'AND' === strtoupper( $config['logic'] ?? 'OR' ) ) {
-			$ft_query = $search_query->build_strict_query( $terms, $filters, 'OR', 'search' );
-			$this->log( 'Candidate Pass 3 (or_prefix)', $ft_query );
+		// Pass 3: Per-token fuzzy — repairs a typo in one word without dropping the rest.
+		if ( $this->is_empty_result( $result ) ) {
+			$ft_query = $search_query->build_hybrid_query( $terms, $filters, $config['fallback_fuzzy_level'] ?? null, 'search' );
+			$this->log( 'Candidate Pass 3 (token_fuzzy)', $ft_query );
 			$t0     = microtime( true );
 			$result = $this->ft_search_with_offset( $redis, $index_name, $ft_query, 0, $limit, null );
 			$this->log( 'Candidate Pass 3 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 		}
 
-		// Pass 4: Fuzzy fallback.
-		if ( 'strict_first' === $strategy && $this->is_empty_result( $result ) ) {
-			$ft_query = $search_query->build_fuzzy_query( $terms, $filters, null, 'search' );
-			$this->log( 'Candidate Pass 4 (fuzzy)', $ft_query );
+		// Pass 4: OR prefix fallback.
+		if ( $this->is_empty_result( $result ) && 'AND' === strtoupper( $config['logic'] ?? 'AND' ) ) {
+			$ft_query = $search_query->build_strict_query( $terms, $filters, 'OR', 'search' );
+			$this->log( 'Candidate Pass 4 (or_prefix)', $ft_query );
 			$t0     = microtime( true );
 			$result = $this->ft_search_with_offset( $redis, $index_name, $ft_query, 0, $limit, null );
 			$this->log( 'Candidate Pass 4 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+		}
+
+		// Pass 5: Fuzzy fallback.
+		if ( $this->is_empty_result( $result ) ) {
+			$ft_query = $search_query->build_fuzzy_query( $terms, $filters, null, 'search' );
+			$this->log( 'Candidate Pass 5 (fuzzy)', $ft_query );
+			$t0     = microtime( true );
+			$result = $this->ft_search_with_offset( $redis, $index_name, $ft_query, 0, $limit, null );
+			$this->log( 'Candidate Pass 5 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 		}
 
 		return $result;
@@ -547,42 +562,57 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			$fetch_limit = ( 'demote' === $stock_mode && Shift64_Woo_Search_Sort::MODE_REDIS === $sort_mode ) ? $per_page * 3 : $per_page;
 		}
 
-		// Pass 1: Strict (prefix).
-		$ft_query = $search_query->build_strict_query( $terms, $filters, null, 'search' );
-		$this->log( 'Pass 1 (strict)', $ft_query );
+		$or_logic  = ( 'OR' === strtoupper( $config['logic'] ?? 'AND' ) );
+		$min_score = (float) ( $config['fallback_score_threshold'] ?? 0.5 );
+
+		// Pass 1: Strict (prefix), or the hybrid single pass under 'mixed'.
+		$ft_query = 'mixed' === $strategy
+			? $search_query->build_hybrid_query( $terms, $filters, null, 'search' )
+			: $search_query->build_strict_query( $terms, $filters, null, 'search' );
+		$this->log( 'mixed' === $strategy ? 'Pass 1 (mixed)' : 'Pass 1 (strict)', $ft_query );
 		$t0     = microtime( true );
-		$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, false, $stock_mode, $demote_factor );
+		$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor );
 		$this->log( 'Pass 1 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 
-		// Pass 2: Token reduction fallback.
-		if ( $this->is_empty_result( $result ) && ! empty( $config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
-			$reduced = $search_query->reduce_tokens( $terms );
-			if ( count( $reduced ) < count( $terms ) && ! empty( $reduced ) ) {
-				$ft_query = $search_query->build_strict_query( $reduced, $filters, null, 'search' );
-				$this->log( 'Pass 2 (token reduced)', $ft_query );
-				$t0     = microtime( true );
-				$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, false, $stock_mode, $demote_factor );
-				$this->log( 'Pass 2 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+		if ( 'mixed' !== $strategy ) {
+			// Pass 2: Token reduction fallback.
+			if ( $this->is_empty_result( $result ) && ! empty( $config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
+				$reduced = $search_query->reduce_tokens( $terms );
+				if ( count( $reduced ) < count( $terms ) && ! empty( $reduced ) ) {
+					$ft_query = $search_query->build_strict_query( $reduced, $filters, null, 'search' );
+					$this->log( 'Pass 2 (token reduced)', $ft_query );
+					$t0     = microtime( true );
+					$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor );
+					$this->log( 'Pass 2 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+				}
 			}
-		}
 
-		// Pass 3: OR prefix fallback (relax AND → OR).
-		if ( $this->is_empty_result( $result ) && 'AND' === strtoupper( $config['logic'] ?? 'OR' ) ) {
-			$ft_query = $search_query->build_strict_query( $terms, $filters, 'OR', 'search' );
-			$this->log( 'Pass 3 (or_prefix)', $ft_query );
-			$t0     = microtime( true );
-			$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, true, $stock_mode, $demote_factor );
-			$this->log( 'Pass 3 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
-		}
+			// Pass 3: Per-token fuzzy — repairs a typo in one word without dropping the rest.
+			if ( $this->is_empty_result( $result ) ) {
+				$ft_query = $search_query->build_hybrid_query( $terms, $filters, $config['fallback_fuzzy_level'] ?? null, 'search' );
+				$this->log( 'Pass 3 (token_fuzzy)', $ft_query );
+				$t0     = microtime( true );
+				$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, false, $stock_mode, $demote_factor, $min_score );
+				$this->log( 'Pass 3 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+			}
 
-		// Pass 4: Fuzzy fallback.
-		if ( 'strict_first' === $strategy && $this->is_empty_result( $result ) ) {
-			$ft_query = $search_query->build_fuzzy_query( $terms, $filters, null, 'search' );
-			$this->log( 'Pass 4 (fuzzy)', $ft_query );
-			$t0        = microtime( true );
-			$min_score = (float) ( $config['fallback_score_threshold'] ?? 0.5 );
-			$result    = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, false, $stock_mode, $demote_factor, $min_score );
-			$this->log( 'Pass 4 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+			// Pass 4: OR prefix fallback (relax AND → OR).
+			if ( $this->is_empty_result( $result ) && ! $or_logic ) {
+				$ft_query = $search_query->build_strict_query( $terms, $filters, 'OR', 'search' );
+				$this->log( 'Pass 4 (or_prefix)', $ft_query );
+				$t0     = microtime( true );
+				$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, true, $stock_mode, $demote_factor );
+				$this->log( 'Pass 4 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+			}
+
+			// Pass 5: Fuzzy fallback.
+			if ( $this->is_empty_result( $result ) ) {
+				$ft_query = $search_query->build_fuzzy_query( $terms, $filters, null, 'search' );
+				$this->log( 'Pass 5 (fuzzy)', $ft_query );
+				$t0     = microtime( true );
+				$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, false, $stock_mode, $demote_factor, $min_score );
+				$this->log( 'Pass 5 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
+			}
 		}
 
 		if ( false === $result ) {
@@ -1425,8 +1455,8 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			'outofstock_mode'               => get_option( 'shift64_woo_search_outofstock_mode', 'exclude' ),
 			'outofstock_demote_factor'      => (float) get_option( 'shift64_woo_search_outofstock_demote_factor', 0.3 ),
 			'fuzzy_level'                   => (int) get_option( 'shift64_woo_search_fuzzy_level', 1 ),
-			'logic'                         => get_option( 'shift64_woo_search_logic', 'OR' ),
-			'strategy'                      => get_option( 'shift64_woo_search_strategy', 'strict_first' ),
+			'logic'                         => get_option( 'shift64_woo_search_logic', 'AND' ),
+			'strategy'                      => get_option( 'shift64_woo_search_strategy', 'mixed' ),
 			'fallback_trigger'              => get_option( 'shift64_woo_search_fallback_trigger', 'low_score' ),
 			'fallback_score_threshold'      => (float) get_option( 'shift64_woo_search_fallback_score_threshold', 0.5 ),
 			'fallback_fuzzy_level'          => (int) get_option( 'shift64_woo_search_fallback_fuzzy_level', 1 ),

@@ -150,6 +150,26 @@ a fallback for one minor release, and state in the changelog what happens to a s
 touched the setting. Remember that a changed default only affects installs with no stored value —
 say so explicitly rather than leaving people to find out.
 
+`_logic` (`OR` → `AND`) and `_strategy` (`strict_first` → `mixed`) were re-defaulted together.
+On a 100k-product catalog the old pair returned the wrong products for two ordinary queries: OR
+retrieval ranked a two-of-three-token match above a three-of-three one, so "aero cedar table" put
+beauty products above "Aero Cedar Side Table"; and because the ladder never reached a fuzzy pass
+while any one token still prefix-matched, "aero cedat" returned everything starting with "aero"
+and nothing resembling "cedar". `AND` + `mixed` answers both, and answers them faster, because AND
+cuts the candidate set before scoring.
+
+This only affects installs that never saved either setting. Their generated
+`mu-plugins/shift64-woo-search/config.php` still holds the old values and keeps the old behavior
+until it is rewritten — which happens on the next plugin upgrade, on activation, on any settings
+save, and on `wp shift64-woo-search rebuild`. A store that wants the previous behavior sets
+**Relevance → Search Logic** to `OR` and **Search Mode** to `Strict first, fuzzy fallback`
+explicitly; an explicitly stored value is never overwritten.
+
+`_fallback_score_threshold` keeps its key, type, and `0.5` default, but no longer decides when one
+retrieval pass hands over to the next — term coverage does. It still filters which fuzzy-pass
+matches are shown. A store that had tuned it to force more fallbacks will see fewer fuzzy
+results and more exact ones; nothing needs to be reset.
+
 `_archive_debug_enabled` (default `no`) gates the storefront debug panel. It is a *new* key rather
 than a re-defaulted one, but it does change behavior for installs that never set it: the panel
 used to render for every user holding `manage_woocommerce` and now stays hidden until it is

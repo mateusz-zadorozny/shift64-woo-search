@@ -413,7 +413,7 @@ class Shift64_Woo_Search_CLI {
 			'outofstock_mode'          => get_option( 'shift64_woo_search_outofstock_mode', 'exclude' ),
 			'outofstock_demote_factor' => (float) get_option( 'shift64_woo_search_outofstock_demote_factor', 0.3 ),
 			'fuzzy_level'              => (int) get_option( 'shift64_woo_search_fuzzy_level', 1 ),
-			'logic'                    => get_option( 'shift64_woo_search_logic', 'OR' ),
+			'logic'                    => get_option( 'shift64_woo_search_logic', 'AND' ),
 			'category_boost_rules'     => get_option( 'shift64_woo_search_category_boost_rules', '' ),
 		);
 

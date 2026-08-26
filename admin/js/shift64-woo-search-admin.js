@@ -113,8 +113,8 @@
             document.getElementById('s64ws-tuning-empty').style.display = 'none';
             container.style.display = '';
 
-            var passNames = ['strict', 'token_reduced', 'or_prefix', 'fuzzy'];
-            var passLabels = { strict: 'Strict (prefix)', token_reduced: 'Token Reduced', or_prefix: 'OR Prefix', fuzzy: 'Fuzzy (fallback)' };
+            var passNames = ['strict', 'token_reduced', 'token_fuzzy', 'or_prefix', 'fuzzy'];
+            var passLabels = { strict: 'Strict (prefix)', token_reduced: 'Token Reduced', token_fuzzy: 'Per-Token Fuzzy', or_prefix: 'OR Prefix', fuzzy: 'Fuzzy (fallback)' };
             var html = '';
 
             for (var p = 0; p < passNames.length; p++) {

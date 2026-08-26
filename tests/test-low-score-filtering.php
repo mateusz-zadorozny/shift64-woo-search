@@ -99,6 +99,7 @@ class Low_Score_Filtering_Test extends WP_UnitTestCase {
 	public function test_only_fuzzy_passes_are_score_filtered() {
 		$this->assertTrue( Shift64_Woo_Search_Query::pass_is_fuzzy( 'fuzzy' ) );
 		$this->assertTrue( Shift64_Woo_Search_Query::pass_is_fuzzy( 'mixed' ) );
+		$this->assertTrue( Shift64_Woo_Search_Query::pass_is_fuzzy( 'token_fuzzy' ) );
 
 		$this->assertFalse( Shift64_Woo_Search_Query::pass_is_fuzzy( 'strict' ) );
 		$this->assertFalse( Shift64_Woo_Search_Query::pass_is_fuzzy( 'token_reduced' ) );

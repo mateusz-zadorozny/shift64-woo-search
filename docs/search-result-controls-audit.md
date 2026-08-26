@@ -17,14 +17,19 @@ This document inventories every behavior that can change which products are retu
 
 ### Retrieval cascade
 
+The default `mixed` strategy runs one query in which every token matches as prefix OR fuzzy, joined by the configured logic. Tokens of four characters or fewer stay prefix-only.
+
 The `strict_first` strategy runs:
 
 1. strict prefix search;
 2. strict prefix search after optional weak-token reduction;
-3. OR prefix fallback when the configured logic is AND;
-4. fuzzy fallback.
+3. per-token fuzzy search — the `mixed` shape, at the fallback fuzzy level;
+4. OR prefix fallback when the configured logic is AND;
+5. fuzzy fallback.
 
-Pass acceptance depends on either an empty result or the highest score falling below the configured threshold. The older `mixed` strategy combines prefix and fuzzy terms in one query.
+Pass acceptance depends on either an empty result or no result in the leading five covering every search term. Coverage reads all indexed TEXT fields and accepts a synonym variant in place of the term the shopper typed. Pass 3 is terminal on any hit: its matches are approximate by design, so re-testing coverage would always fail and hand a good answer to the broader passes below it.
+
+Term coverage replaced a raw-score threshold here. RediSearch TF-IDF is unbounded and routinely lands in the tens, so comparing the best score against `shift64_woo_search_fallback_score_threshold` (`0.5`) was true only for an empty result set — which collapsed `low_score` into `no_results` and left a typo in one word of a multi-word query uncorrectable. That option still gates which fuzzy-pass matches are shown.
 
 ### Redis scoring
 
@@ -62,10 +67,10 @@ The OR pass first applies term-coverage filtering and scoring. Order is material
 | Query | `shift64_woo_search_min_query` | `2` | Minimum query length |
 | Limit | `shift64_woo_search_autocomplete_limit` | `7` | Product autocomplete limit |
 | Limit | `shift64_woo_search_full_limit` | `20` | Full endpoint limit |
-| Logic | `shift64_woo_search_logic` | `OR` | Token AND/OR logic |
-| Strategy | `shift64_woo_search_strategy` | `strict_first` | Cascade or mixed strategy |
+| Logic | `shift64_woo_search_logic` | `AND` | Token AND/OR logic |
+| Strategy | `shift64_woo_search_strategy` | `mixed` | Cascade or mixed strategy |
 | Fallback | `shift64_woo_search_fallback_trigger` | `low_score` | Empty-only or low-score fallback |
-| Fallback | `shift64_woo_search_fallback_score_threshold` | `0.5` | Pass acceptance and score filter |
+| Fallback | `shift64_woo_search_fallback_score_threshold` | `0.5` | Score filter for fuzzy passes |
 | Fuzzy | `shift64_woo_search_fallback_fuzzy_level` | `1` | Final fallback distance |
 | Mixed fuzzy | `shift64_woo_search_fuzzy_level` | `1` | Mixed-strategy distance |
 | Token reduction | `shift64_woo_search_token_reduction_enabled` | `yes` | Enables pass two |

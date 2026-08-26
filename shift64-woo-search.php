@@ -455,10 +455,10 @@ class Shift64_Woo_Search_Plugin {
 			'shift64_woo_search_outofstock_mode'          => 'exclude',
 			'shift64_woo_search_outofstock_demote_factor' => 0.3,
 			'shift64_woo_search_fuzzy_level'              => 1,
-			'shift64_woo_search_logic'                    => 'OR',
+			'shift64_woo_search_logic'                    => 'AND',
 			'shift64_woo_search_input_selector'           => '.shift64-woo-search-field__input',
 			// Phase 4: Search strategy defaults.
-			'shift64_woo_search_strategy'                 => 'strict_first',
+			'shift64_woo_search_strategy'                 => 'mixed',
 			'shift64_woo_search_fallback_trigger'         => 'low_score',
 			'shift64_woo_search_fallback_score_threshold' => 0.5,
 			'shift64_woo_search_fallback_fuzzy_level'     => 1,
@@ -516,10 +516,10 @@ class Shift64_Woo_Search_Plugin {
 		$config .= "define( 'SHIFT64_WOO_SEARCH_OUTOFSTOCK_MODE', " . var_export( get_option( 'shift64_woo_search_outofstock_mode', 'exclude' ), true ) . " );\n";
 		$config .= "define( 'SHIFT64_WOO_SEARCH_OUTOFSTOCK_DEMOTE_FACTOR', " . var_export( (float) get_option( 'shift64_woo_search_outofstock_demote_factor', 0.3 ), true ) . " );\n";
 		$config .= "define( 'SHIFT64_WOO_SEARCH_FUZZY_LEVEL', " . var_export( (int) get_option( 'shift64_woo_search_fuzzy_level', 1 ), true ) . " );\n";
-		$config .= "define( 'SHIFT64_WOO_SEARCH_LOGIC', " . var_export( get_option( 'shift64_woo_search_logic', 'OR' ), true ) . " );\n";
+		$config .= "define( 'SHIFT64_WOO_SEARCH_LOGIC', " . var_export( get_option( 'shift64_woo_search_logic', 'AND' ), true ) . " );\n";
 
 		// Phase 4: Search strategy constants.
-		$config .= "define( 'SHIFT64_WOO_SEARCH_STRATEGY', " . var_export( get_option( 'shift64_woo_search_strategy', 'strict_first' ), true ) . " );\n";
+		$config .= "define( 'SHIFT64_WOO_SEARCH_STRATEGY', " . var_export( get_option( 'shift64_woo_search_strategy', 'mixed' ), true ) . " );\n";
 		$config .= "define( 'SHIFT64_WOO_SEARCH_FALLBACK_TRIGGER', " . var_export( get_option( 'shift64_woo_search_fallback_trigger', 'low_score' ), true ) . " );\n";
 		$config .= "define( 'SHIFT64_WOO_SEARCH_FALLBACK_SCORE_THRESHOLD', " . var_export( (float) get_option( 'shift64_woo_search_fallback_score_threshold', 0.5 ), true ) . " );\n";
 		$config .= "define( 'SHIFT64_WOO_SEARCH_FALLBACK_FUZZY_LEVEL', " . var_export( (int) get_option( 'shift64_woo_search_fallback_fuzzy_level', 1 ), true ) . " );\n";
