@@ -46,7 +46,7 @@ if ( ! $redis->is_available() ) {
 	return;
 }
 
-$search_query = new Shift64_Woo_Search_Query( $redis );
+$search_query = new Shift64_Woo_Search_Query( $redis, Shift64_Woo_Search_Settings::search_config() );
 $sanitized    = $search_query->sanitize_query( $query );
 $terms        = $search_query->get_search_terms( $sanitized );
 $facet_data   = Shift64_Woo_Search_Facets::compute( $search_query, array(), array(), $terms );
