@@ -9,7 +9,12 @@
 /** Load the pure template transformer used by this provisioning entry point. */
 require_once __DIR__ . '/test-env-template-controls.php';
 
-if ( ! function_exists( 'wp_insert_post' ) || ! class_exists( 'WP_Block_Type_Registry' ) ) {
+if (
+	! function_exists( 'wp_insert_post' )
+	|| ! function_exists( 'wp_is_block_theme' )
+	|| ! wp_is_block_theme()
+	|| ! class_exists( 'WP_Block_Type_Registry' )
+) {
 	return;
 }
 
