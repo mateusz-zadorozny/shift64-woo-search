@@ -43,6 +43,14 @@ an older WooCommerce/plugin checkout lacks one of the blocks.
 2.2 Update test-environment documentation with the seeded template matrix and
     the manual QA URLs/expectations.
 
+### Phase 3: E2E component compatibility
+
+3.1 Align archive E2E journeys with the Product Filters and Product Sort
+    markup while preserving classic-theme selector coverage.
+
+3.2 Prevent duplicate Product Collection navigation requests and keep archive
+    breadcrumbs synchronized after block-theme filtering and pagination.
+
 ## Risks
 
 - WooCommerce can change its blockified template markup. The transformer will
@@ -55,6 +63,8 @@ an older WooCommerce/plugin checkout lacks one of the blocks.
 
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
+PR: #77
+
 ### Phase 1: Provision archive templates
 
 - [x] 1.1 Add a pure template transformer plus a WP-CLI provisioning runner that creates or updates the active theme's database template overrides. — 95e5616, 8b18d5e, 4023145
@@ -64,3 +74,8 @@ an older WooCommerce/plugin checkout lacks one of the blocks.
 
 - [x] 2.1 Add PHPUnit coverage for the three target templates, both custom controls, the legacy sort fallback, and idempotent transformation behavior. — cd67196, 8b18d5e
 - [x] 2.2 Update test-environment documentation with the seeded template matrix and the manual QA URLs/expectations. — 97f447c
+
+### Phase 3: E2E component compatibility
+
+- [x] 3.1 Align archive E2E journeys with the Product Filters and Product Sort markup while preserving classic-theme selector coverage. — aba3586
+- [x] 3.2 Prevent duplicate Product Collection navigation requests and keep archive breadcrumbs synchronized after block-theme filtering and pagination. — 6b51c5a
