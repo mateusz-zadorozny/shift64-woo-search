@@ -1,3 +1,10 @@
+# [0.19.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.18.0...v0.19.0) (2026-08-26)
+
+
+### Features
+
+* **test-env:** seed product archive controls ([#77](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/77)) ([dc871be](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/dc871be00c8f7a4a535aee7622c4ddb04bb253a4))
+
 # [0.18.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.17.1...v0.18.0) (2026-08-25)
 
 
