@@ -127,7 +127,38 @@ function syncProductResultsCount(html) {
 			targetRegion.innerHTML = sourceRegion.innerHTML;
 		}
 	});
+	const sourceBreadcrumb = source.querySelector(
+		'.woocommerce-breadcrumb, .shift64-woo-search-header__breadcrumbs'
+	);
+	const targetBreadcrumb = document.querySelector(
+		'.woocommerce-breadcrumb, .shift64-woo-search-header__breadcrumbs'
+	);
+	if (sourceBreadcrumb && targetBreadcrumb) {
+		targetBreadcrumb.innerHTML = sourceBreadcrumb.innerHTML;
+	}
 	lastResultsCountUrl = window.location.href;
+}
+
+/**
+ * Return the catalog state without pagination-only parameters.
+ *
+ * WooCommerce's Product Collection updates its router region and URL for a
+ * page change. The result total does not change, so fetching the same HTML a
+ * second time just to refresh the count is redundant. Filter and sort changes
+ * still produce a different key and need the response-side count/context
+ * synchronization below.
+ *
+ * @param {string} source Catalog URL.
+ * @return {string} Canonical non-paginated catalog state.
+ */
+function nonPagingCatalogState(source) {
+	const url = storefrontUrl(source);
+	['query-page', 'paged'].forEach((key) => url.searchParams.delete(key));
+	[...url.searchParams.keys()]
+		.filter((key) => /^query-\d+-page$/.test(key))
+		.forEach((key) => url.searchParams.delete(key));
+	url.pathname = url.pathname.replace(/\/page\/\d+\/?$/, '/');
+	return url.toString();
 }
 
 /**
@@ -155,6 +186,10 @@ export function observeProductResultsCount() {
 	lastResultsCountUrl = window.location.href;
 	resultsCountObserver = new MutationObserver( () => {
 		if ( window.location.href === lastResultsCountUrl ) {
+			return;
+		}
+		if ( nonPagingCatalogState( window.location.href ) === nonPagingCatalogState( lastResultsCountUrl ) ) {
+			lastResultsCountUrl = window.location.href;
 			return;
 		}
 		window.clearTimeout( resultsCountSyncTimer );
