@@ -1,3 +1,10 @@
+# [0.20.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.19.1...v0.20.0) (2026-08-27)
+
+
+### Features
+
+* **admin:** deprecate logic=OR and fallback_trigger=no_results ([#85](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/85)) ([#87](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/87)) ([6bae6b7](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/6bae6b79b667df701eaccd89e734c65857421f72))
+
 ## [0.19.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.19.0...v0.19.1) (2026-08-27)
 
 
