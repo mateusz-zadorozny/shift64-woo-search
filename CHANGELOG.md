@@ -1,3 +1,10 @@
+## [0.19.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.19.0...v0.19.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **search:** repair the fallback ladder and default to AND + mixed ([#78](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/78)) ([651a518](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/651a5187114d71a6ef1e711630f8087e27d2cc76)), closes [#26](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/26)
+
 # [0.19.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.18.0...v0.19.0) (2026-08-26)
 
 
