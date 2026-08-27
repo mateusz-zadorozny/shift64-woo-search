@@ -197,7 +197,7 @@ class Shift64_Woo_Search_Facet_Count_Provider {
 		if ( null === $query ) {
 			$redis = Shift64_Woo_Search_Redis::get_instance();
 			if ( $redis->is_available() ) {
-				$query = new Shift64_Woo_Search_Query( $redis );
+				$query = new Shift64_Woo_Search_Query( $redis, Shift64_Woo_Search_Settings::search_config() );
 			}
 		}
 

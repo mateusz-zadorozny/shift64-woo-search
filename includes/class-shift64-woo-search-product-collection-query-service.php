@@ -46,7 +46,11 @@ class Shift64_Woo_Search_Product_Collection_Query_Service {
 		$sort_res  = Shift64_Woo_Search_Sort::resolve_mode( $state->get_sort() );
 		$sort_mode = $sort_res['mode'];
 
-		$query = $this->search_query ?? new Shift64_Woo_Search_Query( $redis );
+		// Without the stored configuration this runs on the class defaults, which
+		// stopped matching the seeded options when they changed — the dropdown
+		// answered on the store's settings while this path answered on someone
+		// else's. See Shift64_Woo_Search_Settings::search_config().
+		$query = $this->search_query ?? new Shift64_Woo_Search_Query( $redis, Shift64_Woo_Search_Settings::search_config() );
 		$scope = array();
 		$map   = Shift64_Woo_Search_Taxonomy_Archive::get_scope_map();
 		if ( '' !== $context->get_taxonomy() && isset( $map[ $context->get_taxonomy() ] ) && '' !== $context->get_term_name() ) {

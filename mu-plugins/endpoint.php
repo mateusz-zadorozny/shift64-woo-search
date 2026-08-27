@@ -146,9 +146,9 @@ $config = array(
     'outofstock_mode'          => defined( 'SHIFT64_WOO_SEARCH_OUTOFSTOCK_MODE' ) ? SHIFT64_WOO_SEARCH_OUTOFSTOCK_MODE : 'exclude',
     'outofstock_demote_factor' => defined( 'SHIFT64_WOO_SEARCH_OUTOFSTOCK_DEMOTE_FACTOR' ) ? (float) SHIFT64_WOO_SEARCH_OUTOFSTOCK_DEMOTE_FACTOR : 0.3,
     'fuzzy_level'              => defined( 'SHIFT64_WOO_SEARCH_FUZZY_LEVEL' ) ? (int) SHIFT64_WOO_SEARCH_FUZZY_LEVEL : 1,
-    'logic'                    => defined( 'SHIFT64_WOO_SEARCH_LOGIC' ) ? SHIFT64_WOO_SEARCH_LOGIC : 'OR',
+    'logic'                    => defined( 'SHIFT64_WOO_SEARCH_LOGIC' ) ? SHIFT64_WOO_SEARCH_LOGIC : 'AND',
     // Phase 4: Search strategy.
-    'strategy'                      => defined( 'SHIFT64_WOO_SEARCH_STRATEGY' ) ? SHIFT64_WOO_SEARCH_STRATEGY : 'strict_first',
+    'strategy'                      => defined( 'SHIFT64_WOO_SEARCH_STRATEGY' ) ? SHIFT64_WOO_SEARCH_STRATEGY : 'mixed',
     'fallback_trigger'              => defined( 'SHIFT64_WOO_SEARCH_FALLBACK_TRIGGER' ) ? SHIFT64_WOO_SEARCH_FALLBACK_TRIGGER : 'low_score',
     'fallback_score_threshold'      => defined( 'SHIFT64_WOO_SEARCH_FALLBACK_SCORE_THRESHOLD' ) ? (float) SHIFT64_WOO_SEARCH_FALLBACK_SCORE_THRESHOLD : 0.5,
     'fallback_fuzzy_level'          => defined( 'SHIFT64_WOO_SEARCH_FALLBACK_FUZZY_LEVEL' ) ? (int) SHIFT64_WOO_SEARCH_FALLBACK_FUZZY_LEVEL : 1,

@@ -18,7 +18,7 @@ Shift64 Woo Search replaces WooCommerce product retrieval with a RediSearch-back
 Features include:
 
 * A fast SHORTINIT autocomplete endpoint.
-* Strict-first search with token reduction, OR fallback, and fuzzy fallback.
+* Typo-tolerant matching: every word matches as prefix or fuzzy, with an optional strict-first cascade.
 * Synonym expansion, including multi-word and one-way rules.
 * Configurable field weights and result-ranking controls.
 * Product, category, attribute, brand, and SKU search, using WooCommerce's native product brands.

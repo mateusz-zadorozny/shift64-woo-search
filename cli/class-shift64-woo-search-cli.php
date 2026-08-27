@@ -405,17 +405,9 @@ class Shift64_Woo_Search_CLI {
 		// under-reported what the storefront would show.
 		$limit = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : null;
 
-		// Load config from options.
-		$config = array(
-			'min_query_length'         => (int) get_option( 'shift64_woo_search_min_query', 2 ),
-			'autocomplete_limit'       => (int) get_option( 'shift64_woo_search_autocomplete_limit', 7 ),
-			'full_limit'               => (int) get_option( 'shift64_woo_search_full_limit', 20 ),
-			'outofstock_mode'          => get_option( 'shift64_woo_search_outofstock_mode', 'exclude' ),
-			'outofstock_demote_factor' => (float) get_option( 'shift64_woo_search_outofstock_demote_factor', 0.3 ),
-			'fuzzy_level'              => (int) get_option( 'shift64_woo_search_fuzzy_level', 1 ),
-			'logic'                    => get_option( 'shift64_woo_search_logic', 'OR' ),
-			'category_boost_rules'     => get_option( 'shift64_woo_search_category_boost_rules', '' ),
-		);
+		// The storefront configuration, in full — a partial copy here made the
+		// CLI run a different engine than the site it is meant to diagnose.
+		$config = Shift64_Woo_Search_Settings::search_config();
 
 		$search  = new Shift64_Woo_Search_Query( $redis, $config );
 		$results = $search->search( $query_text, $mode, $limit );

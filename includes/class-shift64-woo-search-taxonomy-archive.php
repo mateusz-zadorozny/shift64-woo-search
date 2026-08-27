@@ -199,7 +199,7 @@ class Shift64_Woo_Search_Taxonomy_Archive implements Shift64_Woo_Search_Facet_Co
 			return;
 		}
 
-		$search_query  = new Shift64_Woo_Search_Query( $redis );
+		$search_query  = new Shift64_Woo_Search_Query( $redis, Shift64_Woo_Search_Settings::search_config() );
 		$scope_filters = array( $scope_config['filter_key'] => array( $term->name ) );
 
 		// Fetch once, cache for the rest of the request so posts_clauses
@@ -389,7 +389,7 @@ class Shift64_Woo_Search_Taxonomy_Archive implements Shift64_Woo_Search_Facet_Co
 			return array();
 		}
 
-		$search_query  = new Shift64_Woo_Search_Query( $redis );
+		$search_query  = new Shift64_Woo_Search_Query( $redis, Shift64_Woo_Search_Settings::search_config() );
 		$scope_filters = array( $scope_config['filter_key'] => array( $term->name ) );
 		$max_ids       = (int) apply_filters( 'shift64_woo_search_taxonomy_archive_max_ids', 10000 );
 

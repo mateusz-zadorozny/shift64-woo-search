@@ -128,8 +128,20 @@ Suggested option names:
 
 ## Recommended Defaults
 
-- strategy: `Strict first, fuzzy fallback`
-- trigger: `Only when no results`
+- logic: `AND`
+- strategy: `Mixed — every word as prefix or fuzzy, one query`
+- trigger: `No results, or no result matched every word`
 - fuzzy level: `1`
 
-This is the safest and most predictable version.
+`AND` + `Mixed` is both the most accurate and the fastest pairing: requiring every
+word cuts the candidate set before scoring, and the per-word fuzzy match repairs a
+typo without discarding the words the shopper spelled correctly.
+
+`Strict first, fuzzy fallback` is the alternative when you want exact prefix
+matches to win outright and approximate matching to appear only after a pass
+fails. It runs more Redis round trips on a messy query.
+
+Earlier releases recommended `Strict first, fuzzy fallback` with `Only when no
+results`. That pairing could not repair a typo in one word of a multi-word query:
+as long as any other word still matched a prefix, the cascade stopped before it
+reached a fuzzy pass.

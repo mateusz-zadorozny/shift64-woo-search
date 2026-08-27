@@ -5,8 +5,9 @@
  * Self-contained — works in SHORTINIT (no WP dependencies beyond $wpdb for stats).
  *
  * Supports two strategies:
- * - 'strict_first': strict prefix → token reduction → fuzzy fallback (default)
- * - 'mixed': legacy prefix+fuzzy in one query
+ * - 'mixed': one query, every token matched as prefix OR fuzzy (default)
+ * - 'strict_first': strict prefix → token reduction → per-token fuzzy →
+ *   OR prefix → fuzzy, advancing whenever a pass fails to cover every term
  *
  * @package Shift64_Woo_Search
  */
@@ -71,9 +72,9 @@ class Shift64_Woo_Search_Query {
 				'outofstock_mode'               => 'exclude',
 				'outofstock_demote_factor'      => 0.3,
 				'fuzzy_level'                   => 1,
-				'logic'                         => 'OR',
+				'logic'                         => 'AND',
 				// Phase 4: Search strategy settings.
-				'strategy'                      => 'strict_first',
+				'strategy'                      => 'mixed',
 				'fallback_trigger'              => 'low_score',
 				'fallback_score_threshold'      => 0.5,
 				'fallback_fuzzy_level'          => 1,
@@ -131,17 +132,24 @@ class Shift64_Woo_Search_Query {
 			$fetch_limit = min( 500, max( $fetch_limit, $limit * 20, 300 ) );
 		}
 
-		$strategy = $this->config['strategy'] ?? 'strict_first';
+		$strategy = $this->config['strategy'] ?? 'mixed';
+		$terms    = $this->get_search_terms( $query );
+		$or_logic = ( 'OR' === strtoupper( $this->config['logic'] ) );
 
 		if ( 'mixed' === $strategy ) {
-			// Legacy behavior — mixed prefix+fuzzy in one query.
-			$ft_query      = $this->build_ft_query( $query, $filters, $visibility_policy );
+			// One query: every token matches as prefix OR fuzzy.
+			$ft_query      = $this->build_hybrid_query( $terms, $filters, null, $visibility_policy );
 			$results       = $this->execute_ft_search( $ft_query, $fetch_limit );
 			$search_pass   = 'mixed';
 			$debug_queries = array( 'mixed' => $ft_query );
+			if ( $or_logic ) {
+				// min_ratio 0: 'mixed' is single-pass, so a dropped row has no
+				// later pass to catch it. Re-rank by term coverage, but keep a
+				// product whose only match is in the description.
+				$results = self::boost_term_match_count( $terms, $results, 0.0 );
+			}
 		} else {
 			// Strict-first, fuzzy-fallback.
-			$terms         = $this->get_search_terms( $query );
 			$debug_queries = array();
 			$search_pass   = 'strict';
 
@@ -149,33 +157,62 @@ class Shift64_Woo_Search_Query {
 			$ft_query                = $this->build_strict_query( $terms, $filters, null, $visibility_policy );
 			$debug_queries['strict'] = $ft_query;
 			$results                 = $this->execute_ft_search( $ft_query, $fetch_limit );
+			if ( $or_logic ) {
+				// OR retrieval alone ranks a two-of-three-token match above a
+				// three-of-three one; term coverage has to drive the order.
+				$results = self::boost_term_match_count( $terms, $results );
+			}
+
+			$resolved = ! $this->should_fallback( $results, $terms );
 
 			// Pass 2: Token reduction (if enabled, multi-word, and fallback needed).
-			if ( $this->should_fallback( $results ) && ! empty( $this->config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
+			if ( ! $resolved && ! empty( $this->config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
 				$reduced = $this->reduce_tokens( $terms );
 				if ( count( $reduced ) < count( $terms ) && ! empty( $reduced ) ) {
 					$ft_query                       = $this->build_strict_query( $reduced, $filters, null, $visibility_policy );
 					$debug_queries['token_reduced'] = $ft_query;
-					$results                        = $this->execute_ft_search( $ft_query, $fetch_limit );
-					if ( ! $this->should_fallback( $results ) ) {
+					$candidate                      = $this->execute_ft_search( $ft_query, $fetch_limit );
+					if ( $or_logic ) {
+						$candidate = self::boost_term_match_count( $reduced, $candidate );
+					}
+					if ( ! $this->should_fallback( $candidate, $reduced ) ) {
+						$results     = $candidate;
 						$search_pass = 'token_reduced';
+						$resolved    = true;
 					}
 				}
 			}
 
-			// Pass 3: OR prefix fallback (relax AND → OR, only when logic is AND).
-			if ( $this->should_fallback( $results ) && 'AND' === strtoupper( $this->config['logic'] ) ) {
+			// Pass 3: Per-token fuzzy. Each token matches as prefix OR fuzzy under
+			// the configured logic, so a typo in one word of a multi-word query is
+			// repaired without discarding the words the shopper spelled correctly.
+			// The result set is a superset of pass 1, so accepting any hit here can
+			// only add recall.
+			if ( ! $resolved ) {
+				$ft_query                     = $this->build_hybrid_query( $terms, $filters, $this->resolve_fuzzy_level(), $visibility_policy );
+				$debug_queries['token_fuzzy'] = $ft_query;
+				$candidate                    = $this->execute_ft_search( $ft_query, $fetch_limit );
+				if ( ! empty( $candidate ) ) {
+					$results     = $or_logic ? self::boost_term_match_count( $terms, $candidate, 0.0 ) : $candidate;
+					$search_pass = 'token_fuzzy';
+					$resolved    = true;
+				}
+			}
+
+			// Pass 4: OR prefix fallback (relax AND → OR, only when logic is AND).
+			if ( ! $resolved && ! $or_logic ) {
 				$ft_query                   = $this->build_strict_query( $terms, $filters, 'OR', $visibility_policy );
 				$debug_queries['or_prefix'] = $ft_query;
 				$results                    = $this->execute_ft_search( $ft_query, $fetch_limit );
 				$results                    = self::boost_term_match_count( $terms, $results );
-				if ( ! $this->should_fallback( $results ) ) {
+				if ( ! $this->should_fallback( $results, $terms ) ) {
 					$search_pass = 'or_prefix';
+					$resolved    = true;
 				}
 			}
 
-			// Pass 4: Fuzzy fallback.
-			if ( $this->should_fallback( $results ) ) {
+			// Pass 5: Fuzzy fallback — every token fuzzed, nothing left to relax.
+			if ( ! $resolved ) {
 				$ft_query               = $this->build_fuzzy_query( $terms, $filters, null, $visibility_policy );
 				$debug_queries['fuzzy'] = $ft_query;
 				$results                = $this->execute_ft_search( $ft_query, $fetch_limit );
@@ -245,7 +282,7 @@ class Shift64_Woo_Search_Query {
 	 * @param string   $mode    'autocomplete' or 'full'.
 	 * @param int|null $limit   Override default limit.
 	 * @param array    $filters Additional filters.
-	 * @return array   Keyed by pass name: strict, token_reduced, fuzzy.
+	 * @return array   Keyed by pass name: strict, token_reduced, token_fuzzy, or_prefix, fuzzy.
 	 */
 	public function search_all_passes( $query, $mode = 'autocomplete', $limit = null, $filters = array() ) {
 		$query             = $this->sanitize_query( $query );
@@ -291,6 +328,16 @@ class Shift64_Woo_Search_Query {
 				);
 			}
 		}
+
+		// Per-token fuzzy pass — the shape the 'mixed' strategy runs on its own.
+		$passes['token_fuzzy'] = $this->run_tuning_pass(
+			$this->build_hybrid_query( $terms, $filters, $this->resolve_fuzzy_level(), $visibility_policy ),
+			$terms,
+			$query,
+			$fetch_limit,
+			$limit,
+			$stock_mode
+		);
 
 		// OR prefix pass (only when logic is AND).
 		if ( 'AND' === strtoupper( $this->config['logic'] ) ) {
@@ -750,6 +797,34 @@ class Shift64_Woo_Search_Query {
 	 * @return string
 	 */
 	public function build_strict_query( $terms, $filters = array(), $logic_override = null, $visibility_policy = null, $filter_operators = array() ) {
+		return $this->build_term_query(
+			$terms,
+			$filters,
+			$logic_override,
+			$visibility_policy,
+			$filter_operators,
+			function ( $word ) {
+				return $word . '*';
+			}
+		);
+	}
+
+	/**
+	 * Build an FT.SEARCH query from pre-split terms with a per-word renderer.
+	 *
+	 * The strict, fuzzy, and hybrid builders differ only in how a single word
+	 * becomes a RediSearch fragment; everything else — synonym expansion,
+	 * multi-word variants, SKU concatenation, filters — is shared.
+	 *
+	 * @param array                $terms             Search terms.
+	 * @param array                $filters           Additional filters.
+	 * @param string|null          $logic_override    Force 'AND'/'OR' logic for this query.
+	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
+	 * @param array                $filter_operators  Per-filter `and`/`or` operators.
+	 * @param callable             $render_word       Turns one word into a query fragment.
+	 * @return string
+	 */
+	private function build_term_query( $terms, $filters, $logic_override, $visibility_policy, $filter_operators, $render_word ) {
 		$logic    = null !== $logic_override ? strtoupper( $logic_override ) : strtoupper( $this->config['logic'] );
 		$operator = ( 'AND' === $logic ) ? ' ' : '|';
 		$expanded = $this->expand_terms( $terms );
@@ -760,12 +835,7 @@ class Shift64_Woo_Search_Query {
 				$variants = $this->dedupe_terms( $item );
 				$sub      = array();
 				foreach ( $variants as $syn ) {
-					$frag = $this->render_variant(
-						$syn,
-						function ( $word ) {
-							return $word . '*';
-						}
-					);
+					$frag = $this->render_variant( $syn, $render_word );
 					if ( null !== $frag ) {
 						$sub[] = $frag;
 					}
@@ -774,7 +844,7 @@ class Shift64_Woo_Search_Query {
 					$term_queries[] = '(' . implode( '|', $sub ) . ')';
 				}
 			} elseif ( mb_strlen( $item ) >= 2 ) {
-				$term_queries[] = $item . '*';
+				$term_queries[] = call_user_func( $render_word, $item );
 			}
 		}
 
@@ -788,7 +858,7 @@ class Shift64_Woo_Search_Query {
 				// Safe to interpolate without RediSearch escaping: detect_sku_concatenation
 				// guarantees the value matches /^[a-zA-Z]{2,4}[0-9]{1,4}$/ — no special chars.
 				$sku_lower = strtolower( $sku_concat );
-				$parts[]   = '((' . $text_query . ')|(@sku:{' . $sku_lower . '})|(' . $sku_lower . '*))';
+				$parts[]   = '((' . $text_query . ')|(@sku:{' . $sku_lower . '})|(' . call_user_func( $render_word, $sku_lower ) . '))';
 			} else {
 				$parts[] = $text_query;
 			}
@@ -810,64 +880,71 @@ class Shift64_Woo_Search_Query {
 	 * @return string
 	 */
 	public function build_fuzzy_query( $terms, $filters = array(), $level = null, $visibility_policy = null, $filter_operators = array() ) {
+		$fuzz = str_repeat( '%', $this->resolve_fuzzy_level( $level ) );
+
+		return $this->build_term_query(
+			$terms,
+			$filters,
+			null,
+			$visibility_policy,
+			$filter_operators,
+			function ( $word ) use ( $fuzz ) {
+				return $fuzz . $word . $fuzz;
+			}
+		);
+	}
+
+	/**
+	 * Build a hybrid FT.SEARCH query: every token matches as prefix OR fuzzy.
+	 *
+	 * This is the shape the 'mixed' strategy runs on its own and the shape
+	 * 'strict_first' falls back to before it relaxes term logic. Short tokens
+	 * stay prefix-only — see add_fuzzy() for why.
+	 *
+	 * @param array                $terms             Search terms.
+	 * @param array                $filters           Additional filters.
+	 * @param int|null             $level             Fuzzy level override.
+	 * @param string|string[]|null $visibility_policy Visibility context or explicit exclusions.
+	 * @param array                $filter_operators  Per-filter `and`/`or` operators.
+	 * @return string
+	 */
+	public function build_hybrid_query( $terms, $filters = array(), $level = null, $visibility_policy = null, $filter_operators = array() ) {
+		$level = ( null === $level )
+			? max( 1, min( 3, (int) ( $this->config['fuzzy_level'] ?? 1 ) ) )
+			: max( 1, min( 3, (int) $level ) );
+
+		return $this->build_term_query(
+			$terms,
+			$filters,
+			null,
+			$visibility_policy,
+			$filter_operators,
+			function ( $word ) use ( $level ) {
+				return $this->add_fuzzy( $word, $level );
+			}
+		);
+	}
+
+	/**
+	 * Resolve the fuzzy level used by fallback passes.
+	 *
+	 * @param int|null $level Explicit override, or null to read the config.
+	 * @return int
+	 */
+	private function resolve_fuzzy_level( $level = null ) {
 		if ( null === $level ) {
-			$level = max( 1, min( 3, (int) ( $this->config['fallback_fuzzy_level'] ?? $this->config['fuzzy_level'] ?? 1 ) ) );
-		}
-		$fuzz     = str_repeat( '%', $level );
-		$operator = ( 'AND' === strtoupper( $this->config['logic'] ) ) ? ' ' : '|';
-
-		$expanded     = $this->expand_terms( $terms );
-		$term_queries = array();
-		foreach ( $expanded as $item ) {
-			if ( is_array( $item ) ) {
-				$variants = $this->dedupe_terms( $item );
-				$sub      = array();
-				foreach ( $variants as $syn ) {
-					$frag = $this->render_variant(
-						$syn,
-						function ( $word ) use ( $fuzz ) {
-							return $fuzz . $word . $fuzz;
-						}
-					);
-					if ( null !== $frag ) {
-						$sub[] = $frag;
-					}
-				}
-				if ( ! empty( $sub ) ) {
-					$term_queries[] = '(' . implode( '|', $sub ) . ')';
-				}
-			} elseif ( mb_strlen( $item ) >= 2 ) {
-				$term_queries[] = $fuzz . $item . $fuzz;
-			}
+			$level = $this->config['fallback_fuzzy_level'] ?? $this->config['fuzzy_level'] ?? 1;
 		}
 
-		$parts = array();
-		if ( ! empty( $term_queries ) ) {
-			$text_query = '(' . implode( $operator, $term_queries ) . ')';
-
-			// SKU concatenation: "djm 201" → also search for "djm201" in @sku TAG and sku_text.
-			$sku_concat = self::detect_sku_concatenation( $terms );
-			if ( false !== $sku_concat ) {
-				// Safe to interpolate without RediSearch escaping: detect_sku_concatenation
-				// guarantees the value matches /^[a-zA-Z]{2,4}[0-9]{1,4}$/ — no special chars.
-				$sku_lower = strtolower( $sku_concat );
-				$parts[]   = '((' . $text_query . ')|(@sku:{' . $sku_lower . '})|(' . $fuzz . $sku_lower . $fuzz . '))';
-			} else {
-				$parts[] = $text_query;
-			}
-		}
-
-		$parts = array_merge( $parts, $this->build_filter_parts( $filters, $visibility_policy, $filter_operators ) );
-
-		return implode( ' ', $parts );
+		return max( 1, min( 3, (int) $level ) );
 	}
 
 	/**
 	 * Build the FT.SEARCH query string (legacy mixed mode).
 	 *
-	 * Kept for backward compatibility when strategy = 'mixed'. Note: SKU
-	 * concatenation (see detect_sku_concatenation) is only applied in the
-	 * 'strict_first' strategy, not here.
+	 * Superseded by build_hybrid_query(), which takes pre-split terms and
+	 * supports filter operators and SKU concatenation. Kept for callers that
+	 * still hand over a raw query string.
 	 *
 	 * @param string               $query             Sanitized query.
 	 * @param array                $filters           Additional filters.
@@ -1178,18 +1255,23 @@ class Shift64_Woo_Search_Query {
 		$per_page = max( 1, (int) $per_page );
 		$paged    = max( 1, (int) $paged );
 		$offset   = ( $paged - 1 ) * $per_page;
-		$queries  = array( $this->build_strict_query( $terms, $filters, null, $visibility_policy, $filter_operators ) );
+		$strategy = $this->config['strategy'] ?? 'mixed';
 
-		if ( ! empty( $this->config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
-			$reduced = $this->reduce_tokens( $terms );
-			if ( ! empty( $reduced ) && count( $reduced ) < count( $terms ) ) {
-				$queries[] = $this->build_strict_query( $reduced, $filters, null, $visibility_policy, $filter_operators );
+		if ( 'mixed' === $strategy ) {
+			$queries = array( $this->build_hybrid_query( $terms, $filters, null, $visibility_policy, $filter_operators ) );
+		} else {
+			$queries = array( $this->build_strict_query( $terms, $filters, null, $visibility_policy, $filter_operators ) );
+
+			if ( ! empty( $this->config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
+				$reduced = $this->reduce_tokens( $terms );
+				if ( ! empty( $reduced ) && count( $reduced ) < count( $terms ) ) {
+					$queries[] = $this->build_strict_query( $reduced, $filters, null, $visibility_policy, $filter_operators );
+				}
 			}
-		}
-		if ( 'AND' === strtoupper( $this->config['logic'] ) ) {
-			$queries[] = $this->build_strict_query( $terms, $filters, 'OR', $visibility_policy, $filter_operators );
-		}
-		if ( 'strict_first' === ( $this->config['strategy'] ?? 'strict_first' ) ) {
+			$queries[] = $this->build_hybrid_query( $terms, $filters, $this->resolve_fuzzy_level(), $visibility_policy, $filter_operators );
+			if ( 'AND' === strtoupper( $this->config['logic'] ) ) {
+				$queries[] = $this->build_strict_query( $terms, $filters, 'OR', $visibility_policy, $filter_operators );
+			}
 			$queries[] = $this->build_fuzzy_query( $terms, $filters, null, $visibility_policy, $filter_operators );
 		}
 
@@ -1356,32 +1438,159 @@ class Shift64_Woo_Search_Query {
 	 * Determine whether the current results should trigger a fallback to the next pass.
 	 *
 	 * 'no_results' — fallback only when results are empty.
-	 * 'low_score'  — fallback when empty OR when the best score is below threshold.
+	 * 'low_score'  — fallback when empty OR when no result covers every search
+	 *                term. Term coverage replaced a raw-score threshold here:
+	 *                RediSearch TFIDF is unbounded and routinely lands in the
+	 *                tens, so comparing it against `fallback_score_threshold`
+	 *                (0.5 by default) was true only for an empty result set,
+	 *                which collapsed the ladder into 'no_results' and left a
+	 *                typo in one word of a multi-word query uncorrectable.
+	 *                `fallback_score_threshold` still gates fuzzy-pass output
+	 *                through filter_low_scores().
 	 *
 	 * @param array $results Parsed FT.SEARCH results (with _score).
+	 * @param array $terms   Search terms the pass was built from.
 	 * @return bool
 	 */
-	private function should_fallback( $results ) {
+	private function should_fallback( $results, $terms = array() ) {
 		if ( empty( $results ) ) {
 			return true;
 		}
 
 		$trigger = $this->config['fallback_trigger'] ?? 'low_score';
 
-		if ( 'no_results' === $trigger ) {
+		if ( 'no_results' === $trigger || empty( $terms ) ) {
 			return false;
 		}
 
-		// 'low_score' — check best score against threshold.
-		$threshold = (float) ( $this->config['fallback_score_threshold'] ?? 0.5 );
-		$best      = 0.0;
-		foreach ( $results as $r ) {
-			if ( isset( $r['_score'] ) && $r['_score'] > $best ) {
-				$best = $r['_score'];
+		$needles = $this->term_coverage_needles( $terms );
+		if ( empty( $needles ) ) {
+			return false;
+		}
+
+		return self::best_term_coverage( $needles, $results ) < 1.0;
+	}
+
+	/**
+	 * Literal forms that count as a match for each search term.
+	 *
+	 * One entry per term, each holding the term plus any synonym variant it
+	 * expands to, so a result matched through a synonym still counts as
+	 * covering the term the shopper typed.
+	 *
+	 * Public so the archive path can build the same needles and reach the same
+	 * hand-over decision as the dropdown.
+	 *
+	 * @param array $terms Search terms.
+	 * @return array<int,string[]>
+	 */
+	public function term_coverage_needles( $terms ) {
+		$needles = array();
+
+		foreach ( $this->expand_terms( $terms ) as $item ) {
+			$variants = is_array( $item ) ? $item : array( $item );
+			$accepted = array();
+
+			foreach ( $variants as $variant ) {
+				$variant = mb_strtolower( trim( (string) $variant ) );
+				if ( mb_strlen( $variant ) >= 2 ) {
+					$accepted[] = $variant;
+				}
+			}
+
+			if ( ! empty( $accepted ) ) {
+				$needles[] = array_values( array_unique( $accepted ) );
 			}
 		}
 
-		return $best < $threshold;
+		return $needles;
+	}
+
+	/**
+	 * Highest share of search terms any of the leading results actually contains.
+	 *
+	 * Only the head of the result set is inspected: a pass is judged by its
+	 * best answer, and scanning every over-fetched candidate would cost more
+	 * than the pass it guards.
+	 *
+	 * @param array<int,string[]> $needles Accepted literals per term, from term_coverage_needles().
+	 * @param array               $results Parsed FT.SEARCH results.
+	 * @param int                 $sample  How many leading results to inspect.
+	 * @return float Coverage in the 0.0–1.0 range.
+	 */
+	public static function best_term_coverage( $needles, $results, $sample = 5 ) {
+		if ( empty( $needles ) || empty( $results ) ) {
+			return 0.0;
+		}
+
+		$total     = count( $needles );
+		$best      = 0.0;
+		$inspected = 0;
+
+		foreach ( $results as $result ) {
+			if ( $inspected >= $sample ) {
+				break;
+			}
+			++$inspected;
+
+			$text = self::searchable_text( $result );
+			if ( '' === $text ) {
+				continue;
+			}
+
+			$matched = 0;
+			foreach ( $needles as $variants ) {
+				foreach ( $variants as $variant ) {
+					if ( false !== mb_strpos( $text, $variant ) ) {
+						++$matched;
+						break;
+					}
+				}
+			}
+
+			$coverage = (float) $matched / (float) $total;
+			if ( $coverage > $best ) {
+				$best = $coverage;
+			}
+			if ( $best >= 1.0 ) {
+				break;
+			}
+		}
+
+		return $best;
+	}
+
+	/**
+	 * Concatenated, lowercased text of every indexed TEXT field on a result.
+	 *
+	 * Mirrors the schema's searchable fields so coverage and term-match
+	 * ranking agree with what RediSearch could actually have matched on —
+	 * a brand or category hit counts, not just the title.
+	 *
+	 * Scope 'identity' drops the free-text body fields. Coverage asks whether
+	 * the engine could have matched a term at all, so it reads everything;
+	 * ranking asks how strongly a product answers the query, and a term buried
+	 * in a long description is weak evidence that would flatten the ordering.
+	 *
+	 * @param array  $result Parsed FT.SEARCH result row.
+	 * @param string $scope  'all' for every TEXT field, 'identity' to skip descriptions.
+	 * @return string
+	 */
+	private static function searchable_text( $result, $scope = 'all' ) {
+		$fields = array( 'title', 'title_ascii', 'sku_text', 'categories_text', 'brands_text', 'attributes' );
+		if ( 'all' === $scope ) {
+			$fields[] = 'short_desc';
+			$fields[] = 'description';
+		}
+		$parts = array();
+
+		foreach ( $fields as $field ) {
+			if ( isset( $result[ $field ] ) && is_string( $result[ $field ] ) && '' !== $result[ $field ] ) {
+				$parts[] = $result[ $field ];
+			}
+		}
+
+		return empty( $parts ) ? '' : mb_strtolower( implode( ' ', $parts ) );
 	}
 
 	/**
@@ -1460,16 +1669,19 @@ class Shift64_Woo_Search_Query {
 	 * Short terms (<=4 chars): prefix only — avoids noise from fuzzy on short strings.
 	 * Longer terms (>4 chars): prefix + fuzzy — prefix catches incomplete words, fuzzy catches typos.
 	 *
-	 * @param string $term Search term.
+	 * @param string   $term  Search term.
+	 * @param int|null $level Fuzzy level override; null reads `fuzzy_level`.
 	 * @return string
 	 */
-	private function add_fuzzy( $term ) {
+	private function add_fuzzy( $term, $level = null ) {
 		if ( mb_strlen( $term ) <= 4 ) {
 			return $term . '*';
 		}
 
-		$level = max( 1, min( 3, (int) $this->config['fuzzy_level'] ) );
-		$fuzz  = str_repeat( '%', $level );
+		if ( null === $level ) {
+			$level = $this->config['fuzzy_level'] ?? 1;
+		}
+		$fuzz = str_repeat( '%', max( 1, min( 3, (int) $level ) ) );
 		return '(' . $term . '*|' . $fuzz . $term . $fuzz . ')';
 	}
 
@@ -2037,14 +2249,14 @@ class Shift64_Woo_Search_Query {
 		}
 
 		foreach ( $results as $r ) {
-			$title = isset( $r['title'] ) ? mb_strtolower( $r['title'] ) : '';
-			if ( empty( $title ) ) {
+			$text = self::searchable_text( $r, 'identity' );
+			if ( '' === $text ) {
 				continue;
 			}
 
 			$matched = 0;
 			foreach ( $lower_terms as $term_lower ) {
-				if ( false !== mb_strpos( $title, $term_lower ) ) {
+				if ( false !== mb_strpos( $text, $term_lower ) ) {
 					++$matched;
 				}
 			}
@@ -2071,16 +2283,23 @@ class Shift64_Woo_Search_Query {
 	/**
 	 * Whether a search pass produced fuzzy (approximate) matches.
 	 *
-	 * Only these passes are score-filtered. Prefix passes return exact
-	 * lexical matches, whose TFIDF score reflects term rarity rather than
-	 * match quality — filtering them would drop legitimate matches purely
-	 * for being common. See filter_low_scores().
+	 * Only this pass is score-filtered. Prefix passes return exact lexical
+	 * matches, whose TFIDF score reflects term rarity rather than match
+	 * quality — filtering them would drop legitimate matches purely for
+	 * being common. See filter_low_scores().
+	 *
+	 * `mixed` and `token_fuzzy` match every token as prefix OR fuzzy, so they
+	 * carry exact prefix matches alongside approximate ones and fall under the
+	 * same rule: filtering them re-opened #26 on the archive, where a common
+	 * term ("series") scored under the threshold on an exact match and left the
+	 * results page empty. Only `fuzzy`, where every token is fuzzed and nothing
+	 * matched exactly, is approximate throughout.
 	 *
 	 * @param string $search_pass Pass name recorded by search().
 	 * @return bool
 	 */
 	public static function pass_is_fuzzy( $search_pass ) {
-		return in_array( $search_pass, array( 'fuzzy', 'mixed' ), true );
+		return 'fuzzy' === $search_pass;
 	}
 
 	/**

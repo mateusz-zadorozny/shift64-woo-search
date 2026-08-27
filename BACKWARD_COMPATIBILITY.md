@@ -150,6 +150,45 @@ a fallback for one minor release, and state in the changelog what happens to a s
 touched the setting. Remember that a changed default only affects installs with no stored value —
 say so explicitly rather than leaving people to find out.
 
+`_logic` (`OR` → `AND`) and `_strategy` (`strict_first` → `mixed`) were re-defaulted together.
+On a 100k-product catalog the old pair returned the wrong products for two ordinary queries: OR
+retrieval ranked a two-of-three-token match above a three-of-three one, so "aero cedar table" put
+beauty products above "Aero Cedar Side Table"; and because the ladder never reached a fuzzy pass
+while any one token still prefix-matched, "aero cedat" returned everything starting with "aero"
+and nothing resembling "cedar". `AND` + `mixed` answers both, and answers them faster, because AND
+cuts the candidate set before scoring.
+
+**This reaches fresh installs only, and that is deliberate.** `set_default_options()` has seeded
+both keys with `add_option()` since 0.1.0, and it runs on every activation, so an install that has
+ever been activated holds `OR` and `strict_first` as *stored* values. `get_option()` never sees the
+new default there, and regenerating `mu-plugins/shift64-woo-search/config.php` faithfully writes the
+stored pair back out. Upgraded stores therefore keep the behavior they have today — including the
+two wrong-result cases above — until someone changes the setting.
+
+No migration flips them, because a stored `OR` is indistinguishable from the seeded `OR`: this
+section forbids overwriting a merchant's explicit choice, and there is no signal that separates the
+two. A store that wants the new behavior sets **Relevance → Search Logic** to `AND` and
+**Search Mode** to `Mixed`; both take effect on save, which also rewrites `config.php`.
+
+The repaired fallback ladder itself is *not* gated on the defaults — every install gets it on
+upgrade, in whichever logic and strategy it has stored.
+
+`_fallback_score_threshold` keeps its key, type, and `0.5` default, but no longer decides when one
+retrieval pass hands over to the next — term coverage does. It still filters which fuzzy-pass
+matches are shown. A store that had tuned it to force more fallbacks will see fewer fuzzy
+results and more exact ones; nothing needs to be reset.
+
+Under `mixed` with `OR`, a multi-word query re-ranks by how many search terms each product matches
+across its title, SKU, categories, brands, and attributes, so a product matched only through its
+description now sorts below one matched by name. This reorders, it does not drop: the minimum match
+ratio is disabled for the single-pass strategies, and a hybrid pass is never score-filtered.
+
+That last point narrows `_fallback_score_threshold` further than the paragraph above. It now applies
+to the `fuzzy` pass alone — the one where every token was fuzzed and nothing matched exactly.
+`mixed` and `token_fuzzy` match each token as prefix OR fuzzy, so they carry exact matches whose
+TFIDF score tracks how common the term is, and filtering them is what #26 forbade: on a catalog
+where a query term is frequent, an exact match scores under the threshold and the pass empties.
+
 `_archive_debug_enabled` (default `no`) gates the storefront debug panel. It is a *new* key rather
 than a re-defaulted one, but it does change behavior for installs that never set it: the panel
 used to render for every user holding `manage_woocommerce` and now stays hidden until it is
