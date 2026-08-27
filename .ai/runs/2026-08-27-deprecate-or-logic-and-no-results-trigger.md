@@ -119,14 +119,14 @@ unchanged.
 
 ### Phase 1: Deprecation visible in the admin
 
-- [ ] 1.1 Add the deprecation registry class and load it
-- [ ] 1.2 Cover stored() against the option states
-- [ ] 1.3 Guard the registry against drift
-- [ ] 1.4 Extend render_select_field() with the deprecated parameter
-- [ ] 1.5 Pass the registry into the two settings fields
-- [ ] 1.6 Add the stateless deprecated-settings notice
-- [ ] 1.7 Add the deprecated-note CSS rule
-- [ ] 1.8 Assert the runtime is untouched
+- [x] 1.1 Add the deprecation registry class and load it — fa627f4
+- [x] 1.2 Cover stored() against the option states — fa627f4
+- [x] 1.3 Guard the registry against drift — fa627f4
+- [x] 1.4 Extend render_select_field() with the deprecated parameter — afcdf8d
+- [x] 1.5 Pass the registry into the two settings fields — afcdf8d
+- [x] 1.6 Add the stateless deprecated-settings notice — afcdf8d
+- [x] 1.7 Add the deprecated-note CSS rule — afcdf8d
+- [x] 1.8 Assert the runtime is untouched — afcdf8d
 
 ### Phase 2: Headless parity and the record
 
