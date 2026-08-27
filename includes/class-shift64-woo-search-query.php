@@ -1284,7 +1284,7 @@ class Shift64_Woo_Search_Query {
 		$relevance_mode = null === $sort_by;
 		$fetch_limit    = max( $per_page * $paged * 3, 300 );
 		if ( $this->has_category_boost_rules() ) {
-			$fetch_limit = min( 500, max( $fetch_limit, $per_page * $paged * 20 ) );
+			$fetch_limit = max( $fetch_limit, $per_page * $paged * 20 );
 		}
 
 		if ( 'mixed' === $strategy ) {
