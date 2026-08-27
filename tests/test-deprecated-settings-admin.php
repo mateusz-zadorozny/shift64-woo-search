@@ -225,6 +225,35 @@ class Deprecated_Settings_Admin_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Each notice line links with its own section's name, not a shared phrase.
+	 *
+	 * Two links both reading "Change this setting" are indistinguishable in a
+	 * screen reader's links list, which is exactly the context WCAG 2.4.4 cares
+	 * about. Using the owning section's label keeps each link self-describing.
+	 */
+	public function test_notice_links_are_distinguishable_from_each_other() {
+		update_option( 'shift64_woo_search_logic', 'OR' );
+		update_option( 'shift64_woo_search_fallback_trigger', 'no_results' );
+
+		$html = $this->render( 'relevance', 'basic' );
+
+		$this->assertSame(
+			2,
+			preg_match_all(
+				'/<a href="[^"]*tab=relevance[^"]*">\s*([^<]+?)\s*<\/a>/',
+				$html,
+				$matches
+			),
+			'Both notice entries should render a link.'
+		);
+
+		$texts = array_map( 'trim', $matches[1] );
+		$this->assertSame( $texts, array_unique( $texts ), 'Notice links must not share link text.' );
+		$this->assertContains( 'Basic Ranking', $texts );
+		$this->assertContains( 'Matching &amp; Fallback', $texts );
+	}
+
+	/**
 	 * The notice follows the merchant across workspaces, including ones that own
 	 * neither field — otherwise a store would have to visit the exact section it
 	 * does not know is misconfigured.

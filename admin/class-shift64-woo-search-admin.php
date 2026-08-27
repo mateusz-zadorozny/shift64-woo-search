@@ -257,19 +257,29 @@ class Shift64_Woo_Search_Admin {
 				<?php esc_html_e( 'They still work, and will be removed in a future release.', 'shift64-woo-search' ); ?>
 			</p>
 			<ul>
-				<?php foreach ( $stored as $entry ) : ?>
+				<?php
+				$workspaces = Shift64_Woo_Search_Admin_Routes::get_workspaces();
+
+				foreach ( $stored as $entry ) :
+					// The owning section's own label doubles as the link text, so two
+					// entries never produce two identically-named links — a links list
+					// read out of context still distinguishes them.
+					$section_label = isset( $workspaces[ $entry['workspace'] ]['sections'][ $entry['section'] ]['label'] )
+						? $workspaces[ $entry['workspace'] ]['sections'][ $entry['section'] ]['label']
+						: $entry['field'];
+					?>
 					<li>
 						<?php
 						printf(
-							/* translators: 1: settings field label. 2: the deprecated value's label. */
+							/* translators: 1: settings field label, already wrapped in <strong>. 2: the deprecated value's label. */
 							esc_html__( '%1$s is set to “%2$s”.', 'shift64-woo-search' ),
-							'<strong>' . esc_html( $entry['field'] ) . '</strong>', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inline.
+							wp_kses_post( '<strong>' . esc_html( $entry['field'] ) . '</strong>' ),
 							esc_html( $entry['value_label'] )
 						);
 						?>
 						<?php echo esc_html( $entry['reason'] ); ?>
 						<a href="<?php echo esc_url( $this->get_route_url( $entry['workspace'], $entry['section'] ) ); ?>">
-							<?php esc_html_e( 'Change this setting', 'shift64-woo-search' ); ?>
+							<?php echo esc_html( $section_label ); ?>
 						</a>
 					</li>
 				<?php endforeach; ?>
