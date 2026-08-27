@@ -193,6 +193,23 @@ point and carries no compatibility promise.
 
 ## 📝 UI/UX
 
+### 📸 Visuals
+
+Current state, captured from the one-shot test environment at
+`bin/test-env.sh up`:
+
+| | |
+|---|---|
+| ![Basic Ranking today](assets/deprecate-or-logic-and-no-results-trigger/current-01-basic-ranking.png) | ![Matching & Fallback today](assets/deprecate-or-logic-and-no-results-trigger/current-02-matching-fallback.png) |
+| *Relevance › Basic Ranking today — PR #78's advisory help text, no marking on the value itself.* | *Relevance › Matching & Fallback today — same.* |
+
+Proposed (illustrative static mockups, not app code):
+
+| | |
+|---|---|
+| ![Basic Ranking proposed](assets/deprecate-or-logic-and-no-results-trigger/mockup-01-basic-ranking.png) | ![Matching & Fallback proposed](assets/deprecate-or-logic-and-no-results-trigger/mockup-02-matching-fallback.png) |
+| *Notice plus the `— deprecated` label and reason line on `OR`.* | *The same notice on a second workspace, plus the marking on `no_results`.* |
+
 **Select fields.** `Relevance › Basic Ranking → Search Logic` shows
 `OR — any term matches — deprecated`. `Relevance › Matching & Fallback →
 Fallback Trigger` shows `Only when no results — deprecated`. Both keep their
