@@ -189,18 +189,6 @@ class Archive_Relevance_Test extends WP_UnitTestCase {
 		$result = $this->run_archive_relevance(
 			array(
 				2,
-				'shift64_woo_search:product:401',
-				'1',
-				array(
-					'post_id',
-					'401',
-					'title',
-					'Alpha Product',
-					'stock_status',
-					'instock',
-					'sku',
-					'DJM201',
-				),
 				'shift64_woo_search:product:402',
 				'10',
 				array(
@@ -212,6 +200,18 @@ class Archive_Relevance_Test extends WP_UnitTestCase {
 					'instock',
 					'sku',
 					'OTHER',
+				),
+				'shift64_woo_search:product:401',
+				'1',
+				array(
+					'post_id',
+					'401',
+					'title',
+					'Alpha Product',
+					'stock_status',
+					'instock',
+					'sku',
+					'DJM201',
 				),
 			),
 			'djm201',
