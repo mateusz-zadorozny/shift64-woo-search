@@ -142,4 +142,158 @@ class Archive_Relevance_Test extends WP_UnitTestCase {
 		$this->assertSame( array( 202, 101 ), $result['ids'] );
 		$this->assertSame( 2, $result['total'] );
 	}
+
+	/**
+	 * Archive relevance applies the promoted boost from the shared ranking chain.
+	 */
+	public function test_relevance_promoted_result_outranks_higher_scoring_result() {
+		$result = $this->run_archive_relevance(
+			array(
+				2,
+				'shift64_woo_search:product:301',
+				'8',
+				array(
+					'post_id',
+					'301',
+					'title',
+					'Alpha Product',
+					'stock_status',
+					'instock',
+					'promoted',
+					'yes',
+				),
+				'shift64_woo_search:product:302',
+				'10',
+				array(
+					'post_id',
+					'302',
+					'title',
+					'Beta Product',
+					'stock_status',
+					'instock',
+					'promoted',
+					'no',
+				),
+			),
+			'papier',
+			array( 'papier' )
+		);
+
+		$this->assertSame( array( 301, 302 ), $result['ids'] );
+	}
+
+	/**
+	 * Archive relevance applies the exact SKU boost from the shared ranking chain.
+	 */
+	public function test_relevance_exact_sku_match_outranks_higher_scoring_result() {
+		$result = $this->run_archive_relevance(
+			array(
+				2,
+				'shift64_woo_search:product:401',
+				'1',
+				array(
+					'post_id',
+					'401',
+					'title',
+					'Alpha Product',
+					'stock_status',
+					'instock',
+					'sku',
+					'DJM201',
+				),
+				'shift64_woo_search:product:402',
+				'10',
+				array(
+					'post_id',
+					'402',
+					'title',
+					'Beta Product',
+					'stock_status',
+					'instock',
+					'sku',
+					'OTHER',
+				),
+			),
+			'djm201',
+			array( 'djm201' )
+		);
+
+		$this->assertSame( array( 401, 402 ), $result['ids'] );
+	}
+
+	/**
+	 * Archive relevance applies configured category boosts from the shared chain.
+	 */
+	public function test_relevance_category_rule_lifts_lower_scoring_result() {
+		$result = $this->run_archive_relevance(
+			array(
+				2,
+				'shift64_woo_search:product:501',
+				'6',
+				array(
+					'post_id',
+					'501',
+					'title',
+					'Alpha Product',
+					'stock_status',
+					'instock',
+					'categories',
+					'Sale',
+				),
+				'shift64_woo_search:product:502',
+				'10',
+				array(
+					'post_id',
+					'502',
+					'title',
+					'Beta Product',
+					'stock_status',
+					'instock',
+					'categories',
+					'Regular',
+				),
+			),
+			'papier',
+			array( 'papier' ),
+			array( 'category_boost_rules' => 'Sale|2' )
+		);
+
+		$this->assertSame( array( 501, 502 ), $result['ids'] );
+	}
+
+	/**
+	 * Run the archive's private relevance pass with a real Query instance.
+	 *
+	 * @param array  $raw    Mocked FT.SEARCH response.
+	 * @param string $query  Sanitized query text.
+	 * @param array  $terms  Search terms.
+	 * @param array  $config Query configuration overrides.
+	 * @return array
+	 */
+	private function run_archive_relevance( $raw, $query, $terms, $config = array() ) {
+		$redis = $this->getMockBuilder( Shift64_Woo_Search_Redis::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$redis->method( 'raw_command' )->willReturn( $raw );
+
+		$search_query = new Shift64_Woo_Search_Query( $redis, $config );
+		$archive      = ( new ReflectionClass( Shift64_Woo_Search_Archive::class ) )->newInstanceWithoutConstructor();
+		$method       = new ReflectionMethod( Shift64_Woo_Search_Archive::class, 'ft_search_relevance' );
+
+		return $method->invoke(
+			$archive,
+			$redis,
+			'shift64_woo_search_product_idx',
+			'(query*) -@excluded:{yes} -@visibility:{hidden}',
+			$terms,
+			300,
+			false,
+			$config['outofstock_mode'] ?? 'exclude',
+			0.0,
+			array(),
+			0.4,
+			$search_query,
+			$query
+		);
+	}
 }
