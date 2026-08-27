@@ -1263,9 +1263,10 @@ class Shift64_Woo_Search_Query {
 	 * @param string|array|null    $sort_by Optional Redis sort clause or composite fields array.
 	 * @param string|string[]|null $visibility_policy Visibility context.
 	 * @param array                $filter_operators Per-filter `and`/`or` operators.
+	 * @param bool                 $relevance       Whether to apply PHP relevance ranking.
 	 * @return array{ids:int[],total:int,ok:bool}
 	 */
-	public function search_catalog( $query, array $filters, $per_page, $paged, $sort_by = null, $visibility_policy = 'search', $filter_operators = array() ) {
+	public function search_catalog( $query, array $filters, $per_page, $paged, $sort_by = null, $visibility_policy = 'search', $filter_operators = array(), $relevance = true ) {
 		$sanitized = $this->sanitize_query( $query );
 		$terms     = $this->get_search_terms( $sanitized );
 		if ( empty( $terms ) || mb_strlen( $sanitized ) < $this->config['min_query_length'] ) {
@@ -1281,11 +1282,14 @@ class Shift64_Woo_Search_Query {
 		$offset         = ( $paged - 1 ) * $per_page;
 		$strategy       = $this->config['strategy'] ?? 'mixed';
 		$or_logic       = 'OR' === strtoupper( $this->config['logic'] ?? 'AND' );
-		$relevance_mode = null === $sort_by;
+		$relevance_mode = $relevance && null === $sort_by;
 		$fetch_limit    = max( $per_page * $paged * 3, 300 );
-		if ( $this->has_category_boost_rules() ) {
-			$fetch_limit = max( $fetch_limit, $per_page * $paged * 20 );
-		}
+		// The page number is request-controlled, so never let it turn the
+		// relevance candidate window into an unbounded Redis response.
+		$fetch_limit = min(
+			max( 1, (int) apply_filters( 'shift64_woo_search_relevance_candidate_limit', 3000 ) ),
+			$fetch_limit
+		);
 
 		if ( 'mixed' === $strategy ) {
 			$queries = array(
@@ -1327,7 +1331,7 @@ class Shift64_Woo_Search_Query {
 				'min_ratio'      => 0.0,
 				'fuzzy'          => false,
 			);
-			if ( 'AND' === strtoupper( $this->config['logic'] ) ) {
+			if ( ! $or_logic ) {
 				$queries[] = array(
 					'query'          => $this->build_strict_query( $terms, $filters, 'OR', $visibility_policy, $filter_operators ),
 					'coverage_terms' => $terms,
@@ -1346,8 +1350,11 @@ class Shift64_Woo_Search_Query {
 		}
 
 		foreach ( $queries as $pass ) {
-			$ft_query = $pass['query'];
-			$result   = $relevance_mode
+			$ft_query      = $pass['query'];
+			$ranked_window = $relevance_mode && $offset < $fetch_limit;
+			// A page beyond the bounded window cannot be ranked exactly. Redis
+			// still serves it safely with the requested offset and page size.
+			$result = $ranked_window
 				? $this->execute_relevance_catalog_query(
 					$ft_query,
 					$fetch_limit,
@@ -1365,7 +1372,13 @@ class Shift64_Woo_Search_Query {
 				return $result;
 			}
 			if ( $result['total'] > 0 ) {
-				if ( $relevance_mode ) {
+				$can_serve_page = ! $ranked_window
+					|| count( $result['ids'] ) > $offset
+					|| $offset >= $result['total'];
+				if ( ! $can_serve_page ) {
+					continue;
+				}
+				if ( $ranked_window ) {
 					$result['ids'] = array_slice( $result['ids'], $offset, $per_page );
 				}
 				return $result;

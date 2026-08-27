@@ -581,8 +581,8 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		// 'mixed' is single-pass, so it also re-ranks by term coverage without
 		// dropping: no later pass would catch what a match ratio discards.
 		$result = 'mixed' === $strategy
-			? $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $needles, 0.0 )
-			: $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $needles );
+			? $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $needles, 0.0, $search_query, $sanitized )
+			: $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $needles, 0.4, $search_query, $sanitized );
 		$this->log( 'Pass 1 result', sprintf( 'total=%d ids=%d cov=%.2f (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, $result['coverage'] ?? 0, ( microtime( true ) - $t0 ) * 1000 ) );
 
 		if ( 'mixed' !== $strategy ) {
@@ -595,7 +595,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 					$ft_query = $search_query->build_strict_query( $reduced, $filters, null, 'search' );
 					$this->log( 'Pass 2 (token reduced)', $ft_query );
 					$t0        = microtime( true );
-					$candidate = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $reduced, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $search_query->term_coverage_needles( $reduced ) );
+					$candidate = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $reduced, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $search_query->term_coverage_needles( $reduced ), 0.4, $search_query, implode( ' ', $reduced ) );
 					$this->log( 'Pass 2 result', sprintf( 'total=%d ids=%d cov=%.2f (%.1fms)', $candidate ? $candidate['total'] : 0, $candidate ? count( $candidate['ids'] ) : 0, $candidate['coverage'] ?? 0, ( microtime( true ) - $t0 ) * 1000 ) );
 					if ( ! $this->needs_fallback( $candidate, $config ) ) {
 						$result   = $candidate;
@@ -612,7 +612,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 				$ft_query = $search_query->build_hybrid_query( $terms, $filters, $config['fallback_fuzzy_level'] ?? null, 'search' );
 				$this->log( 'Pass 3 (token_fuzzy)', $ft_query );
 				$t0        = microtime( true );
-				$candidate = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $needles, 0.0 );
+				$candidate = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_logic, $stock_mode, $demote_factor, 0.0, $needles, 0.0, $search_query, $sanitized );
 				$this->log( 'Pass 3 result', sprintf( 'total=%d ids=%d (%.1fms)', $candidate ? $candidate['total'] : 0, $candidate ? count( $candidate['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 				if ( ! $this->is_empty_result( $candidate ) ) {
 					$result   = $candidate;
@@ -625,7 +625,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 				$ft_query = $search_query->build_strict_query( $terms, $filters, 'OR', 'search' );
 				$this->log( 'Pass 4 (or_prefix)', $ft_query );
 				$t0     = microtime( true );
-				$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, true, $stock_mode, $demote_factor, 0.0, $needles );
+				$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, true, $stock_mode, $demote_factor, 0.0, $needles, 0.4, $search_query, $sanitized );
 				$this->log( 'Pass 4 result', sprintf( 'total=%d ids=%d cov=%.2f (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, $result['coverage'] ?? 0, ( microtime( true ) - $t0 ) * 1000 ) );
 				$resolved = ! $this->needs_fallback( $result, $config );
 			}
@@ -635,7 +635,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 				$ft_query = $search_query->build_fuzzy_query( $terms, $filters, null, 'search' );
 				$this->log( 'Pass 5 (fuzzy)', $ft_query );
 				$t0     = microtime( true );
-				$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, false, $stock_mode, $demote_factor, $min_score, $needles );
+				$result = $this->execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, false, $stock_mode, $demote_factor, $min_score, $needles, 0.4, $search_query, $sanitized );
 				$this->log( 'Pass 5 result', sprintf( 'total=%d ids=%d (%.1fms)', $result ? $result['total'] : 0, $result ? count( $result['ids'] ) : 0, ( microtime( true ) - $t0 ) * 1000 ) );
 			}
 		}
@@ -675,13 +675,15 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	 * @param float                    $min_score     Minimum score threshold.
 	 * @param array                    $needles       Accepted literals per term, for coverage.
 	 * @param float                    $min_ratio     Minimum share of terms a row must match; 0 disables dropping.
+	 * @param Shift64_Woo_Search_Query $search_query Query object for shared relevance ranking.
+	 * @param string                   $search_text  Sanitized query text for configured boosts.
 	 * @return array|false
 	 */
-	private function execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_mode, $stock_mode, $demote_factor, $min_score = 0.0, $needles = array(), $min_ratio = 0.4 ) {
+	private function execute_pass_query( $redis, $index_name, $ft_query, $sort_res, $terms, $offset, $fetch_limit, $or_mode, $stock_mode, $demote_factor, $min_score = 0.0, $needles = array(), $min_ratio = 0.4, $search_query = null, $search_text = '' ) {
 		$sort_mode = $sort_res['mode'] ?? Shift64_Woo_Search_Sort::MODE_RELEVANCE;
 
 		if ( Shift64_Woo_Search_Sort::MODE_RELEVANCE === $sort_mode ) {
-			return $this->ft_search_relevance( $redis, $index_name, $ft_query, $terms, $fetch_limit, $or_mode, $stock_mode, $demote_factor, $min_score, $needles, $min_ratio );
+			return $this->ft_search_relevance( $redis, $index_name, $ft_query, $terms, $fetch_limit, $or_mode, $stock_mode, $demote_factor, $min_score, $needles, $min_ratio, $search_query, $search_text );
 		}
 
 		if ( Shift64_Woo_Search_Sort::MODE_REDIS_COMPOSITE === $sort_mode && ! empty( $sort_res['sort_fields'] ) ) {
@@ -806,11 +808,12 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	}
 
 	/**
-	 * Execute FT.SEARCH with scores + title for relevance re-ranking.
+	 * Execute FT.SEARCH with scores and ranking fields for relevance re-ranking.
 	 *
-	 * Fetches a batch from Redis, applies out-of-stock demote and title-start
-	 * boost, then returns re-ranked IDs. When $or_mode is true, also applies
-	 * term-match-count boost/filter.
+	 * Fetches a batch from Redis, applies OR term coverage, then delegates the
+	 * remaining ordering rules to Query::rank_relevance_results(). When called
+	 * without a Query object, the title-start fallback keeps direct reflection
+	 * callers compatible.
 	 *
 	 * @param Shift64_Woo_Search_Redis $redis         Redis service.
 	 * @param string                   $index_name    RediSearch index name.
@@ -823,9 +826,11 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	 * @param float                    $min_score     Drop results scoring below this; 0 disables.
 	 * @param array                    $needles       Accepted literals per term, for coverage.
 	 * @param float                    $min_ratio     Minimum share of terms a row must match; 0 disables dropping.
+	 * @param Shift64_Woo_Search_Query $search_query Query object for shared relevance ranking.
+	 * @param string                   $search_text  Sanitized query text for configured boosts.
 	 * @return array|false
 	 */
-	private function ft_search_relevance( $redis, $index_name, $ft_query, $terms, $limit, $or_mode = false, $stock_mode = 'exclude', $demote_factor = 0.3, $min_score = 0.0, $needles = array(), $min_ratio = 0.4 ) {
+	private function ft_search_relevance( $redis, $index_name, $ft_query, $terms, $limit, $or_mode = false, $stock_mode = 'exclude', $demote_factor = 0.3, $min_score = 0.0, $needles = array(), $min_ratio = 0.4, $search_query = null, $search_text = '' ) {
 		$args = array(
 			'FT.SEARCH',
 			$index_name,
@@ -837,7 +842,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			(string) $limit,
 			'WITHSCORES',
 			'RETURN',
-			'8',
+			'13',
 			'post_id',
 			'title',
 			'stock_status',
@@ -850,6 +855,11 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			'categories_text',
 			'brands_text',
 			'attributes',
+			'sku',
+			'old_number',
+			'categories',
+			'tags',
+			'promoted',
 			'DIALECT',
 			'2',
 		);
@@ -894,27 +904,41 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			$results = Shift64_Woo_Search_Query::filter_low_scores( $results, $min_score, 'score' );
 		}
 
-		if ( 'demote' === $stock_mode ) {
-			$demote_factor = max( 0.0, min( 1.0, (float) $demote_factor ) );
-			foreach ( $results as &$r ) {
-				if ( 'outofstock' === ( $r['stock_status'] ?? 'instock' ) ) {
-					$r['score'] *= $demote_factor;
-				}
-			}
-			unset( $r );
-
-			usort(
-				$results,
-				function ( $a, $b ) {
-					return $b['score'] <=> $a['score'];
-				}
-			);
+		if ( $or_mode ) {
+			// Apply term coverage before the shared relevance chain so a complete
+			// answer is not accepted merely because another title starts with a
+			// query prefix.
+			$results = Shift64_Woo_Search_Query::boost_term_match_count( $terms, $results, $min_ratio, 'score' );
 		}
 
-		$results = Shift64_Woo_Search_Query::boost_title_start( $terms, $results, 'score' );
+		if ( $search_query instanceof Shift64_Woo_Search_Query ) {
+			$results = $search_query->rank_relevance_results(
+				'' !== $search_text ? $search_text : implode( ' ', $terms ),
+				$terms,
+				$results,
+				$stock_mode,
+				'score'
+			);
+		} else {
+			// Keep direct reflection callers compatible while production calls use
+			// the same ranking chain as the dropdown and Product Collection.
+			if ( 'demote' === $stock_mode ) {
+				$demote_factor = max( 0.0, min( 1.0, (float) $demote_factor ) );
+				foreach ( $results as &$r ) {
+					if ( 'outofstock' === ( $r['stock_status'] ?? 'instock' ) ) {
+						$r['score'] *= $demote_factor;
+					}
+				}
+				unset( $r );
 
-		if ( $or_mode ) {
-			$results = Shift64_Woo_Search_Query::boost_term_match_count( $terms, $results, $min_ratio, 'score' );
+				usort(
+					$results,
+					function ( $a, $b ) {
+						return $b['score'] <=> $a['score'];
+					}
+				);
+			}
+			$results = Shift64_Woo_Search_Query::boost_title_start( $terms, $results, 'score' );
 		}
 
 		// `$total` is the RediSearch hit count and becomes found_posts, so it
