@@ -1,3 +1,10 @@
+## [0.20.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.20.0...v0.20.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **catalog-navigation:** refresh every breadcrumb ([#79](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/79)) ([#88](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/88)) ([c4e6b23](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/c4e6b23485a2f4454569917c3dde443f0ffb418e))
+
 # [0.20.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.19.1...v0.20.0) (2026-08-27)
 
 
