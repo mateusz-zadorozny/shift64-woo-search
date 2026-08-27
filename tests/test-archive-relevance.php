@@ -113,8 +113,15 @@ class Archive_Relevance_Test extends WP_UnitTestCase {
 			->getMock();
 		$redis->method( 'raw_command' )->willReturn( $raw );
 
-		$archive = ( new ReflectionClass( Shift64_Woo_Search_Archive::class ) )->newInstanceWithoutConstructor();
-		$method  = new ReflectionMethod( Shift64_Woo_Search_Archive::class, 'ft_search_relevance' );
+		$archive      = ( new ReflectionClass( Shift64_Woo_Search_Archive::class ) )->newInstanceWithoutConstructor();
+		$method       = new ReflectionMethod( Shift64_Woo_Search_Archive::class, 'ft_search_relevance' );
+		$search_query = new Shift64_Woo_Search_Query(
+			$redis,
+			array(
+				'outofstock_mode'          => 'demote',
+				'outofstock_demote_factor' => 0.3,
+			)
+		);
 
 		$result = $method->invoke(
 			$archive,
@@ -125,7 +132,11 @@ class Archive_Relevance_Test extends WP_UnitTestCase {
 			300,
 			false,
 			'demote',
-			0.3
+			0.0,
+			array(),
+			0.4,
+			$search_query,
+			'papier'
 		);
 
 		$this->assertSame( array( 202, 101 ), $result['ids'] );
