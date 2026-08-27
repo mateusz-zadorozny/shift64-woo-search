@@ -108,6 +108,33 @@ class Shift64_Woo_Search_Deprecations {
 	}
 
 	/**
+	 * One operator-facing line per stored deprecated value, for `wp … health`.
+	 *
+	 * The wording lives here rather than in the command because the CLI class
+	 * early-returns unless `WP_CLI` is defined, so nothing inside it is
+	 * reachable from the test suite. Keeping the strings on this side means the
+	 * headless surface is covered by the same tests as the admin one, and the
+	 * command stays a thin loop over `WP_CLI::warning()`.
+	 *
+	 * @return string[] One message per stored deprecated value; empty when the store has none.
+	 */
+	public static function cli_messages() {
+		$messages = array();
+
+		foreach ( self::stored() as $entry ) {
+			$messages[] = sprintf(
+				'Deprecated setting: %1$s (%2$s) is set to "%3$s". %4$s',
+				$entry['field'],
+				$entry['option'],
+				$entry['value'],
+				$entry['reason']
+			);
+		}
+
+		return $messages;
+	}
+
+	/**
 	 * The deprecated values declared for one option, for the field renderer.
 	 *
 	 * @param string $option Option name.

@@ -539,6 +539,35 @@ class Shift64_Woo_Search_CLI {
 			WP_CLI::log( 'Date sort index: Pending reindex (safe fallback active)' );
 		}
 
+		// Deprecated setting values.
+		self::report_deprecated_settings();
+
 		WP_CLI::success( 'Health check complete.' );
+	}
+
+	/**
+	 * Report any deprecated setting values this store has stored.
+	 *
+	 * A headless or CI-managed store never sees the admin notice, and `health`
+	 * is the diagnostic the docs already point people at — so this is where the
+	 * deprecation reaches an operator who does not open wp-admin.
+	 *
+	 * `WP_CLI::warning()` rather than `error()`: the values still work, and
+	 * `BACKWARD_COMPATIBILITY.md` §2 names warning as this project's deprecation
+	 * channel. `health` stays diagnostic, so nothing here changes its exit
+	 * status.
+	 */
+	private static function report_deprecated_settings() {
+		$messages = Shift64_Woo_Search_Deprecations::cli_messages();
+
+		if ( empty( $messages ) ) {
+			WP_CLI::log( 'Deprecated settings: none' );
+
+			return;
+		}
+
+		foreach ( $messages as $message ) {
+			WP_CLI::warning( $message );
+		}
 	}
 }

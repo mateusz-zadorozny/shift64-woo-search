@@ -201,6 +201,38 @@ default are. The admin information-architecture migration moved controls between
 renaming, retyping, or re-defaulting a single option; see §11 for the route contract and for the
 one write-behavior change that shipped with it.
 
+### Deprecated values
+
+Two option *values* are deprecated. Nothing about them has changed on this surface: both keys keep
+their name, type, and default, both values remain readable and writable, and every reader — the
+dropdown, the archive interceptor, the Product Collection block, `wp shift64-woo-search test`, and
+the constants written into `mu-plugins/shift64-woo-search/config.php` — still honors a stored value
+exactly as before. A store running either one gets identical search results after upgrading.
+
+| Option | Deprecated value | Use instead |
+|---|---|---|
+| `shift64_woo_search_logic` | `OR` | `AND` |
+| `shift64_woo_search_fallback_trigger` | `no_results` | `low_score` |
+
+What changed is only what the plugin *says*: the deprecated choice is labelled in the settings
+dropdown, a store that has one stored sees a notice on the plugin's admin pages, and
+`wp shift64-woo-search health` emits a `WP_CLI::warning()` per stored value. The declared set lives
+in `Shift64_Woo_Search_Deprecations::registry()`, which is internal and carries no compatibility
+promise of its own.
+
+The evidence is in issue #85: on a 100k-product catalog `OR` scored 9/11 on the probe matrix
+against `AND`'s 11/11 and ran 17–25 ms against 1–3 ms, and `no_results` disables the fallback
+ladder rather than tightening it, so a typo in one word of a multi-word query is never repaired —
+the defect #78 fixed, reachable again through a dropdown. That evidence comes from one synthetic
+catalog with very regular naming, which is why these are deprecated rather than removed: a store
+with long descriptive titles, heavy synonym use, or mixed languages could behave differently, and
+the deprecation window is where that gets measured.
+
+**Removal is a separate, breaking change** and takes this section's required path in full: migrate
+behind `shift64_woo_search_db_version`, read the old value as a fallback for one minor release, and
+state in the changelog what happens to a store that never touched the setting. Deprecating a value
+is not a licence to skip any of that.
+
 ## 7. Database schema
 
 One table: `{$wpdb->prefix}shift64_woo_search_stats` (`includes/class-shift64-woo-search-stats.php`),
