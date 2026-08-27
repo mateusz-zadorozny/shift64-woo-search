@@ -1,6 +1,6 @@
 # Deprecate `logic = OR` and `fallback_trigger = no_results`
 
-> **Status:** 🚧 draft
+> **Status:** implemented — PR #87, 2026-08-27
 
 ## 📝 TLDR
 

@@ -50,6 +50,7 @@ require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-stats.
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-indexer.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-rebuild.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-settings.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-deprecations.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-query.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-sort.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-product-collection-context.php';
