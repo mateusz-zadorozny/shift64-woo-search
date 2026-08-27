@@ -195,6 +195,8 @@ class Shift64_Woo_Search_Admin {
 					$this->render_legacy_search_relocation_notice();
 				}
 
+				$this->render_deprecated_settings_notice();
+
 				/*
 				 * Safe variable method call: `$route['callback']` is always a string the
 				 * route registry itself declared. Request input selects which registry
@@ -206,6 +208,72 @@ class Shift64_Woo_Search_Admin {
 				}
 				?>
 			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Warn when this store has a deprecated setting *value* stored.
+	 *
+	 * Renders on every workspace rather than only on the two sections that own
+	 * the fields: a merchant who has `OR` stored should learn it from wherever
+	 * they land, and each line links to the field so the notice is actionable
+	 * from anywhere. It is deliberately scoped to the plugin's own pages and
+	 * never registered on the global `admin_notices` hook — a settings-quality
+	 * warning has no business following anyone around wp-admin.
+	 *
+	 * Stateless, for the same reason the relocation notice above is: rendering
+	 * a route never writes. Remembering a dismissal would mean writing user
+	 * meta or an option on a page view, so this is markup-dismissible through
+	 * WordPress's own client-side handler and nothing more. It reappears on
+	 * reload and disappears for good when the merchant changes the setting —
+	 * which is the only event that should clear it.
+	 */
+	private function render_deprecated_settings_notice() {
+		$stored = Shift64_Woo_Search_Deprecations::stored();
+
+		if ( empty( $stored ) ) {
+			return;
+		}
+		?>
+		<div class="notice notice-warning is-dismissible shift64-woo-search-admin__deprecated-notice">
+			<p>
+				<strong>
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: %d: how many deprecated settings this store has stored. */
+							_n(
+								'%d search setting is deprecated.',
+								'%d search settings are deprecated.',
+								count( $stored ),
+								'shift64-woo-search'
+							),
+							count( $stored )
+						)
+					);
+					?>
+				</strong>
+				<?php esc_html_e( 'They still work, and will be removed in a future release.', 'shift64-woo-search' ); ?>
+			</p>
+			<ul>
+				<?php foreach ( $stored as $entry ) : ?>
+					<li>
+						<?php
+						printf(
+							/* translators: 1: settings field label. 2: the deprecated value's label. */
+							esc_html__( '%1$s is set to “%2$s”.', 'shift64-woo-search' ),
+							'<strong>' . esc_html( $entry['field'] ) . '</strong>', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inline.
+							esc_html( $entry['value_label'] )
+						);
+						?>
+						<?php echo esc_html( $entry['reason'] ); ?>
+						<a href="<?php echo esc_url( $this->get_route_url( $entry['workspace'], $entry['section'] ) ); ?>">
+							<?php esc_html_e( 'Change this setting', 'shift64-woo-search' ); ?>
+						</a>
+					</li>
+				<?php endforeach; ?>
+			</ul>
 		</div>
 		<?php
 	}
@@ -1438,7 +1506,8 @@ class Shift64_Woo_Search_Admin {
 						'AND' => __( 'AND — all terms must match (recommended)', 'shift64-woo-search' ),
 						'OR'  => __( 'OR — any term matches', 'shift64-woo-search' ),
 					),
-					__( 'OR retrieval ranks a product matching two of three words above one matching all three. Use it only when recall matters more than precision.', 'shift64-woo-search' )
+					__( 'OR retrieval ranks a product matching two of three words above one matching all three. Use it only when recall matters more than precision.', 'shift64-woo-search' ),
+					Shift64_Woo_Search_Deprecations::for_option( 'shift64_woo_search_logic' )
 				);
 				$this->render_select_field(
 					'shift64_woo_search_strategy',
@@ -1507,7 +1576,8 @@ class Shift64_Woo_Search_Admin {
 						'low_score'  => __( 'No results, or no result matched every word (recommended)', 'shift64-woo-search' ),
 						'no_results' => __( 'Only when no results', 'shift64-woo-search' ),
 					),
-					__( 'When a pass hands over to the next one. Applies to Strict-first only.', 'shift64-woo-search' )
+					__( 'When a pass hands over to the next one. Applies to Strict-first only.', 'shift64-woo-search' ),
+					Shift64_Woo_Search_Deprecations::for_option( 'shift64_woo_search_fallback_trigger' )
 				);
 				$this->render_text_field( 'shift64_woo_search_fallback_score_threshold', __( 'Score Threshold', 'shift64-woo-search' ), '0.5', __( 'Minimum score a match from the final all-fuzzy fallback pass needs to be shown. Strict-first only — the per-token fuzzy pass and Mixed mode are never score-filtered.', 'shift64-woo-search' ), 'number', '0', '10', '0.1' );
 				$this->render_select_field(
@@ -1833,19 +1903,41 @@ class Shift64_Woo_Search_Admin {
 	/**
 	 * Render a select field row.
 	 *
-	 * @param string $name    Option name.
-	 * @param string $label   Field label.
-	 * @param array  $options Associative array of value => label.
-	 * @param string $desc    Description text.
+	 * `$deprecated` marks individual *values* as on their way out without
+	 * changing what they do. A marked choice keeps its place in the dropdown —
+	 * a merchant comparing settings must still be able to switch back — but its
+	 * label carries the verdict, so the deprecation is announced by the control
+	 * itself rather than only by help text underneath it. The reason paragraph
+	 * is rendered only for the store that actually has the value stored; the
+	 * rest get the label marker and nothing more.
+	 *
+	 * The suffix is composed with `sprintf()` rather than baked into each
+	 * caller's option label so translators handle one "deprecated" string
+	 * instead of one per value.
+	 *
+	 * @param string $name       Option name.
+	 * @param string $label      Field label.
+	 * @param array  $options    Associative array of value => label.
+	 * @param string $desc       Description text.
+	 * @param array  $deprecated Optional. Deprecated value => merchant-facing reason.
 	 */
-	private function render_select_field( $name, $label, $options, $desc = '' ) {
+	private function render_select_field( $name, $label, $options, $desc = '', $deprecated = array() ) {
 		$value = get_option( $name, '' );
 		?>
 		<tr>
 			<th><label for="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $label ); ?></label></th>
 			<td>
 				<select id="<?php echo esc_attr( $name ); ?>" name="<?php echo esc_attr( $name ); ?>">
-					<?php foreach ( $options as $key => $text ) : ?>
+					<?php
+					foreach ( $options as $key => $text ) :
+						if ( isset( $deprecated[ $key ] ) ) {
+							$text = sprintf(
+								/* translators: %s: the option's own label, e.g. "OR — any term matches". */
+								__( '%s — deprecated', 'shift64-woo-search' ),
+								$text
+							);
+						}
+						?>
 						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $value, $key ); ?>><?php echo esc_html( $text ); ?></option>
 					<?php endforeach; ?>
 				</select>
@@ -1853,6 +1945,17 @@ class Shift64_Woo_Search_Admin {
 				if ( $desc ) :
 					?>
 					<p class="description"><?php echo esc_html( $desc ); ?></p><?php endif; ?>
+				<?php if ( isset( $deprecated[ $value ] ) ) : ?>
+					<p class="description shift64-woo-search-admin__deprecated-note">
+						<?php
+						printf(
+							/* translators: %s: why the currently selected value is deprecated and what to use instead. */
+							esc_html__( 'Deprecated: %s', 'shift64-woo-search' ),
+							esc_html( $deprecated[ $value ] )
+						);
+						?>
+					</p>
+				<?php endif; ?>
 			</td>
 		</tr>
 		<?php

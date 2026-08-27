@@ -48,7 +48,7 @@ class Shift64_Woo_Search_Deprecations {
 	 */
 	public static function registry() {
 		return array(
-			'shift64_woo_search_logic'             => array(
+			'shift64_woo_search_logic'            => array(
 				'OR' => array(
 					'field'       => __( 'Search Logic', 'shift64-woo-search' ),
 					'value_label' => __( 'OR — any term matches', 'shift64-woo-search' ),
@@ -57,7 +57,7 @@ class Shift64_Woo_Search_Deprecations {
 					'section'     => 'basic',
 				),
 			),
-			'shift64_woo_search_fallback_trigger'  => array(
+			'shift64_woo_search_fallback_trigger' => array(
 				'no_results' => array(
 					'field'       => __( 'Fallback Trigger', 'shift64-woo-search' ),
 					'value_label' => __( 'Only when no results', 'shift64-woo-search' ),

@@ -35,6 +35,14 @@
 /* ── Legacy Route Relocation Notice ─────────────────────── */
 .shift64-woo-search-admin__relocation-notice { margin: 0 0 16px; max-width: 960px; }
 
+/* Deprecated setting values: the notice, and the per-field reason line.
+   The reason drops the surrounding `.description` italic because it is a
+   warning rather than an aside, and takes the same amber rule as the notice
+   so the two read as one signal. */
+.shift64-woo-search-admin__deprecated-notice { margin: 0 0 16px; max-width: 960px; }
+.shift64-woo-search-admin__deprecated-notice ul { margin: 6px 0 10px; padding-left: 20px; list-style: disc; }
+.shift64-woo-search-admin__deprecated-note { font-style: normal; color: #8a6116; border-left: 3px solid #dba617; padding-left: 10px; margin-top: 8px; max-width: 44em; }
+
 /* ── Overview Cards ─────────────────────────────────────── */
 .shift64-woo-search-overview__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0 0; padding: 0; list-style: none; }
 .shift64-woo-search-overview__card { background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 16px; }
