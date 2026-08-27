@@ -243,20 +243,7 @@ class Shift64_Woo_Search_Query {
 		}
 		unset( $r );
 
-		// Re-rank: demote out-of-stock first — they don't deserve boosts.
-		if ( 'demote' === $stock_mode ) {
-			$results = $this->demote_outofstock( $results );
-		}
-		$results = $this->boost_title_start( $terms, $results );
-		// Category/tag boost runs BEFORE rerank_sku_matches on purpose:
-		// rerank_sku_matches() uses (max_score + 100) for an exact SKU
-		// match, recomputing max over already-boosted scores. So even with
-		// the maximum factor (200×) inflating a non-SKU candidate, an
-		// exact SKU match still ranks above it. See
-		// test_sku_exact_match_outranks_max_category_boost().
-		$results = $this->boost_configured_categories( $query, $results );
-		$results = $this->rerank_sku_matches( $query, $results, $terms );
-		$results = $this->boost_promoted( $results );
+		$results = $this->rank_relevance_results( $query, $terms, $results, $stock_mode );
 
 		// Trim to requested limit after re-ranking.
 		$results = array_slice( $results, 0, $limit );
@@ -271,6 +258,43 @@ class Shift64_Woo_Search_Query {
 		$response['debug_queries'] = $debug_queries;
 
 		return $response;
+	}
+
+	/**
+	 * Apply the shared non-Redis relevance ranking chain.
+	 *
+	 * Term coverage is applied by each retrieval ladder before it decides
+	 * whether to accept or replace a pass. This method owns the remaining
+	 * ordering rules so search() and Product Collection cannot drift apart.
+	 *
+	 * @param string $query      Sanitized search query.
+	 * @param array  $terms      Normalized search terms.
+	 * @param array  $results    Parsed scored Redis results.
+	 * @param string $stock_mode Out-of-stock handling mode.
+	 * @param string $score_key  Score field to sort and modify.
+	 * @return array
+	 */
+	public function rank_relevance_results( $query, $terms, $results, $stock_mode = null, $score_key = '_score' ) {
+		if ( empty( $results ) ) {
+			return $results;
+		}
+
+		if ( null === $stock_mode ) {
+			$stock_mode = $this->config['outofstock_mode'] ?? 'exclude';
+		}
+
+		// Out-of-stock products do not deserve later boosts.
+		if ( 'demote' === $stock_mode ) {
+			$results = $this->demote_outofstock( $results, $score_key );
+		}
+		$results = $this->boost_title_start( $terms, $results, $score_key );
+		// Category/tag boost runs BEFORE SKU reranking on purpose because
+		// rerank_sku_matches() uses (max_score + 100) for an exact SKU match.
+		$results = $this->boost_configured_categories( $query, $results, $score_key );
+		$results = $this->rerank_sku_matches( $query, $results, $terms, $score_key );
+		$results = $this->boost_promoted( $results, $score_key );
+
+		return $results;
 	}
 
 	/**
@@ -1252,37 +1276,98 @@ class Shift64_Woo_Search_Query {
 			);
 		}
 
-		$per_page = max( 1, (int) $per_page );
-		$paged    = max( 1, (int) $paged );
-		$offset   = ( $paged - 1 ) * $per_page;
-		$strategy = $this->config['strategy'] ?? 'mixed';
+		$per_page       = max( 1, (int) $per_page );
+		$paged          = max( 1, (int) $paged );
+		$offset         = ( $paged - 1 ) * $per_page;
+		$strategy       = $this->config['strategy'] ?? 'mixed';
+		$or_logic       = 'OR' === strtoupper( $this->config['logic'] ?? 'AND' );
+		$relevance_mode = null === $sort_by;
+		$fetch_limit    = max( $per_page * $paged * 3, 300 );
+		if ( $this->has_category_boost_rules() ) {
+			$fetch_limit = min( 500, max( $fetch_limit, $per_page * $paged * 20 ) );
+		}
 
 		if ( 'mixed' === $strategy ) {
-			$queries = array( $this->build_hybrid_query( $terms, $filters, null, $visibility_policy, $filter_operators ) );
+			$queries = array(
+				array(
+					'query'          => $this->build_hybrid_query( $terms, $filters, null, $visibility_policy, $filter_operators ),
+					'coverage_terms' => $terms,
+					'or_mode'        => $or_logic,
+					'min_ratio'      => 0.0,
+					'fuzzy'          => false,
+				),
+			);
 		} else {
-			$queries = array( $this->build_strict_query( $terms, $filters, null, $visibility_policy, $filter_operators ) );
+			$queries = array(
+				array(
+					'query'          => $this->build_strict_query( $terms, $filters, null, $visibility_policy, $filter_operators ),
+					'coverage_terms' => $terms,
+					'or_mode'        => $or_logic,
+					'min_ratio'      => $or_logic ? 0.4 : 0.0,
+					'fuzzy'          => false,
+				),
+			);
 
 			if ( ! empty( $this->config['token_reduction_enabled'] ) && count( $terms ) > 1 ) {
 				$reduced = $this->reduce_tokens( $terms );
 				if ( ! empty( $reduced ) && count( $reduced ) < count( $terms ) ) {
-					$queries[] = $this->build_strict_query( $reduced, $filters, null, $visibility_policy, $filter_operators );
+					$queries[] = array(
+						'query'          => $this->build_strict_query( $reduced, $filters, null, $visibility_policy, $filter_operators ),
+						'coverage_terms' => $reduced,
+						'or_mode'        => $or_logic,
+						'min_ratio'      => $or_logic ? 0.4 : 0.0,
+						'fuzzy'          => false,
+					);
 				}
 			}
-			$queries[] = $this->build_hybrid_query( $terms, $filters, $this->resolve_fuzzy_level(), $visibility_policy, $filter_operators );
+			$queries[] = array(
+				'query'          => $this->build_hybrid_query( $terms, $filters, $this->resolve_fuzzy_level(), $visibility_policy, $filter_operators ),
+				'coverage_terms' => $terms,
+				'or_mode'        => $or_logic,
+				'min_ratio'      => 0.0,
+				'fuzzy'          => false,
+			);
 			if ( 'AND' === strtoupper( $this->config['logic'] ) ) {
-				$queries[] = $this->build_strict_query( $terms, $filters, 'OR', $visibility_policy, $filter_operators );
+				$queries[] = array(
+					'query'          => $this->build_strict_query( $terms, $filters, 'OR', $visibility_policy, $filter_operators ),
+					'coverage_terms' => $terms,
+					'or_mode'        => true,
+					'min_ratio'      => 0.4,
+					'fuzzy'          => false,
+				);
 			}
-			$queries[] = $this->build_fuzzy_query( $terms, $filters, null, $visibility_policy, $filter_operators );
+			$queries[] = array(
+				'query'          => $this->build_fuzzy_query( $terms, $filters, null, $visibility_policy, $filter_operators ),
+				'coverage_terms' => $terms,
+				'or_mode'        => false,
+				'min_ratio'      => 0.0,
+				'fuzzy'          => true,
+			);
 		}
 
-		foreach ( $queries as $ft_query ) {
-			$result = is_array( $sort_by ) && ! empty( $sort_by )
-				? $this->execute_composite_catalog_query( $ft_query, $offset, $per_page, $sort_by )
-				: $this->execute_catalog_query( $ft_query, $offset, $per_page, $sort_by );
+		foreach ( $queries as $pass ) {
+			$ft_query = $pass['query'];
+			$result   = $relevance_mode
+				? $this->execute_relevance_catalog_query(
+					$ft_query,
+					$fetch_limit,
+					$sanitized,
+					$terms,
+					$pass['coverage_terms'],
+					$pass['or_mode'],
+					$pass['min_ratio'],
+					$pass['fuzzy']
+				)
+				: ( is_array( $sort_by ) && ! empty( $sort_by )
+					? $this->execute_composite_catalog_query( $ft_query, $offset, $per_page, $sort_by )
+					: $this->execute_catalog_query( $ft_query, $offset, $per_page, $sort_by ) );
 			if ( empty( $result['ok'] ) ) {
 				return $result;
 			}
 			if ( $result['total'] > 0 ) {
+				if ( $relevance_mode ) {
+					$result['ids'] = array_slice( $result['ids'], $offset, $per_page );
+				}
 				return $result;
 			}
 		}
@@ -1290,6 +1375,95 @@ class Shift64_Woo_Search_Query {
 		return array(
 			'ids'   => array(),
 			'total' => 0,
+			'ok'    => true,
+		);
+	}
+
+	/**
+	 * Execute one scored relevance pass for a Product Collection.
+	 *
+	 * Relevance must over-fetch and rank before pagination; otherwise a boosted
+	 * product that Redis placed after the requested page can never be promoted.
+	 *
+	 * @param string $ft_query       RediSearch query.
+	 * @param int    $limit           Candidate window size.
+	 * @param string $query           Sanitized search query.
+	 * @param array  $terms           Original search terms.
+	 * @param array  $coverage_terms  Terms used for OR coverage ranking.
+	 * @param bool   $or_mode         Apply OR term coverage ranking/filtering.
+	 * @param float  $min_ratio       Minimum OR term coverage ratio.
+	 * @param bool   $fuzzy            Whether this is the terminal fuzzy pass.
+	 * @return array{ids:int[],total:int,ok:bool}
+	 */
+	private function execute_relevance_catalog_query( $ft_query, $limit, $query, $terms, $coverage_terms, $or_mode, $min_ratio, $fuzzy ) {
+		$args = array(
+			'FT.SEARCH',
+			$this->redis->get_index_name(),
+			$ft_query,
+			'SCORER',
+			'TFIDF',
+			'LIMIT',
+			'0',
+			(string) $limit,
+			'WITHSCORES',
+			'RETURN',
+			'13',
+			'post_id',
+			'title',
+			'stock_status',
+			'title_ascii',
+			'sku_text',
+			'categories_text',
+			'brands_text',
+			'attributes',
+			'sku',
+			'old_number',
+			'categories',
+			'tags',
+			'promoted',
+			'DIALECT',
+			'2',
+		);
+
+		$raw = $this->redis->raw_command( ...$args );
+		if ( false === $raw || ! is_array( $raw ) || empty( $raw ) ) {
+			return array(
+				'ids'   => array(),
+				'total' => 0,
+				'ok'    => false,
+			);
+		}
+
+		$total   = max( 0, (int) ( $raw[0] ?? 0 ) );
+		$results = $this->parse_ft_search_results( $raw );
+		$fetched = count( $results );
+
+		if ( $fuzzy ) {
+			$results = self::filter_low_scores( $results, (float) ( $this->config['fallback_score_threshold'] ?? 0.5 ) );
+		}
+		if ( $or_mode ) {
+			// Apply term coverage before title-start boosting so a complete
+			// answer cannot be outranked merely because another title starts
+			// with the query prefix.
+			$results = self::boost_term_match_count( $coverage_terms, $results, $min_ratio );
+		}
+
+		$results = $this->rank_relevance_results( $query, $terms, $results );
+		$dropped = $fetched - count( $results );
+		if ( $dropped > 0 ) {
+			$total = max( count( $results ), $total - $dropped );
+		}
+
+		$ids = array();
+		foreach ( $results as $result ) {
+			if ( isset( $result['post_id'] ) ) {
+				$ids[] = (int) $result['post_id'];
+			}
+		}
+
+		return array(
+			'ids'   => $ids,
+			'total' => $total,
 			'ok'    => true,
 		);
 	}
@@ -1756,9 +1930,10 @@ class Shift64_Woo_Search_Query {
 	 * @param array      $results Search results.
 	 * @param array|null $terms   Pre-split search terms. Pass null (default) to recompute via
 	 *                            get_search_terms(); pass an explicit array (even empty) to use as-is.
+	 * @param string     $score_key Score field to modify.
 	 * @return array
 	 */
-	private function rerank_sku_matches( $query, $results, $terms = null ) {
+	private function rerank_sku_matches( $query, $results, $terms = null, $score_key = '_score' ) {
 		if ( empty( $results ) ) {
 			return $results;
 		}
@@ -1779,8 +1954,8 @@ class Shift64_Woo_Search_Query {
 
 		$max_score = 0;
 		foreach ( $results as $r ) {
-			if ( $r['_score'] > $max_score ) {
-				$max_score = $r['_score'];
+			if ( isset( $r[ $score_key ] ) && $r[ $score_key ] > $max_score ) {
+				$max_score = $r[ $score_key ];
 			}
 		}
 
@@ -1802,17 +1977,17 @@ class Shift64_Woo_Search_Query {
 			}
 
 			if ( $exact ) {
-				$r['_score'] = $max_score + 100;
+				$r[ $score_key ] = $max_score + 100;
 			} elseif ( $partial ) {
-				$r['_score'] = $max_score + 10;
+				$r[ $score_key ] = $max_score + 10;
 			}
 		}
 		unset( $r );
 
 		usort(
 			$results,
-			function ( $a, $b ) {
-				return $b['_score'] <=> $a['_score'];
+			function ( $a, $b ) use ( $score_key ) {
+				return $b[ $score_key ] <=> $a[ $score_key ];
 			}
 		);
 
@@ -1822,10 +1997,11 @@ class Shift64_Woo_Search_Query {
 	/**
 	 * Boost promoted products: multiply score by 1.5 and re-sort.
 	 *
-	 * @param array $results Search results.
+	 * @param array  $results   Search results.
+	 * @param string $score_key Score field to modify.
 	 * @return array
 	 */
-	private function boost_promoted( $results ) {
+	private function boost_promoted( $results, $score_key = '_score' ) {
 		if ( empty( $results ) ) {
 			return $results;
 		}
@@ -1834,8 +2010,8 @@ class Shift64_Woo_Search_Query {
 		foreach ( $results as &$r ) {
 			$promoted = isset( $r['promoted'] ) ? $r['promoted'] : '';
 			if ( 'yes' === $promoted || '1' === $promoted ) {
-				$r['_score'] = $r['_score'] * 1.5;
-				$changed     = true;
+				$r[ $score_key ] = $r[ $score_key ] * 1.5;
+				$changed         = true;
 			}
 		}
 		unset( $r );
@@ -1843,8 +2019,8 @@ class Shift64_Woo_Search_Query {
 		if ( $changed ) {
 			usort(
 				$results,
-				function ( $a, $b ) {
-					return $b['_score'] <=> $a['_score'];
+				function ( $a, $b ) use ( $score_key ) {
+					return $b[ $score_key ] <=> $a[ $score_key ];
 				}
 			);
 		}
@@ -1856,10 +2032,11 @@ class Shift64_Woo_Search_Query {
 	 * Apply configured category/tag boost rules from the current query config.
 	 *
 	 * @param string $query   Sanitized user query.
-	 * @param array  $results Search results.
+	 * @param array  $results   Search results.
+	 * @param string $score_key Score field to modify.
 	 * @return array
 	 */
-	private function boost_configured_categories( $query, $results ) {
+	private function boost_configured_categories( $query, $results, $score_key = '_score' ) {
 		if ( empty( $results ) ) {
 			return $results;
 		}
@@ -1868,7 +2045,7 @@ class Shift64_Woo_Search_Query {
 			return $results;
 		}
 
-		return self::apply_category_boost_rules( $query, $results, $this->category_boost_rules );
+		return self::apply_category_boost_rules( $query, $results, $this->category_boost_rules, $score_key );
 	}
 
 	/**
@@ -2333,10 +2510,11 @@ class Shift64_Woo_Search_Query {
 	/**
 	 * Demote out-of-stock products by multiplying their score by a penalty factor.
 	 *
-	 * @param array $results Search results.
+	 * @param array  $results   Search results.
+	 * @param string $score_key Score field to modify.
 	 * @return array
 	 */
-	private function demote_outofstock( $results ) {
+	private function demote_outofstock( $results, $score_key = '_score' ) {
 		if ( empty( $results ) ) {
 			return $results;
 		}
@@ -2349,15 +2527,15 @@ class Shift64_Woo_Search_Query {
 		foreach ( $results as &$r ) {
 			$stock = isset( $r['stock_status'] ) ? $r['stock_status'] : 'instock';
 			if ( 'outofstock' === $stock ) {
-				$r['_score'] = $r['_score'] * $factor;
+				$r[ $score_key ] = $r[ $score_key ] * $factor;
 			}
 		}
 		unset( $r );
 
 		usort(
 			$results,
-			function ( $a, $b ) {
-				return $b['_score'] <=> $a['_score'];
+			function ( $a, $b ) use ( $score_key ) {
+				return $b[ $score_key ] <=> $a[ $score_key ];
 			}
 		);
 

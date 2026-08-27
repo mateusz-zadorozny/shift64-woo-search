@@ -442,4 +442,58 @@ class Archive_Fallback_Ladder_Test extends WP_UnitTestCase {
 
 		$this->assertSame( array( 'hybrid:default' ), $this->calls );
 	}
+
+	/**
+	 * Product Collection relevance ranks the candidate window before slicing the
+	 * requested page, just like the dropdown's relevance path.
+	 */
+	public function test_search_catalog_reranks_before_pagination() {
+		$this->replies = array(
+			array(
+				2,
+				'shift64_woo_search:product:202',
+				'10',
+				array( 'post_id', '202', 'title', 'Dining Table Aero Cedar', 'stock_status', 'instock' ),
+				'shift64_woo_search:product:201',
+				'8',
+				array( 'post_id', '201', 'title', 'Aero Cedar Office Chair', 'stock_status', 'instock' ),
+			),
+		);
+
+		$query  = $this->recording_query( array( 'aero', 'cedar' ), array( 'strategy' => 'mixed' ) );
+		$result = $query->search_catalog( 'aero cedar', array(), 1, 1 );
+
+		$this->assertSame( array( 201 ), $result['ids'] );
+		$this->assertSame( 2, $result['total'] );
+	}
+
+	/**
+	 * In OR mode, complete term coverage wins before title-prefix boosting can
+	 * make a partial match look more relevant than the full answer.
+	 */
+	public function test_search_catalog_prioritizes_complete_or_coverage() {
+		$this->replies = array(
+			array(
+				2,
+				'shift64_woo_search:product:301',
+				'10',
+				array( 'post_id', '301', 'title', 'Aero Cedar Office Chair', 'stock_status', 'instock' ),
+				'shift64_woo_search:product:302',
+				'8',
+				array( 'post_id', '302', 'title', 'Aero Cedar Dining Table', 'stock_status', 'instock' ),
+			),
+		);
+
+		$query  = $this->recording_query(
+			array( 'aero', 'cedar', 'table' ),
+			array(
+				'strategy' => 'mixed',
+				'logic'    => 'OR',
+			)
+		);
+		$result = $query->search_catalog( 'aero cedar table', array(), 1, 1 );
+
+		$this->assertSame( array( 302 ), $result['ids'] );
+		$this->assertSame( 2, $result['total'] );
+	}
 }
