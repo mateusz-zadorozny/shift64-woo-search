@@ -2,7 +2,7 @@
 
 Source doc: .ai/specs/2026-08-27-deprecate-or-logic-and-no-results-trigger.md
 Engine: om-auto-create-pr (steps: 12, --loop: no)
-Status: in-progress
+Status: complete
 
 ## Goal
 
@@ -115,6 +115,8 @@ unchanged.
 
 ## Progress
 
+PR: #87
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Deprecation visible in the admin
@@ -130,7 +132,7 @@ unchanged.
 
 ### Phase 2: Headless parity and the record
 
-- [ ] 2.1 Report deprecations in wp shift64-woo-search health
-- [ ] 2.2 Record the deprecation in BACKWARD_COMPATIBILITY.md section 6
-- [ ] 2.3 Flip the spec status and the specs index row
-- [ ] 2.4 File the removal follow-up issue
+- [x] 2.1 Report deprecations in wp shift64-woo-search health — eada482
+- [x] 2.2 Record the deprecation in BACKWARD_COMPATIBILITY.md section 6 — eada482
+- [x] 2.3 Flip the spec status and the specs index row — eada482
+- [x] 2.4 File the removal follow-up issue — issue #89
