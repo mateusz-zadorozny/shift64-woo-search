@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mockup — Relevance › Basic Ranking with deprecation marking</title>
+<style>
+	/* Illustrative only. Approximates the WordPress admin palette and metrics;
+	   it is not the plugin's stylesheet and ships no app code. */
+	body { margin: 0; background: #f0f0f1; color: #3c434a;
+		font: 13px/1.4em -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; }
+	.wrap { padding: 10px 20px 40px; max-width: 1000px; }
+	h1 { font-size: 23px; font-weight: 400; margin: 0 0 16px; padding: 9px 0 4px; line-height: 1.3; }
+	h2.section-title { font-size: 18px; font-weight: 400; margin: 18px 0 12px; }
+	h3 { font-size: 14px; margin: 22px 0 8px; }
+	.nav-tab-wrapper { border-bottom: 1px solid #c3c4c7; margin: 0 0 14px; padding-top: 6px; }
+	.nav-tab { display: inline-block; margin: 0 4px -1px 0; padding: 6px 12px; font-size: 14px;
+		background: #dcdcde; border: 1px solid #c3c4c7; border-bottom: none; color: #50575e; text-decoration: none; }
+	.nav-tab-active { background: #f0f0f1; border-bottom: 1px solid #f0f0f1; color: #1d2327; font-weight: 600; }
+	.subsubsub { list-style: none; margin: 6px 0 14px; padding: 0; font-size: 13px; color: #646970; }
+	.subsubsub li { display: inline; }
+	.subsubsub a { color: #2271b1; text-decoration: none; }
+	.subsubsub a.current { color: #1d2327; font-weight: 600; }
+	.notice { background: #fff; border: 1px solid #c3c4c7; border-left-width: 4px; box-shadow: 0 1px 1px rgba(0,0,0,.04);
+		margin: 14px 0; padding: 1px 12px; position: relative; }
+	.notice-warning { border-left-color: #dba617; }
+	.notice p { margin: .8em 0; }
+	.notice ul { margin: .6em 0 .9em; padding-left: 20px; }
+	.notice li { margin-bottom: .5em; }
+	.notice a { color: #2271b1; }
+	.notice-dismiss { position: absolute; top: 4px; right: 4px; border: none; background: none; color: #787c82;
+		font-size: 16px; cursor: pointer; padding: 6px; line-height: 1; }
+	table.form-table { border-collapse: collapse; width: 100%; margin-top: 4px; }
+	table.form-table th { width: 200px; text-align: left; padding: 16px 10px 16px 0; font-weight: 600;
+		vertical-align: top; color: #1d2327; }
+	table.form-table td { padding: 14px 10px; vertical-align: top; }
+	select { min-width: 24em; padding: 4px 24px 4px 8px; border: 1px solid #8c8f94; border-radius: 3px;
+		background: #fff; color: #2c3338; font-size: 14px; line-height: 2; box-shadow: 0 0 0 transparent; }
+	p.description { color: #646970; font-size: 13px; font-style: italic; margin: 6px 0 0; max-width: 44em; }
+	p.description.deprecated-note { font-style: normal; color: #8a6116; border-left: 3px solid #dba617;
+		padding-left: 10px; margin-top: 8px; }
+	.button-primary { background: #2271b1; border: 1px solid #2271b1; border-radius: 3px; color: #fff;
+		padding: 6px 14px; font-size: 13px; cursor: pointer; }
+	.submit { margin-top: 22px; }
+	.callout { margin: 26px 0 0; padding: 8px 12px; border: 1px dashed #c3c4c7; background: #fbfbfc;
+		color: #646970; font-size: 12px; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+	<h1>Shift64 Woo Search</h1>
+
+	<nav class="nav-tab-wrapper">
+		<a class="nav-tab" href="#">Overview</a>
+		<a class="nav-tab" href="#">Search Experience</a>
+		<a class="nav-tab" href="#">Results &amp; Filters</a>
+		<a class="nav-tab nav-tab-active" href="#">Relevance</a>
+		<a class="nav-tab" href="#">Insights</a>
+		<a class="nav-tab" href="#">System</a>
+	</nav>
+
+	<ul class="subsubsub">
+		<li><a class="current" href="#">Basic Ranking</a> |</li>
+		<li><a href="#">Matching &amp; Fallback</a> |</li>
+		<li><a href="#">Synonyms</a> |</li>
+		<li><a href="#">Merchandising</a> |</li>
+		<li><a href="#">Field Weights</a> |</li>
+		<li><a href="#">Test Search</a> |</li>
+		<li><a href="#">Compare Passes</a></li>
+	</ul>
+
+	<h2 class="section-title">Basic Ranking</h2>
+
+	<!-- PROPOSED: stateless notice, rendered only when a deprecated value is stored. -->
+	<div class="notice notice-warning is-dismissible">
+		<p><strong>Two search settings are deprecated.</strong> They still work, and will be removed in a future release.</p>
+		<ul>
+			<li><strong>Search Logic</strong> is set to <code>OR</code>. Measured worse than <code>AND</code> on precision and latency, with no case where it wins. → <a href="#">Basic Ranking</a></li>
+			<li><strong>Fallback Trigger</strong> is set to <em>Only when no results</em>. It disables the fallback ladder, so a typo in one word of a multi-word query is never repaired. → <a href="#">Matching &amp; Fallback</a></li>
+		</ul>
+		<button class="notice-dismiss" aria-label="Dismiss this notice">✕</button>
+	</div>
+
+	<h3>Search Behavior</h3>
+	<table class="form-table">
+		<tr>
+			<th><label for="logic">Search Logic</label></th>
+			<td>
+				<!-- PROPOSED: the deprecated choice keeps its place but carries the verdict in its label. -->
+				<select id="logic">
+					<option>AND — all terms must match (recommended)</option>
+					<option selected>OR — any term matches — deprecated</option>
+				</select>
+				<p class="description">OR retrieval ranks a product matching two of three words above one matching all three. Use it only when recall matters more than precision.</p>
+				<!-- PROPOSED: reason line, shown only because OR is the stored value. -->
+				<p class="description deprecated-note">Deprecated: measured worse than AND on precision and latency, with no case where it wins. Switch to AND — the strict-first ladder already widens the query when an exact pass finds nothing.</p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="strategy">Search Mode</label></th>
+			<td>
+				<select id="strategy">
+					<option selected>Mixed — every word as prefix or fuzzy, one query (recommended)</option>
+					<option>Strict first, fuzzy fallback</option>
+				</select>
+				<p class="description">Mixed repairs a typo in one word while still requiring the others. Strict-first runs a clean prefix query and only widens when a pass fails to match every word.</p>
+			</td>
+		</tr>
+	</table>
+
+	<h3>Out-of-Stock Products</h3>
+	<table class="form-table">
+		<tr>
+			<th><label for="oos">Mode</label></th>
+			<td>
+				<select id="oos">
+					<option selected>Exclude — never show</option>
+					<option>Show — same ranking</option>
+					<option>Demote — lower score</option>
+				</select>
+			</td>
+		</tr>
+	</table>
+
+	<p class="submit"><button class="button-primary">Save Settings</button></p>
+
+	<p class="callout">Mockup for <code>.ai/specs/2026-08-27-deprecate-or-logic-and-no-results-trigger.md</code>. Search Mode is shown unchanged on purpose — <code>strategy = strict_first</code> is explicitly kept.</p>
+</div>
+</body>
+</html>

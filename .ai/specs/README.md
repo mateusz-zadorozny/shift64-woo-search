@@ -26,6 +26,7 @@ and PRs.
 | [Product Filter and Filter Pill Blocks](2026-07-30-product-filter-pill-blocks.md) | ✅ implemented | PR #72 |
 | [Block Theme-Only Legacy Surface Removal](2026-07-30-block-theme-only-legacy-removal.md) | 🚧 draft | final cleanup after all block-native specs |
 | [One-Shot Isolated Worktree Test Environments](2026-07-31-one-shot-worktree-test-env.md) | ✅ implemented | PR #56 (issue #53) |
+| [Deprecate `logic = OR` and `fallback_trigger = no_results`](2026-08-27-deprecate-or-logic-and-no-results-trigger.md) | 🚧 draft | issue #85; deprecation window only, removal is a follow-up |
 
 ## Recommended implementation flow
 
