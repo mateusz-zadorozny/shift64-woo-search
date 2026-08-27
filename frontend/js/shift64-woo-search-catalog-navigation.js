@@ -22,6 +22,11 @@ let resultsCountObserver = null;
 let resultsCountSyncTimer = null;
 let lastResultsCountUrl = '';
 
+const BREADCRUMB_SELECTORS = [
+	'.woocommerce-breadcrumb',
+	'.shift64-woo-search-header__breadcrumbs',
+];
+
 /**
  * Resolve a navigation target that cannot leave the current storefront.
  *
@@ -104,6 +109,26 @@ export function hasEnhancedProductCollection(root = document) {
 }
 
 /**
+ * Synchronize every breadcrumb with its same-selector counterpart.
+ *
+ * @param {ParentNode} source Parsed response document.
+ * @param {ParentNode} target Live document.
+ * @return {void}
+ */
+export function syncBreadcrumbs(source, target) {
+	BREADCRUMB_SELECTORS.forEach((selector) => {
+		const sourceBreadcrumbs = source.querySelectorAll(selector);
+		const targetBreadcrumbs = target.querySelectorAll(selector);
+		sourceBreadcrumbs.forEach((sourceBreadcrumb, index) => {
+			const targetBreadcrumb = targetBreadcrumbs[index];
+			if (targetBreadcrumb) {
+				targetBreadcrumb.innerHTML = sourceBreadcrumb.innerHTML;
+			}
+		});
+	});
+}
+
+/**
  * Keep WooCommerce's results count in step with a client-side collection
  * navigation. Woo marks this block as a router region, but its block has no
  * frontend view module, so the Interactivity Router does not replace it even
@@ -127,15 +152,7 @@ function syncProductResultsCount(html) {
 			targetRegion.innerHTML = sourceRegion.innerHTML;
 		}
 	});
-	const sourceBreadcrumb = source.querySelector(
-		'.woocommerce-breadcrumb, .shift64-woo-search-header__breadcrumbs'
-	);
-	const targetBreadcrumb = document.querySelector(
-		'.woocommerce-breadcrumb, .shift64-woo-search-header__breadcrumbs'
-	);
-	if (sourceBreadcrumb && targetBreadcrumb) {
-		targetBreadcrumb.innerHTML = sourceBreadcrumb.innerHTML;
-	}
+	syncBreadcrumbs(source, document);
 	lastResultsCountUrl = window.location.href;
 }
 
