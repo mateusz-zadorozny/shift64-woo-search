@@ -1509,7 +1509,7 @@ class Shift64_Woo_Search_Admin {
 					),
 					__( 'When a pass hands over to the next one. Applies to Strict-first only.', 'shift64-woo-search' )
 				);
-				$this->render_text_field( 'shift64_woo_search_fallback_score_threshold', __( 'Score Threshold', 'shift64-woo-search' ), '0.5', __( 'Minimum score a fuzzy match needs to be shown. Does not decide when to fall back.', 'shift64-woo-search' ), 'number', '0', '10', '0.1' );
+				$this->render_text_field( 'shift64_woo_search_fallback_score_threshold', __( 'Score Threshold', 'shift64-woo-search' ), '0.5', __( 'Minimum score a match from the final all-fuzzy fallback pass needs to be shown. Strict-first only — the per-token fuzzy pass and Mixed mode are never score-filtered.', 'shift64-woo-search' ), 'number', '0', '10', '0.1' );
 				$this->render_select_field(
 					'shift64_woo_search_fallback_fuzzy_level',
 					__( 'Fallback Fuzzy Level', 'shift64-woo-search' ),

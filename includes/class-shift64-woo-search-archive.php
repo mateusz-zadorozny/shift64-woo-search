@@ -888,9 +888,10 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			$i += 3;
 		}
 
+		$fetched = count( $results );
+
 		if ( $min_score > 0 ) {
 			$results = Shift64_Woo_Search_Query::filter_low_scores( $results, $min_score, 'score' );
-			$total   = count( $results );
 		}
 
 		if ( 'demote' === $stock_mode ) {
@@ -914,7 +915,17 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 
 		if ( $or_mode ) {
 			$results = Shift64_Woo_Search_Query::boost_term_match_count( $terms, $results, $min_ratio, 'score' );
-			$total   = count( $results );
+		}
+
+		// `$total` is the RediSearch hit count and becomes found_posts, so it
+		// drives the result count and the page links. This pass only ever sees
+		// the first `$limit` rows of it, so replacing it with the surviving row
+		// count collapsed a 5 000-hit OR query to "of 300 results" — for `mixed`
+		// too, where the match ratio drops nothing. Take off only what the
+		// score threshold and the match ratio actually removed.
+		$dropped = $fetched - count( $results );
+		if ( $dropped > 0 ) {
+			$total = max( count( $results ), $total - $dropped );
 		}
 
 		$ids = array();

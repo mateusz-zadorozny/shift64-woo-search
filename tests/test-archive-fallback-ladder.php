@@ -327,6 +327,88 @@ class Archive_Fallback_Ladder_Test extends WP_UnitTestCase {
 		$this->assertSame( 30, $result['total'], 'The RediSearch total drives pagination and must not follow a filtered count.' );
 	}
 
+	/**
+	 * Strategies whose first pass runs in OR mode when the logic is OR.
+	 *
+	 * @return array<string,array{0:string}>
+	 */
+	public function or_mode_strategies() {
+		return array(
+			'mixed'        => array( 'mixed' ),
+			'strict_first' => array( 'strict_first' ),
+		);
+	}
+
+	/**
+	 * Under OR the first pass runs in or_mode, and ft_search_relevance() used
+	 * to replace the RediSearch total with the surviving row count there.
+	 * Relevance mode fetches a candidate window from offset 0, so a 5 364-hit
+	 * query reported and paginated as "of 2 results" — for `mixed` too, where
+	 * `min_ratio 0` drops nothing. Only what a pass actually removed may come
+	 * off the total.
+	 *
+	 * @dataProvider or_mode_strategies
+	 *
+	 * @param string $strategy Retrieval strategy.
+	 */
+	public function test_or_logic_keeps_the_redis_total_for_pagination( $strategy ) {
+		$this->replies = array(
+			array(
+				5364,
+				'shift64_woo_search:product:101',
+				'9.5',
+				array( 'post_id', '101', 'title', 'Aero Cedar Side Table', 'stock_status', 'instock' ),
+				'shift64_woo_search:product:102',
+				'8.0',
+				array( 'post_id', '102', 'title', 'Aero Orchid Sheet Mask Cedarwood', 'stock_status', 'instock' ),
+			),
+		);
+
+		$result = $this->run_archive_search(
+			$this->recording_query( array( 'aero', 'cedar', 'table' ) ),
+			$strategy,
+			array(
+				'logic'                   => 'OR',
+				'outofstock_mode'         => 'exclude',
+				'token_reduction_enabled' => false,
+			)
+		);
+
+		$this->assertSame( 5364, $result['total'], 'The RediSearch total must survive an OR pass that dropped nothing.' );
+		$this->assertEqualsCanonicalizing( array( 101, 102 ), $result['ids'] );
+	}
+
+	/**
+	 * When the match ratio does drop a row, the total comes down by exactly
+	 * that row — never to the size of the fetched window.
+	 */
+	public function test_or_logic_subtracts_only_the_rows_it_dropped() {
+		$this->replies = array(
+			array(
+				5364,
+				'shift64_woo_search:product:101',
+				'9.5',
+				array( 'post_id', '101', 'title', 'Aero Cedar Side Table', 'stock_status', 'instock' ),
+				'shift64_woo_search:product:103',
+				'8.0',
+				array( 'post_id', '103', 'title', 'Iris Bloom Kettle Compact Slate', 'stock_status', 'instock' ),
+			),
+		);
+
+		$result = $this->run_archive_search(
+			$this->recording_query( array( 'aero', 'cedar', 'table' ) ),
+			'strict_first',
+			array(
+				'logic'                   => 'OR',
+				'outofstock_mode'         => 'exclude',
+				'token_reduction_enabled' => false,
+			)
+		);
+
+		$this->assertSame( array( 101 ), $result['ids'], 'A row matching no term falls under the 40% match ratio.' );
+		$this->assertSame( 5363, $result['total'], 'One dropped row takes exactly one off the RediSearch total.' );
+	}
+
 	// ── Product Collection catalog query ────────────────────────
 
 	/**

@@ -63,7 +63,10 @@ class Search_Config_Sources_Test extends WP_UnitTestCase {
 
 		foreach ( $this->production_files() as $file ) {
 			$contents = file_get_contents( $file );
-			if ( preg_match_all( '/new\s+Shift64_Woo_Search_Query\s*\(([^)]*)\)/', $contents, $matches ) ) {
+			// The argument group tolerates one level of nested parentheses, so a
+			// call such as `Shift64_Woo_Search_Redis::get_instance()` in the
+			// first argument does not cut the match short of the config argument.
+			if ( preg_match_all( '/new\s+Shift64_Woo_Search_Query\s*\(((?:[^()]|\([^()]*\))*)\)/', $contents, $matches ) ) {
 				foreach ( $matches[1] as $args ) {
 					// One argument means the connector alone, with no config.
 					if ( false === strpos( $args, ',' ) ) {
