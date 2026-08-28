@@ -24,17 +24,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shift64_Woo_Search_Filter_Blocks {
 
 	/**
-	 * Whether the new Product Filters block has rendered in this request.
-	 *
-	 * The legacy hook renderer runs later inside WooCommerce's product loop.
-	 * Once the block is present, it owns the filter UI and the hook renderer
-	 * must stay silent so shoppers do not get two filter systems.
-	 *
-	 * @var bool
-	 */
-	private static $has_rendered_product_filters = false;
-
-	/**
 	 * Hook the canonical-URL normalization for no-JS form submissions.
 	 */
 	public function __construct() {
@@ -42,22 +31,12 @@ class Shift64_Woo_Search_Filter_Blocks {
 	}
 
 	/**
-	 * Whether the new parent block has rendered during this request.
-	 *
-	 * @return bool
-	 */
-	public static function has_rendered_product_filters() {
-		return self::$has_rendered_product_filters;
-	}
-
-	/**
 	 * Redirect `filter_x[]=a&filter_x[]=b` (what a no-JS checkbox form
 	 * submits) to the canonical `filter_x=a,b` form.
 	 *
 	 * Only the two new parsers understand the array form; the taxonomy
-	 * archive interceptor, the legacy renderer, and WooCommerce layered nav
-	 * all silently drop it, so pills would show a selection the query never
-	 * applied. One early redirect converges every consumer — and shared
+	 * archive interceptor and WooCommerce layered nav both silently drop it,
+	 * so pills would show a selection the query never applied. One early redirect converges every consumer — and shared
 	 * URLs/page caches — on the canonical scalar form.
 	 */
 	public function redirect_array_filter_params() {
@@ -158,8 +137,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 * @return string
 	 */
 	public function render_product_filters( $attributes, $content, $block ) {
-		self::$has_rendered_product_filters = true;
-		$runtime_id                         = sanitize_html_class( $attributes['runtimeId'] ?? '' );
+		$runtime_id = sanitize_html_class( $attributes['runtimeId'] ?? '' );
 		if ( '' === $runtime_id ) {
 			$runtime_id = 'shift64-woo-search-filters';
 		}
@@ -395,9 +373,8 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 * Clear the per-request selection cache (tests).
 	 */
 	public static function reset() {
-		self::$selections                   = null;
-		self::$pill_sequence                = 0;
-		self::$has_rendered_product_filters = false;
+		self::$selections    = null;
+		self::$pill_sequence = 0;
 	}
 
 	/**
