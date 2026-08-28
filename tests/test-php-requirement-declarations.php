@@ -37,6 +37,16 @@ class Php_Requirement_Declarations_Test extends WP_UnitTestCase {
 	const EXPECTED_WC_MINIMUM = '10.9';
 
 	/**
+	 * The release that removes the classic frontend.
+	 *
+	 * The actual version is computed by semantic-release from commit types, so
+	 * this is the version the *documentation* promises. Its only job is to keep the
+	 * readme's upgrade notice and the migration guide naming the same release —
+	 * a merchant reading one and then the other must not find two answers.
+	 */
+	const BLOCK_ONLY_RELEASE = '0.21.0';
+
+	/**
 	 * Absolute path to the plugin root.
 	 *
 	 * @return string
@@ -248,5 +258,43 @@ class Php_Requirement_Declarations_Test extends WP_UnitTestCase {
 			$workflow,
 			'CI must also track the current WordPress release.'
 		);
+	}
+
+	/**
+	 * The upgrade notice and the migration guide name the same release.
+	 */
+	public function test_the_block_only_release_is_named_consistently() {
+		$readme = file_get_contents( $this->plugin_dir() . '/readme.txt' );
+		$guide  = file_get_contents( $this->plugin_dir() . '/docs/block-theme-migration.md' );
+
+		$this->assertMatchesRegularExpression(
+			'/^= ' . preg_quote( self::BLOCK_ONLY_RELEASE, '/' ) . ' =$/m',
+			$readme,
+			'readme.txt must carry an Upgrade Notice for the block-only release.'
+		);
+		$this->assertStringContainsString(
+			self::BLOCK_ONLY_RELEASE,
+			$guide,
+			'The migration guide must name the release its steps apply to.'
+		);
+	}
+
+	/**
+	 * The upgrade notice leads with the breaking change and links the guide.
+	 *
+	 * This is the one piece of text a merchant sees before choosing to update.
+	 * It has to say that the storefront changes, and where to read what to do.
+	 */
+	public function test_the_upgrade_notice_states_the_break_and_links_the_guide() {
+		$readme = file_get_contents( $this->plugin_dir() . '/readme.txt' );
+
+		$start = strpos( $readme, '= ' . self::BLOCK_ONLY_RELEASE . ' =' );
+		$this->assertIsInt( $start );
+
+		$notice = substr( $readme, $start, 1400 );
+
+		$this->assertStringContainsString( 'Breaking', $notice );
+		$this->assertStringContainsString( 'docs/block-theme-migration.md', $notice );
+		$this->assertStringContainsString( 'shift64_woo_search', $notice );
 	}
 }

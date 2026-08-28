@@ -174,6 +174,9 @@ None. Every key above shipped in a release, so none is removed outright.
 
 ## Upgrading a store to the block-only frontend
 
+These steps apply to the **0.21.0** upgrade, the release that removed the classic
+frontend.
+
 Do this **before** updating, on a staging copy if you have one. The update itself
 is not destructive — no product data, index or setting is deleted — but a
 storefront that relied on the removed surfaces will render without its search,
