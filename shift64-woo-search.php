@@ -46,6 +46,7 @@ function shift64_woo_search_woocommerce_inactive_notice() {
 }
 
 // Include files.
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-requirements.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-redis.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-schema.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-stats.php';
@@ -354,17 +355,30 @@ class Shift64_Woo_Search_Plugin {
 		// Blocks register in the editor as well as on the storefront. The frontend
 		// object is no longer a classic renderer of its own — it is the asset
 		// loader the childless-parent block fallback calls, and it hooks nothing.
-		$frontend = new Shift64_Woo_Search_Frontend();
-		new Shift64_Woo_Search_Blocks( $frontend );
-		new Shift64_Woo_Search_Catalog_Navigation();
-		new Shift64_Woo_Search_Editor_Facets_Rest();
+		//
+		// Below the declared WordPress/WooCommerce floor the block half of the
+		// plugin does not boot at all: registering blocks against a block or
+		// Interactivity API that is not there is how a version mismatch becomes a
+		// fatal. Search, indexing, the SHORTINIT endpoint, the admin screens and
+		// the CLI are unaffected, and admin_notices() explains what to upgrade.
+		$requirements_met = Shift64_Woo_Search_Requirements::are_met();
+
+		if ( $requirements_met ) {
+			$frontend = new Shift64_Woo_Search_Frontend();
+			new Shift64_Woo_Search_Blocks( $frontend );
+			new Shift64_Woo_Search_Catalog_Navigation();
+			new Shift64_Woo_Search_Editor_Facets_Rest();
+		}
 
 		// Storefront query integrations. Every one of these adapts a query or
 		// publishes data to a block; none of them places markup in a theme.
 		if ( ! is_admin() ) {
 			new Shift64_Woo_Search_Archive();
 			new Shift64_Woo_Search_Taxonomy_Archive();
-			new Shift64_Woo_Search_Product_Collection_Query();
+
+			if ( $requirements_met ) {
+				new Shift64_Woo_Search_Product_Collection_Query();
+			}
 		}
 
 		// WP-CLI.
@@ -590,9 +604,61 @@ class Shift64_Woo_Search_Plugin {
 	}
 
 	/**
+	 * Explain an unsupported runtime, without ever breaking one.
+	 *
+	 * Two distinct situations, deliberately worded differently. Below the version
+	 * floor the block half of the plugin is switched off and the notice is an
+	 * error, because storefront controls really are missing. On a supported
+	 * version with a classic theme nothing is broken at all — the plugin simply
+	 * renders no storefront controls, which is the intended outcome of the
+	 * block-theme-only release — so that notice is informational and points at
+	 * the migration guide.
+	 *
+	 * Both are shown only to users who can manage the plugin, since neither is
+	 * actionable by anyone else.
+	 */
+	private function render_runtime_requirement_notices() {
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$unmet = Shift64_Woo_Search_Requirements::unmet();
+
+		if ( ! empty( $unmet ) ) {
+			?>
+			<div class="notice notice-error">
+				<p>
+					<strong><?php esc_html_e( 'Shift64 Woo Search:', 'shift64-woo-search' ); ?></strong>
+					<?php esc_html_e( 'Storefront blocks are switched off until this site meets the plugin\'s runtime requirements. Search, indexing and the CLI keep working.', 'shift64-woo-search' ); ?>
+				</p>
+				<ul>
+					<?php foreach ( $unmet as $requirement ) : ?>
+						<li><?php echo esc_html( $requirement ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
+			<?php
+			return;
+		}
+
+		if ( ! Shift64_Woo_Search_Requirements::block_theme_active() ) {
+			?>
+			<div class="notice notice-info">
+				<p>
+					<strong><?php esc_html_e( 'Shift64 Woo Search:', 'shift64-woo-search' ); ?></strong>
+					<?php esc_html_e( 'This site runs a classic theme. Search, indexing and the CLI work normally, but the storefront controls are Site Editor blocks and are not injected into a classic theme. Switch to a block theme and place the blocks to use them.', 'shift64-woo-search' ); ?>
+				</p>
+			</div>
+			<?php
+		}
+	}
+
+	/**
 	 * Display admin notices for Redis connection status.
 	 */
 	public function admin_notices() {
+		$this->render_runtime_requirement_notices();
+
 		$host = get_option( 'shift64_woo_search_redis_host', '' );
 
 		if ( empty( $host ) ) {

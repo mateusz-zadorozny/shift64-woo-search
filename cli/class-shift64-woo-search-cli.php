@@ -19,6 +19,31 @@ if ( ! defined( 'WP_CLI' ) ) {
 class Shift64_Woo_Search_CLI {
 
 	/**
+	 * Stop with a non-zero explanatory error when the runtime is unsupported.
+	 *
+	 * Every command calls this first. `WP_CLI::error()` prints the reason and
+	 * exits non-zero, which is what a deploy script or CI step can act on — the
+	 * alternative, letting a command run against a runtime the plugin does not
+	 * support, is how a version mismatch surfaces as a fatal halfway through an
+	 * index rebuild instead of as a message.
+	 *
+	 * The theme is deliberately not checked here: a classic theme renders no
+	 * storefront controls but indexes, searches and reports exactly the same, so
+	 * failing the CLI on it would be wrong.
+	 */
+	private static function assert_requirements() {
+		$unmet = Shift64_Woo_Search_Requirements::unmet();
+
+		if ( empty( $unmet ) ) {
+			return;
+		}
+
+		WP_CLI::error(
+			'Unsupported runtime for Shift64 Woo Search: ' . implode( ' ', $unmet )
+		);
+	}
+
+	/**
 	 * Register all CLI commands.
 	 */
 	public static function register_commands() {
@@ -65,6 +90,7 @@ class Shift64_Woo_Search_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public static function setup( $args, $assoc_args ) {
+		self::assert_requirements();
 		WP_CLI::log( '' );
 		WP_CLI::log( '== Shift64 Woo Search — Redis Setup ==' );
 		WP_CLI::log( '' );
@@ -190,6 +216,7 @@ class Shift64_Woo_Search_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public static function reindex( $args, $assoc_args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed
+		self::assert_requirements();
 		$redis = Shift64_Woo_Search_Redis::get_instance();
 
 		if ( ! $redis->is_available() ) {
@@ -265,6 +292,7 @@ class Shift64_Woo_Search_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public static function status( $args, $assoc_args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		self::assert_requirements();
 		$redis = Shift64_Woo_Search_Redis::get_instance();
 
 		if ( ! $redis->is_available() ) {
@@ -327,6 +355,7 @@ class Shift64_Woo_Search_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public static function rebuild( $args, $assoc_args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		self::assert_requirements();
 		$redis = Shift64_Woo_Search_Redis::get_instance();
 
 		$progress = null;
@@ -392,6 +421,7 @@ class Shift64_Woo_Search_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public static function test( $args, $assoc_args ) {
+		self::assert_requirements();
 		$redis = Shift64_Woo_Search_Redis::get_instance();
 
 		if ( ! $redis->is_available() ) {
@@ -457,6 +487,7 @@ class Shift64_Woo_Search_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public static function health( $args, $assoc_args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		self::assert_requirements();
 		// Check phpredis extension.
 		if ( ! class_exists( 'Redis' ) ) {
 			WP_CLI::error( 'phpredis extension is not installed.' );
