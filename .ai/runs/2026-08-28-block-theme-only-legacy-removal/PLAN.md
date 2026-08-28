@@ -12,7 +12,7 @@
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 1 | 1.1 | Publish the legacy-surface inventory and option classification table | inline | todo | — |
+| 1 | 1.1 | Publish the legacy-surface inventory and option classification table | inline | done | b0dd95b |
 | 1 | 1.2 | Add characterization tests for every preserved surface | inline | todo | — |
 | 2 | 2.1 | Remove the search and modal-search shortcodes, keeping the block fallback renderers | inline | todo | — |
 | 2 | 2.2 | Remove the breadcrumbs shortcode and the archive header/title output surfaces | inline | todo | — |
