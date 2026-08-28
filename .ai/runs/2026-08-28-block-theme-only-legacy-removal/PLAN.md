@@ -20,8 +20,8 @@
 | 2 | 2.4 | Remove the Kadence partial-template takeover and theme-specific integration | inline | done | e9c9d10 |
 | 2 | 2.5 | Remove the catalog sort-control takeover and result-count text replacement | inline | done | e92340e |
 | 2 | 2.6 | Remove the AJAX fragment/pagination interception and its script | inline | done | 3cea974 |
-| 2 | 2.7 | Scope the legacy autocomplete script to the block fallback and drop the global enqueue | inline | done | pending |
-| 2 | 2.8 | Prune the removed archive, filter and theme-specific rules from the stylesheet | inline | todo | — |
+| 2 | 2.7 | Scope the legacy autocomplete script to the block fallback and drop the global enqueue | inline | done | 648bff8 |
+| 2 | 2.8 | Prune the removed archive, filter and theme-specific rules from the stylesheet | inline | done | pending |
 | 2 | 2.9 | Refactor the bootstrap and archive class down to query adaptation and engine hooks | inline | todo | — |
 | 2 | 2.10 | Add the frontend asset manifest test proving no global legacy assets load | inline | todo | — |
 | 3 | 3.1 | Remove the appearance, selector and placement admin fields, leaving values inert | inline | todo | — |

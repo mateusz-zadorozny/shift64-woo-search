@@ -60,3 +60,13 @@ spec keeps facet settings. Rather than let a retained, still-UI-exposed option
 quietly stop working, its resolver moved into the Filter Pill option builder,
 with the selected-term escape hatch preserved so an excluded-but-selected
 category stays removable.
+
+## 2026-08-28T06:52:00Z — build artifacts rebuilt at Step 2.8
+
+`build/blocks/*` is committed, and `src/interactivity/search/view.js` imports the
+catalog-navigation module from `frontend/js/`, so Step 2.2's edit to that module
+left the committed bundles stale. Rebuilt with `wp-scripts build` at this Step
+and verified the removed breadcrumb selector is gone from all three view bundles.
+Note for anyone resuming: `node_modules/.bin/*` loses its exec bit on this server,
+which makes `wp-scripts build` exit 1 with no output at all — `chmod +x
+node_modules/.bin/*` first.

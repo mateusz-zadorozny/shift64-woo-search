@@ -275,27 +275,27 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 	}
 
 	/**
-	 * The modal opts out of the custom width, and does so from a later rule.
+	 * The modal tray stays as wide as its dialog, and does so from a later rule.
 	 *
 	 * `.shift64-woo-search-modal__search .shift64-woo-search-results` and
 	 * `.shift64-woo-search-shortcode .shift64-woo-search-results` have identical
 	 * specificity — the modal's markup carries both classes — so the exemption only
 	 * holds while it stays *after* the rule it is overriding. Reordering the file would
-	 * silently reinstate the custom width inside the dialog, which is why the order is
+	 * silently constrain the tray inside the dialog, which is why the order is
 	 * asserted rather than just the declaration.
 	 */
-	public function test_modal_tray_opts_out_of_the_custom_width() {
+	public function test_modal_tray_stays_as_wide_as_its_dialog() {
 		$css = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'frontend/css/shift64-woo-search.css' );
 
-		$shortcode = strpos( $css, '.shift64-woo-search-shortcode .shift64-woo-search-results {' );
-		$modal     = strpos( $css, '.shift64-woo-search-modal__search .shift64-woo-search-results {' );
+		$fallback = strpos( $css, '.shift64-woo-search-shortcode .shift64-woo-search-results {' );
+		$modal    = strpos( $css, '.shift64-woo-search-modal__search .shift64-woo-search-results {' );
 
-		$this->assertIsInt( $shortcode, 'The shortcode tray rule was not found.' );
+		$this->assertIsInt( $fallback, 'The fallback tray rule was not found.' );
 		$this->assertIsInt( $modal, 'The modal tray exemption is missing.' );
 		$this->assertGreaterThan(
-			$shortcode,
+			$fallback,
 			$modal,
-			'The modal exemption must come after the shortcode rule or it loses on source order.'
+			'The modal exemption must come after the fallback rule or it loses on source order.'
 		);
 
 		preg_match(
@@ -308,44 +308,34 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 			$matches[1],
 			'The modal tray must stay as wide as its dialog.'
 		);
-		$this->assertStringNotContainsString(
-			'--s64ws-dropdown-width',
-			$matches[1],
-			'The modal tray must not consult the custom width at all.'
-		);
 	}
 
 	/**
-	 * The stylesheet must *size* the tray, not merely floor it.
+	 * The retired custom-width plumbing is gone from the stylesheet too.
 	 *
-	 * The first cut of this setting set `min-width` on the results container. That is a
-	 * no-op wherever the search field is already wider than the configured value — a
-	 * full-width search block, for one — so the setting appeared to do nothing at all
-	 * on the layout most likely to need it. A floor also cannot make the tray narrower,
-	 * which is half of what the setting is for.
-	 *
-	 * Asserted against the stylesheet because there is no DOM here to measure; browser
-	 * QA covers what it actually looks like.
+	 * The tray sized itself from a `--s64ws-dropdown-width` custom property that
+	 * the global appearance setting emitted. With the setting inert, a rule still
+	 * reading that variable would be dead plumbing that reads like a live feature
+	 * — and would quietly come back to life if anything ever set the property
+	 * again. The tray tracks its own field instead.
 	 */
-	public function test_stylesheet_sizes_the_results_tray_rather_than_flooring_it() {
+	public function test_stylesheet_no_longer_reads_the_retired_width_property() {
 		$css = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'frontend/css/shift64-woo-search.css' );
+
+		$this->assertStringNotContainsString(
+			'--s64ws-dropdown-width',
+			$css,
+			'The custom tray width was replaced by the Search Panel block\'s own maxWidth.'
+		);
 
 		// Anchored at line start so a selector list merely *ending* in this class does
 		// not match ahead of the container's own rule.
 		preg_match( '/^\.shift64-woo-search-results \{(.*?)^\}/ms', $css, $matches );
 		$this->assertNotEmpty( $matches, 'The results container rule was not found.' );
-
-		$rule = $matches[1];
-
 		$this->assertMatchesRegularExpression(
-			'/^\s*width:\s*var\(--s64ws-dropdown-width,\s*auto\)/m',
-			$rule,
-			'The tray must size from --s64ws-dropdown-width, falling back to matching the field.'
-		);
-		$this->assertDoesNotMatchRegularExpression(
-			'/^\s*min-width:\s*var\(--s64ws-dropdown-width/m',
-			$rule,
-			'A min-width floor leaves the setting inert on layouts wider than it.'
+			'/^\s*width:\s*auto;/m',
+			$matches[1],
+			'The tray must track the width of the search field it belongs to.'
 		);
 	}
 }
