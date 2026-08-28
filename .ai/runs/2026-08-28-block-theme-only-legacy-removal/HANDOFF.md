@@ -1,32 +1,32 @@
 # Handoff — 2026-08-28-block-theme-only-legacy-removal
 
-**Last updated:** 2026-08-28T06:49:12Z
+**Last updated:** 2026-08-28T07:11:34Z
 **Branch:** `feat/block-theme-only-legacy-removal`
 **PR:** https://github.com/mateusz-zadorozny/shift64-woo-search/pull/100
-**Current phase/step:** Phase 3 Step 3.1
-**Last commit:** `310c5d9` — test(assets): pin the frontend manifest to block-scoped delivery
+**Current phase/step:** Phase 4 Step 4.1
+**Last commit:** `b52ac23` — feat(admin): announce the block-only storefront with a dismissible upgrade notice
 
 ## What just happened
 
-- Phase 2 is complete and checkpoint 2 passed over Steps 2.5 … 2.10. The plugin no
-  longer contains a classic frontend: no shortcodes, no placement hooks, no
-  theme-specific code, no archive fragment swap, no injected filter bar or sort
-  control, and no global asset enqueue.
-- The running site confirms the asset property directly: the legacy autocomplete
-  script and its config payload appear on no page, because every block on the
-  fixture is composed and the childless fallback never runs.
-- `build/blocks/*` was rebuilt — it had gone stale at Step 2.2 and nothing in the
-  PHP gate would have caught it.
+- Phase 3 is complete and checkpoint 3 passed over Steps 3.1 … 3.6. WP Admin no
+  longer offers a setting the frontend does not read; the generated SHORTINIT
+  config is pinned to engine constants; WordPress 7.0 and WooCommerce 10.9 are
+  declared everywhere and one CI job runs against the floor; a runtime guard,
+  a leftover-shortcode detector and a dismissible upgrade notice are in place.
+- The PR title was retyped from `refactor(...)` to `feat(...)`: the repo
+  squash-merges with the PR title as the commit subject, and the Angular preset
+  semantic-release uses treats `refactor` as no release. No commit carries a
+  `BREAKING CHANGE:` footer, which would cut 1.0.0 rather than the intended
+  pre-1.0 minor.
 
 ## Next concrete action
 
-- Step 3.1: remove the appearance, selector and placement fields from WP Admin
-  while leaving their stored values untouched. Nothing on the frontend reads them
-  any more as of Step 2.7, so this Step is the admin half of the same change. The
-  admin test suites (`test-admin-page-render.php`,
-  `test-admin-settings-information-architecture.php`,
-  `test-admin-settings-persistence.php`) all assert on these fields and will need
-  retargeting onto their absence.
+- Step 4.1: finish `docs/block-theme-migration.md`. The surface inventory and
+  option classification landed in Step 1.1; what is still missing is the
+  merchant-facing half — the nine-step Site Editor migration, the copyable
+  inherited Product Collection pattern, rollback steps including template backup,
+  and the page cache/CDN purge warning. The file already ends with a link to an
+  "Upgrading a store to the block-only frontend" anchor that does not exist yet.
 
 ## Blockers / open questions
 

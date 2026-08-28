@@ -109,3 +109,29 @@ minor". The break is communicated through the changelog upgrade notice, the
 migration guide and `BACKWARD_COMPATIBILITY.md` (Steps 4.1–4.3) instead. The squash
 body is `COMMIT_MESSAGES`, so every commit subject on this branch is analyzed too —
 none may introduce that footer.
+
+## 2026-08-28T07:11:34Z — checkpoint 3 (Steps 3.1 … 3.6), Phase 3 closed
+
+Full PHP gate green (phpcs 8/8, phpunit 787/8461). Browser verification in WP
+Admin confirms the upgrade notice renders with its migration-guide link and
+Dismiss action, that it is the *only* notice on a supported runtime with a block
+theme, and that the legacy `?tab=frontend` bookmark still resolves — now to
+Search Experience > Autocomplete, with no selector or tray-width field anywhere.
+Details and artifacts: `checkpoint-3-checks.md`.
+
+## 2026-08-28T07:11:34Z — decision: retire the Search Field admin section
+
+Removing the three theme-selector fields would have left a section named after a
+search field the plugin no longer renders, holding one unrelated setting. The
+autocomplete debounce moved into Autocomplete, the section was dropped from the
+route registry, and the legacy `frontend` alias was repointed so no existing
+bookmark breaks.
+
+## 2026-08-28T07:11:34Z — decision: the requirements guard fails open on an unknown WooCommerce version
+
+The guard disables block bootstrap only on a version it can positively read as
+below the floor. The plugin already returns early when WooCommerce is not active,
+so an unreadable version means an active installation the guard cannot
+introspect; switching every storefront block off there would be worse than
+trusting it. A classic theme is likewise treated as supported — it gets an
+informational notice, not a disabled plugin.
