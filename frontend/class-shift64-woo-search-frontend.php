@@ -111,39 +111,6 @@ class Shift64_Woo_Search_Frontend {
 		);
 
 		wp_localize_script( 'shift64-woo-search', 'shift64_woo_search_config', $config );
-
-		// AJAX pagination + filter dropdown toggle + clear-filters handler.
-		// Load on any archive page where the interceptor may register facets:
-		// - product search results (is_search + post_type=product), when enabled.
-		// - taxonomy archives listed in the scope map, when that scope is enabled.
-		$needs_filters_js = false;
-
-		if ( is_search() && 'product' === get_query_var( 'post_type' )
-			&& 'yes' === get_option( 'shift64_woo_search_archive_enabled', 'no' )
-		) {
-			$needs_filters_js = true;
-		}
-
-		if ( ! $needs_filters_js && class_exists( 'Shift64_Woo_Search_Taxonomy_Archive' ) ) {
-			$scope_map     = Shift64_Woo_Search_Taxonomy_Archive::get_scope_map();
-			$scopes_option = (array) get_option( 'shift64_woo_search_taxonomy_archive_scopes', array() );
-			foreach ( array_keys( $scope_map ) as $taxonomy ) {
-				if ( is_tax( $taxonomy ) && in_array( $taxonomy, $scopes_option, true ) ) {
-					$needs_filters_js = true;
-					break;
-				}
-			}
-		}
-
-		if ( $needs_filters_js ) {
-			wp_enqueue_script(
-				'shift64-woo-search-ajax-pagination',
-				SHIFT64_WOO_SEARCH_URL . 'frontend/js/shift64-woo-search-ajax-pagination.js',
-				array(),
-				self::asset_version( 'frontend/js/shift64-woo-search-ajax-pagination.js' ),
-				true
-			);
-		}
 	}
 
 	/**

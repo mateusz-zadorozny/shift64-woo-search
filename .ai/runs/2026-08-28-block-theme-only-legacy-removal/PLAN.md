@@ -18,8 +18,8 @@
 | 2 | 2.2 | Remove the breadcrumbs shortcode and the archive header/title output surfaces | inline | done | 915929c |
 | 2 | 2.3 | Remove the automatic filter-bar placement and the legacy filter renderer | inline | done | 7232bcc |
 | 2 | 2.4 | Remove the Kadence partial-template takeover and theme-specific integration | inline | done | e9c9d10 |
-| 2 | 2.5 | Remove the catalog sort-control takeover and result-count text replacement | inline | done | pending |
-| 2 | 2.6 | Remove the AJAX fragment/pagination interception and its script | inline | todo | — |
+| 2 | 2.5 | Remove the catalog sort-control takeover and result-count text replacement | inline | done | e92340e |
+| 2 | 2.6 | Remove the AJAX fragment/pagination interception and its script | inline | done | pending |
 | 2 | 2.7 | Scope the legacy autocomplete script to the block fallback and drop the global enqueue | inline | todo | — |
 | 2 | 2.8 | Prune the removed archive, filter and theme-specific rules from the stylesheet | inline | todo | — |
 | 2 | 2.9 | Refactor the bootstrap and archive class down to query adaptation and engine hooks | inline | todo | — |

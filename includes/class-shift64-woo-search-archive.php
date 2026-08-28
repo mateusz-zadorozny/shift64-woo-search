@@ -95,7 +95,6 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 
 		add_action( 'pre_get_posts', array( $this, 'intercept' ), 99 );
 		add_action( 'wp_footer', array( $this, 'render_debug' ), 999 );
-		add_filter( 'paginate_links', array( $this, 'preserve_filter_params_in_pagination' ) );
 		add_filter( 'pre_get_document_title', array( $this, 'filter_document_title' ), 20 );
 	}
 
@@ -1205,43 +1204,5 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	 */
 	private function build_config() {
 		return Shift64_Woo_Search_Settings::search_config();
-	}
-
-	/**
-	 * Append active filter_pa_* parameters to WooCommerce pagination links.
-	 *
-	 * Without this, clicking page 2 while a filter is active silently drops
-	 * the filter and shows unfiltered results.
-	 *
-	 * @param string $link Pagination link HTML.
-	 * @return string Modified link with filter params preserved.
-	 */
-	public function preserve_filter_params_in_pagination( $link ) {
-		if ( empty( $this->active_filters ) ) {
-			return $link;
-		}
-
-		// Collect filter_* query params from the current request.
-		$filter_params = array();
-		foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			if ( str_starts_with( $key, 'filter_' ) ) {
-				$filter_params[ sanitize_key( $key ) ] = sanitize_text_field( wp_unslash( $value ) );
-			}
-		}
-
-		if ( empty( $filter_params ) ) {
-			return $link;
-		}
-
-		// Inject filter params into each href in the pagination link.
-		return preg_replace_callback(
-			'/href=["\']([^"\']+)["\']/',
-			function ( $matches ) use ( $filter_params ) {
-				$url = html_entity_decode( $matches[1] );
-				$url = add_query_arg( $filter_params, $url );
-				return 'href="' . esc_url( $url ) . '"';
-			},
-			$link
-		);
 	}
 }

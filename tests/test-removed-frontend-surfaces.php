@@ -119,6 +119,25 @@ class Shift64_Woo_Search_Removed_Frontend_Surfaces_Test extends WP_UnitTestCase 
 	}
 
 	/**
+	 * Pagination is left to the template and to Product Collection's router.
+	 *
+	 * This is the ownership matrix decided in #20: a Product Collection with a
+	 * router region belongs to WooCommerce's Interactivity API, one with
+	 * `forcePageReload` belongs to plain browser navigation, and nothing belongs
+	 * to a plugin-owned AJAX swap any more.
+	 */
+	public function test_pagination_is_not_intercepted() {
+		$this->assertPluginNotHookedTo(
+			'paginate_links',
+			'Pagination links are the template\'s; the plugin no longer rewrites them.'
+		);
+		$this->assertFileDoesNotExist(
+			dirname( __DIR__ ) . '/frontend/js/shift64-woo-search-ajax-pagination.js',
+			'The archive fragment-swap script was removed with the renderer it drove.'
+		);
+	}
+
+	/**
 	 * The removed render methods are gone from the archive class, not merely unhooked.
 	 */
 	public function test_removed_archive_methods_no_longer_exist() {
@@ -132,6 +151,7 @@ class Shift64_Woo_Search_Removed_Frontend_Surfaces_Test extends WP_UnitTestCase 
 			'filter_sort_options',
 			'filter_result_count_text',
 			'filter_result_count_text_ctx',
+			'preserve_filter_params_in_pagination',
 		);
 
 		foreach ( $removed as $method ) {
