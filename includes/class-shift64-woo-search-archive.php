@@ -2,7 +2,16 @@
 /**
  * Archive/Search query interceptor — replaces WooCommerce MySQL queries with Redis FT.SEARCH.
  *
- * Phase 6.0: Only intercepts product search results pages (?s=query&post_type=product).
+ * Only intercepts product search results pages (`?s=query&post_type=product`).
+ *
+ * This class is a *query* integration and nothing else. It used to render as
+ * well: an archive header, a theme-specific page fragment, a replacement sort
+ * control and result count, and pagination links it rewrote on the way out. The
+ * block-theme-only cleanup removed all of that, because the template owns the
+ * page. What is left is the interception, the Redis search itself, the facet
+ * data it publishes to the Filter blocks, the opt-in debug panel, and the
+ * browser document title the cleared `s` query var would otherwise blank out.
+ * No method here renders a product loop or calls a WooCommerce template.
  *
  * @package Shift64_Woo_Search
  */

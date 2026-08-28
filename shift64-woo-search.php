@@ -349,13 +349,16 @@ class Shift64_Woo_Search_Plugin {
 			new Shift64_Woo_Search_Admin();
 		}
 
-		// Shared shortcode renderers and dynamic blocks must also exist in the editor.
+		// Blocks register in the editor as well as on the storefront. The frontend
+		// object is no longer a classic renderer of its own — it is the asset
+		// loader the childless-parent block fallback calls, and it hooks nothing.
 		$frontend = new Shift64_Woo_Search_Frontend();
 		new Shift64_Woo_Search_Blocks( $frontend );
 		new Shift64_Woo_Search_Catalog_Navigation();
 		new Shift64_Woo_Search_Editor_Facets_Rest();
 
-		// Frontend autocomplete and search integrations.
+		// Storefront query integrations. Every one of these adapts a query or
+		// publishes data to a block; none of them places markup in a theme.
 		if ( ! is_admin() ) {
 			new Shift64_Woo_Search_Archive();
 			new Shift64_Woo_Search_Taxonomy_Archive();

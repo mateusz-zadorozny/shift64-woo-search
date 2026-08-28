@@ -163,6 +163,85 @@ class Shift64_Woo_Search_Removed_Frontend_Surfaces_Test extends WP_UnitTestCase 
 	}
 
 	/**
+	 * No runtime code path renders a second product loop or a WooCommerce template.
+	 *
+	 * This is the ownership invariant the whole release is for. WooCommerce's
+	 * Product Collection renders the products; the plugin adapts the query behind
+	 * it. A `wc_get_template_part( 'content', 'product' )` or a
+	 * `woocommerce_product_loop_start()` anywhere in this plugin would mean two
+	 * loops competing for the same page again, with two sets of state and two
+	 * histories — which is exactly what the removed Kadence partial did.
+	 *
+	 * Asserted against the source rather than by rendering, because the failure
+	 * mode is a call site existing at all, not one particular request reaching it.
+	 */
+	public function test_no_runtime_path_renders_a_product_loop() {
+		$root      = dirname( __DIR__ );
+		$forbidden = array(
+			'wc_get_template_part'           => 'renders a WooCommerce template part',
+			'woocommerce_product_loop_start' => 'opens a second product loop',
+			'woocommerce_product_loop_end'   => 'closes a second product loop',
+			'woocommerce_result_count'       => 'renders a competing result count',
+			'woocommerce_catalog_ordering'   => 'renders a competing sort control',
+		);
+		$offenders = array();
+
+		foreach ( array( '/includes', '/frontend', '/admin', '/cli', '/mu-plugins' ) as $dir ) {
+			$path = $root . $dir;
+			if ( ! is_dir( $path ) ) {
+				continue;
+			}
+
+			$files = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path ) );
+			foreach ( $files as $file ) {
+				if ( 'php' !== $file->getExtension() ) {
+					continue;
+				}
+
+				// Comments are stripped first: the plugin still names some of
+				// these functions in prose explaining which block owns them,
+				// and a mention is not a call site.
+				$code = $this->strip_comments( file_get_contents( $file->getPathname() ) );
+
+				foreach ( $forbidden as $call => $why ) {
+					if ( false !== strpos( $code, $call . '(' ) ) {
+						$offenders[] = sprintf(
+							'%s %s',
+							str_replace( $root . '/', '', $file->getPathname() ),
+							$why
+						);
+					}
+				}
+			}
+		}
+
+		$this->assertSame( array(), $offenders, implode( '; ', $offenders ) );
+	}
+
+	/**
+	 * Return PHP source with every comment removed and calls normalized.
+	 *
+	 * @param string $source Raw file contents.
+	 * @return string Source without comments, with whitespace before `(` dropped.
+	 */
+	private function strip_comments( $source ) {
+		$code = '';
+
+		foreach ( token_get_all( $source ) as $token ) {
+			if ( is_array( $token ) ) {
+				if ( in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
+					continue;
+				}
+				$code .= $token[1];
+				continue;
+			}
+			$code .= $token;
+		}
+
+		return preg_replace( '/\s+\(/', '(', $code );
+	}
+
+	/**
 	 * The classic filter-bar renderer class is gone entirely.
 	 */
 	public function test_legacy_filter_renderer_class_is_gone() {
