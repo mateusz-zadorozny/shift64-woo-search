@@ -330,8 +330,10 @@ class Shift64_Woo_Search_Plugin {
 		$this->maybe_create_tables();
 		$this->maybe_update_mu_plugin();
 
-		// Admin notices for Redis status.
+		// Admin notices for Redis status, the runtime baseline, leftover
+		// shortcodes, and the block-theme-only upgrade announcement.
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+		add_action( 'admin_init', array( $this, 'maybe_dismiss_upgrade_notice' ) );
 
 		// Proactive heal: WP Redis Object Cache flush drops all RediSearch indexes
 		// (FLUSHDB on any db is instance-wide for RediSearch). Recreate ours immediately
@@ -389,6 +391,30 @@ class Shift64_Woo_Search_Plugin {
 			Shift64_Woo_Search_CLI::register_commands();
 		}
 	}
+
+	/**
+	 * Identifier for the block-theme-only upgrade notice.
+	 *
+	 * An identifier rather than a version: a patch release must not resurrect a
+	 * notice somebody already dismissed, and a later breaking release should be
+	 * able to raise its own without disturbing this one.
+	 */
+	const UPGRADE_NOTICE_ID = 'block-theme-only';
+
+	/**
+	 * User meta key recording which upgrade notice a user dismissed.
+	 */
+	const UPGRADE_NOTICE_META = 'shift64_woo_search_upgrade_notice_dismissed';
+
+	/**
+	 * Query argument that dismisses the upgrade notice.
+	 */
+	const UPGRADE_NOTICE_QUERY_ARG = 'shift64_woo_search_dismiss_upgrade_notice';
+
+	/**
+	 * Where the upgrade notice sends a merchant for the full migration steps.
+	 */
+	const MIGRATION_GUIDE_URL = 'https://github.com/mateusz-zadorozny/shift64-woo-search/blob/main/docs/block-theme-migration.md';
 
 	/**
 	 * Current data version. Bump whenever an upgrade needs to do work beyond
@@ -657,6 +683,81 @@ class Shift64_Woo_Search_Plugin {
 	}
 
 	/**
+	 * Announce the block-theme-only storefront and link the migration guide.
+	 *
+	 * This release changes what a storefront looks like, and it does so on
+	 * update rather than on any action the merchant took. A changelog entry is
+	 * not enough: most merchants never read one. So the plugin says it in WP
+	 * Admin, once, to the people who can act on it.
+	 *
+	 * Dismissal is per user and permanent, keyed by an identifier rather than a
+	 * version number so that a later release can raise a different notice without
+	 * un-dismissing this one, and so that a patch release does not resurrect it.
+	 */
+	private function render_upgrade_notice() {
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		if ( self::UPGRADE_NOTICE_ID === get_user_meta( get_current_user_id(), self::UPGRADE_NOTICE_META, true ) ) {
+			return;
+		}
+
+		$dismiss_url = wp_nonce_url(
+			add_query_arg( self::UPGRADE_NOTICE_QUERY_ARG, '1' ),
+			self::UPGRADE_NOTICE_QUERY_ARG
+		);
+
+		?>
+		<div class="notice notice-info">
+			<p>
+				<strong><?php esc_html_e( 'Shift64 Woo Search: the storefront is now block-only.', 'shift64-woo-search' ); ?></strong>
+			</p>
+			<p>
+				<?php esc_html_e( 'Search, filters, sorting and the results grid are Site Editor blocks placed in your block templates. The classic-theme shortcodes and the controls this plugin used to inject into a theme have been removed, so a storefront that relied on them needs its templates edited once.', 'shift64-woo-search' ); ?>
+			</p>
+			<p>
+				<a href="<?php echo esc_url( self::MIGRATION_GUIDE_URL ); ?>" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Read the migration guide', 'shift64-woo-search' ); ?>
+				</a>
+				<span aria-hidden="true"> | </span>
+				<a href="<?php echo esc_url( $dismiss_url ); ?>"><?php esc_html_e( 'Dismiss', 'shift64-woo-search' ); ?></a>
+			</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Record a per-user dismissal of the upgrade notice.
+	 *
+	 * Hooked to `admin_init` so the redirect happens before any output. The nonce
+	 * is what stops the dismissal being triggered for someone else by a crafted
+	 * link, and the capability check is repeated here because a nonce proves who
+	 * sent the request, not what they are allowed to do.
+	 */
+	public function maybe_dismiss_upgrade_notice() {
+		if ( ! isset( $_GET[ self::UPGRADE_NOTICE_QUERY_ARG ] ) ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), self::UPGRADE_NOTICE_QUERY_ARG ) ) {
+			return;
+		}
+
+		update_user_meta( get_current_user_id(), self::UPGRADE_NOTICE_META, self::UPGRADE_NOTICE_ID );
+
+		$redirect = remove_query_arg( array( self::UPGRADE_NOTICE_QUERY_ARG, '_wpnonce' ) );
+
+		if ( wp_safe_redirect( $redirect ) ) {
+			exit;
+		}
+	}
+
+	/**
 	 * Report removed shortcode tags still sitting in content.
 	 *
 	 * A tag that is no longer registered prints as literal text on the
@@ -717,6 +818,7 @@ class Shift64_Woo_Search_Plugin {
 	 * Display admin notices for Redis connection status.
 	 */
 	public function admin_notices() {
+		$this->render_upgrade_notice();
 		$this->render_runtime_requirement_notices();
 		$this->render_legacy_shortcode_notice();
 
