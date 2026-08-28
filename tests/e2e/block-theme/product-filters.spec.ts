@@ -99,6 +99,24 @@ test.describe('Product Filters beside the enhanced Product Collection', () => {
 		expect( listRight - countRight ).toBeGreaterThanOrEqual( 4 );
 	});
 
+	test('desktop facet options stay clickable above the product collection', async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 800 });
+		await page.goto(BROAD_QUERY);
+
+		const trigger = page.locator(TRIGGER).first();
+		await trigger.click();
+
+		// `check()` performs the real pointer hit-test. Before the parent
+		// stacking context was raised, the product image covered this input and
+		// Playwright failed with "Element is covered".
+		const option = page.locator(OPTION_INPUT).first();
+		await expect(option).toBeVisible();
+		await option.check();
+
+		await expect(page).toHaveURL(/filter_product_cat=/);
+		await expect(productCards(page).first()).toBeVisible();
+	});
+
 	test('desktop option changes router-navigate without a reload, reset paging, and keep search', async ({ page }) => {
 		await page.goto(BROAD_QUERY);
 		await expect(productCards(page).first()).toBeVisible();
