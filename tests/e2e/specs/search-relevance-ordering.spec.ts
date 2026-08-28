@@ -28,29 +28,61 @@ import {
  */
 
 // "series" appears in every generated product description, so it matches all 48
-// seeded products: 3 pages at 16/page. Same broad query, and same coupling to
-// bin/demo-product-catalog.php, as specs/search-results-page.spec.ts.
+// seeded products — the broadest query the deterministic catalog offers. Same
+// query, and same coupling to bin/demo-product-catalog.php, as
+// specs/search-results-page.spec.ts.
 const BROAD_QUERY = '/?s=series&post_type=product';
 
-// The deterministic leading titles of that query, in relevance order, as
-// bin/demo-product-catalog.php seeds them. These are exact on purpose: a
-// weaker assertion (a count, or a regex on one name) would still pass if
-// ranking were applied after slicing. If the generator's names, ordering, or
-// page size change, update BOTH arrays here AND the expected values recorded in
-// the design doc above, in the same PR.
-const PAGE_ONE = [
+// How many leading titles each page is asserted on.
+const LEADING = 4;
+
+/*
+ * The deterministic ranked head of that query — the first 20 products in
+ * relevance order, exactly as bin/demo-product-catalog.php seeds them.
+ *
+ * Exact titles are the point. A weaker assertion (a count, or a regex on one
+ * name) would still pass with ranking applied after slicing, which is the
+ * regression this file exists to catch.
+ *
+ * It is a flat ranked list rather than a PAGE_ONE / PAGE_TWO pair because the
+ * archive's page SIZE is not a constant: WooCommerce recomputes
+ * `woocommerce_catalog_columns` from the incoming theme on every
+ * `after_switch_theme` (wc_reset_product_grid_settings), and this suite's
+ * classic-theme project switches to Storefront (3 columns) and never restores
+ * the option — so a page holds 16 products on a freshly provisioned site and 12
+ * on one the suite has already run against. That non-idempotency is tracked in
+ * #102; until it is fixed, the page-2 expectation is taken as an OFFSET into
+ * this list using the page size actually rendered, which is correct at either
+ * size. The list is long enough to reach past the larger one.
+ *
+ * If the generator's names or ordering change, update this list AND the values
+ * recorded in the design doc above, in the same PR.
+ */
+const RANKED_LEADING = [
 	'Aero Artemis Sweater Lightweight Midnight Black',
 	'Aero Cipher Laptop Ultra Wide Space Grey',
 	'Aero Cascade Micellar Cleanser Intensive Rose',
 	'Lumen Apollo Cardigan Everyday Forest Green',
-];
-
-const PAGE_TWO = [
+	'Lumen Beacon Monitor Noise Cancelling Copper',
+	'Lumen Basalt Bookshelf Matte Clay',
+	'Lumen Bloom Face Mask Fragrance Free Aloe',
+	'Calm Aurora Keyboard Compact Bronze',
+	'Calm Amber Sheet Mask Purifying Mint',
+	'Pulse Zenith Mouse Studio Arctic White',
+	'Pulse Zest Shampoo Repairing Vanilla',
+	'Edge Vector Gaming Mouse Max Onyx',
+	'Edge Velvet Volume Shampoo Brightening Cedarwood',
+	'Arc Orion Skirt Relaxed Fit Off White',
+	'Arc Tesseract Smartphone Pro Graphite',
+	'Arc Tonic Conditioner Hydrating Bergamot',
 	'Onyx Nike Skirt Ribbed Cobalt Blue',
 	'Onyx Spectra Smartphone Fast Charge Ruby Red',
 	'Onyx Serene Conditioner Lightweight Coconut',
 	'Crest Maia Jacket Brushed Deep Navy',
 ];
+
+/** The leading titles page 1 must render, whatever the page size is. */
+const PAGE_ONE = RANKED_LEADING.slice(0, LEADING);
 
 // Product Collection links page 2 as a pretty permalink here, but a differently
 // configured collection emits the query-page form instead. Accept both — this
@@ -131,19 +163,28 @@ test.describe('search relevance ordering (block-theme results surface)', () => {
 
 		await expect(productCards(page).first()).toBeVisible();
 		await expectLeadingTitles(cardTitles(page), PAGE_ONE);
-		const pageOneRendered = (await cardTitles(page).allInnerTexts()).slice(0, PAGE_TWO.length);
+		const pageOneRendered = (await cardTitles(page).allInnerTexts()).slice(0, LEADING);
+
+		// Read the page size instead of assuming it — see RANKED_LEADING and
+		// #102. Page 2 therefore starts at rank `pageSize`, whatever that is.
+		const pageSize = await cardTitles(page).count();
+		const expectedPageTwo = RANKED_LEADING.slice(pageSize, pageSize + LEADING);
+		expect(
+			expectedPageTwo,
+			`RANKED_LEADING is too short for a page size of ${pageSize} — extend it with the next ranked titles.`
+		).toHaveLength(LEADING);
 
 		// Navigate the way a user does — the rendered pagination control.
 		await pagination(page).getByRole('link', { name: 'Page 2', exact: true }).click();
 
 		await expect(page).toHaveURL(PAGE_2_URL);
 		await expect(page.locator('.page-numbers.current').first()).toHaveText('2');
-		await expectLeadingTitles(cardTitles(page), PAGE_TWO);
+		await expectLeadingTitles(cardTitles(page), expectedPageTwo);
 
-		// Compare what was actually rendered, not the two constants: ranking
-		// applied after slicing would repeat page 1's products here, and that
-		// has to fail even if someone later edits the expected arrays.
-		const pageTwoRendered = (await cardTitles(page).allInnerTexts()).slice(0, PAGE_TWO.length);
+		// Compare what was actually rendered, not the fixture: ranking applied
+		// after slicing would repeat page 1's products here, and that has to
+		// fail even if someone later edits the expected titles.
+		const pageTwoRendered = (await cardTitles(page).allInnerTexts()).slice(0, LEADING);
 		expect(pageTwoRendered).not.toEqual(pageOneRendered);
 
 		// Page 2 must remain navigable in both directions.

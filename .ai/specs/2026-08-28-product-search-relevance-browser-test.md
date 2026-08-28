@@ -70,6 +70,18 @@ These values were observed in the deterministic QA catalog after PR #90. The
 test should fail clearly if the fixture generator changes them; the expected
 arrays and the generator comments must then be reviewed together.
 
+> **Implementation note (PR #99).** Both arrays were re-verified against a
+> freshly provisioned catalog and matched exactly — no fixture drift. They ship
+> as one flat `RANKED_LEADING` list of the first 20 ranked titles rather than as
+> a `PAGE_ONE` / `PAGE_TWO` pair, because the archive's page **size** turned out
+> not to be a constant: WooCommerce recomputes `woocommerce_catalog_columns`
+> from the incoming theme on every `after_switch_theme`, and the suite's
+> classic-theme project switches to Storefront (3 columns) without restoring the
+> option, so a page holds 16 products on a fresh site and 12 on a reused one
+> (tracked in #102). The test reads the rendered page size and indexes into the
+> ranked list, which keeps the assertions exactly as strict at either size —
+> `PAGE_TWO` above is `RANKED_LEADING[16..19]`, unchanged.
+
 ### Scenario A — archive and header autocomplete share relevance order
 
 1. Open `/?s=series&post_type=product`.
