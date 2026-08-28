@@ -95,9 +95,6 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 
 		add_action( 'pre_get_posts', array( $this, 'intercept' ), 99 );
 		add_action( 'wp_footer', array( $this, 'render_debug' ), 999 );
-		add_filter( 'woocommerce_catalog_orderby', array( $this, 'filter_sort_options' ) );
-		add_filter( 'ngettext_woocommerce', array( $this, 'filter_result_count_text' ), 10, 5 );
-		add_filter( 'ngettext_with_context_woocommerce', array( $this, 'filter_result_count_text_ctx' ), 10, 6 );
 		add_filter( 'paginate_links', array( $this, 'preserve_filter_params_in_pagination' ) );
 		add_filter( 'pre_get_document_title', array( $this, 'filter_document_title' ), 20 );
 	}
@@ -990,97 +987,6 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			'ids'   => $ids,
 			'total' => $total,
 		);
-	}
-
-	/**
-	 * Filter WooCommerce catalog orderby options on search pages.
-	 *
-	 * Core WooCommerce removes 'Default sorting' on search results and maps
-	 * default menu_order to relevance. Shift64 prepends relevance and removes
-	 * menu_order in search contexts while retaining the remaining options.
-	 *
-	 * @param array<string,string> $options Available sort options.
-	 * @return array<string,string>
-	 */
-	public function filter_sort_options( $options ) {
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return $options;
-		}
-
-		if ( ! is_search() ) {
-			return $options;
-		}
-
-		$filtered = array(
-			'relevance' => __( 'Search relevance', 'shift64-woo-search' ),
-		);
-
-		foreach ( $options as $key => $label ) {
-			if ( 'menu_order' === $key ) {
-				continue;
-			}
-			$filtered[ $key ] = $label;
-		}
-
-		return $filtered;
-	}
-
-	/**
-	 * Replace WooCommerce result count text on search pages (_n variant).
-	 *
-	 * @param string $translation Translated text.
-	 * @param string $single      Singular form.
-	 * @param string $plural      Plural form.
-	 * @param int    $number      Count.
-	 * @param string $domain      Text domain.
-	 * @return string
-	 */
-	public function filter_result_count_text( $translation, $single, $plural, $number, $domain ) {
-		return $this->replace_result_count( $translation, $single );
-	}
-
-	/**
-	 * Replace WooCommerce result count text on search pages (_nx variant).
-	 *
-	 * @param string $translation Translated text.
-	 * @param string $single      Singular form.
-	 * @param string $plural      Plural form.
-	 * @param int    $number      Count.
-	 * @param string $context     Translation context.
-	 * @param string $domain      Text domain.
-	 * @return string
-	 */
-	public function filter_result_count_text_ctx( $translation, $single, $plural, $number, $context, $domain ) {
-		return $this->replace_result_count( $translation, $single );
-	}
-
-	/**
-	 * Shared result count replacement logic.
-	 *
-	 * Returns a format string — WooCommerce's printf() fills in the placeholders.
-	 *
-	 * @param string $translation Original translated text.
-	 * @param string $single      English singular form to match against.
-	 * @return string
-	 */
-	private function replace_result_count( $translation, $single ) {
-		if ( ! is_search() || 'product' !== get_query_var( 'post_type' ) ) {
-			return $translation;
-		}
-
-		if ( 'Showing all %1$d result' === $single ) {
-			return 'Products: %1$d';
-		}
-
-		if ( 'Showing %1$d&ndash;%2$d of %3$d result' === $single ) {
-			return 'Products: %3$d';
-		}
-
-		if ( 'Showing the single result' === $single ) {
-			return 'Products: 1';
-		}
-
-		return $translation;
 	}
 
 	/**
