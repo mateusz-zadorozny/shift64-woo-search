@@ -3,9 +3,10 @@ import type { Locator, Page, Request } from '@playwright/test';
 /**
  * Central selector contract. A markup refactor should only ever touch this file.
  *
- * Block themes use the Product Filters block, while classic themes keep the
- * legacy filter bar. Keep both contracts here so each project can select the
- * component it actually owns.
+ * Everything the plugin renders is a block. The legacy filter-bar selectors that
+ * used to sit alongside the Product Filters ones were removed with the classic
+ * frontend; what is left of WooCommerce's own markup (the product grid,
+ * pagination, price) is here because the plugin's blocks render inside it.
  */
 export const SEL = {
 	input: '.shift64-woo-search-field__input',
@@ -24,23 +25,20 @@ export const SEL = {
 	modalTrigger: '[data-shift64-woo-search-modal-trigger]',
 	modalClose: '[data-shift64-woo-search-modal-close]',
 	modalClear: '[data-shift64-woo-search-clear]',
-	filters: '.shift64-woo-search-filters',
 	productFilters: '.shift64-woo-search-product-filters',
-	filterCheckbox: '.shift64-woo-search-filter__checkbox',
 	productFilterCheckbox: '.shift64-woo-search-pill__form input[type="checkbox"]',
-	// Theme-agnostic product grid (mirrors the AJAX pagination script's list).
+	// WooCommerce's product grid, in the shapes its own templates produce.
 	productsGrid:
-		'.kwt-products-wrap, ul.products, .products, .wc-block-grid__products, .wp-block-woocommerce-product-template',
+		'ul.products, .products, .wc-block-grid__products, .wp-block-woocommerce-product-template',
 	orderbySelect: '.woocommerce-ordering select.orderby',
 	productSortTrigger: '.shift64-woo-search-product-sort .shift64-woo-search-pill__trigger',
-	// Classic Woo markup plus the blockified nav block themes render instead
-	// (mirrors the AJAX pagination script's SELECTORS.pagination).
+	// WooCommerce's own pagination, classic and blockified.
 	pagination: 'nav.woocommerce-pagination, nav.wp-block-query-pagination',
 	resultCount: '.woocommerce-result-count',
 	price: '.woocommerce-Price-amount',
 } as const;
 
-/** Body class set while the search modal (or mobile filter UI) is open. */
+/** Body class set while the search modal dialog is open. */
 export const MODAL_OPEN_BODY_CLASS = 'shift64-woo-search-modal-open';
 
 /** Page created by bin/e2e-provision.sh containing both search blocks. */

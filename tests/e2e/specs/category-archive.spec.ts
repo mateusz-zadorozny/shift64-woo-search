@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { SEL } from '../helpers/search';
 
-// Test 12: category archive takeover + facet bar (also proves pretty permalinks).
-// The filter bar renders only when the RediSearch interceptor ran and produced
-// facet data, so its presence is the takeover's observable artifact.
-test('category archive is intercepted and renders the facet bar', async ({ page }) => {
+// Test 12: category archive takeover + Product Filters block (also proves pretty
+// permalinks). The block renders pills only when the RediSearch interceptor ran
+// and produced facet data, so their presence is the takeover's observable
+// artifact — the block is placed in the template either way.
+test('category archive is intercepted and the Product Filters block offers facets', async ({
+	page,
+}) => {
 	await page.goto('/product-category/t-shirts/');
 
 	const cards = page.locator(SEL.productsGrid).first().locator('li.product');
