@@ -1,29 +1,32 @@
 # Handoff — 2026-08-28-block-theme-only-legacy-removal
 
-**Last updated:** 2026-08-28T06:34:36Z
+**Last updated:** 2026-08-28T06:49:12Z
 **Branch:** `feat/block-theme-only-legacy-removal`
 **PR:** https://github.com/mateusz-zadorozny/shift64-woo-search/pull/100
-**Current phase/step:** Phase 2 Step 2.5
-**Last commit:** `e9c9d10` — refactor(archive): remove the Kadence partial takeover and theme-specific integration
+**Current phase/step:** Phase 3 Step 3.1
+**Last commit:** `310c5d9` — test(assets): pin the frontend manifest to block-scoped delivery
 
 ## What just happened
 
-- Checkpoint 1 passed over Steps 1.1 … 2.4: the full PHP gate, the JS suites, an
-  HTTP smoke of four storefront URLs, and browser screenshots of the block-native
-  search results page.
-- The classic surface removed so far: both search shortcodes, the breadcrumbs
-  shortcode, the archive header and title overrides, the injected filter bar with
-  its mobile tray, and the Kadence partial-template takeover.
-- Two behaviors were deliberately carried over rather than dropped: the childless
-  parent block's fallback markup, and the "Excluded Categories" facet setting.
+- Phase 2 is complete and checkpoint 2 passed over Steps 2.5 … 2.10. The plugin no
+  longer contains a classic frontend: no shortcodes, no placement hooks, no
+  theme-specific code, no archive fragment swap, no injected filter bar or sort
+  control, and no global asset enqueue.
+- The running site confirms the asset property directly: the legacy autocomplete
+  script and its config payload appear on no page, because every block on the
+  fixture is composed and the childless fallback never runs.
+- `build/blocks/*` was rebuilt — it had gone stale at Step 2.2 and nothing in the
+  PHP gate would have caught it.
 
 ## Next concrete action
 
-- Step 2.5: remove the `woocommerce_catalog_orderby` sort-control takeover and the
-  `ngettext_woocommerce` result-count replacement from
-  `includes/class-shift64-woo-search-archive.php`. Checkpoint 1's screenshot shows
-  the count still reading "Products: 4"; after this Step it should read
-  WooCommerce's own phrasing.
+- Step 3.1: remove the appearance, selector and placement fields from WP Admin
+  while leaving their stored values untouched. Nothing on the frontend reads them
+  any more as of Step 2.7, so this Step is the admin half of the same change. The
+  admin test suites (`test-admin-page-render.php`,
+  `test-admin-settings-information-architecture.php`,
+  `test-admin-settings-persistence.php`) all assert on these fields and will need
+  retargeting onto their absence.
 
 ## Blockers / open questions
 
