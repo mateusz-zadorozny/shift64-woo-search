@@ -47,6 +47,7 @@ function shift64_woo_search_woocommerce_inactive_notice() {
 
 // Include files.
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-requirements.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-legacy-shortcodes.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-redis.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-schema.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-stats.php';
@@ -312,6 +313,8 @@ class Shift64_Woo_Search_Plugin {
 		if ( get_transient( $backoff_key ) ) {
 			return;
 		}
+
+		Shift64_Woo_Search_Legacy_Shortcodes::forget();
 
 		if ( ! $this->install_mu_plugin() || ! $this->generate_mu_plugin_config() ) {
 			set_transient( $backoff_key, 1, HOUR_IN_SECONDS );
@@ -654,10 +657,68 @@ class Shift64_Woo_Search_Plugin {
 	}
 
 	/**
+	 * Report removed shortcode tags still sitting in content.
+	 *
+	 * A tag that is no longer registered prints as literal text on the
+	 * storefront, with nothing anywhere to say why. This notice is the one
+	 * release of grace period: it names the posts so they can be fixed, and it
+	 * never renders the tag. Shown only to users who can manage the plugin, and
+	 * only when there is something to report — the scan behind it is cached, so
+	 * an ordinary admin page load costs one transient read.
+	 */
+	private function render_legacy_shortcode_notice() {
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$occurrences = Shift64_Woo_Search_Legacy_Shortcodes::find();
+
+		if ( empty( $occurrences ) ) {
+			return;
+		}
+
+		?>
+		<div class="notice notice-warning">
+			<p>
+				<strong><?php esc_html_e( 'Shift64 Woo Search:', 'shift64-woo-search' ); ?></strong>
+				<?php esc_html_e( 'These entries still contain search shortcodes that this version removed. A removed shortcode is printed as plain text on the storefront, so replace each one with the matching Site Editor block.', 'shift64-woo-search' ); ?>
+			</p>
+			<ul>
+				<?php foreach ( $occurrences as $occurrence ) : ?>
+					<li>
+						<?php
+						$edit_link = get_edit_post_link( $occurrence['id'] );
+						$title     = '' !== $occurrence['title']
+							? $occurrence['title']
+							/* translators: %d: post ID. */
+							: sprintf( __( 'Untitled (#%d)', 'shift64-woo-search' ), $occurrence['id'] );
+
+						if ( $edit_link ) {
+							printf(
+								'<a href="%1$s">%2$s</a>',
+								esc_url( $edit_link ),
+								esc_html( $title )
+							);
+						} else {
+							echo esc_html( $title );
+						}
+
+						echo ' — ';
+						echo esc_html( '[' . implode( '] [', $occurrence['tags'] ) . ']' );
+						?>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Display admin notices for Redis connection status.
 	 */
 	public function admin_notices() {
 		$this->render_runtime_requirement_notices();
+		$this->render_legacy_shortcode_notice();
 
 		$host = get_option( 'shift64_woo_search_redis_host', '' );
 

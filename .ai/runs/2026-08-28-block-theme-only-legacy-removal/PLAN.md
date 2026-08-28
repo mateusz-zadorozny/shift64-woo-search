@@ -27,8 +27,8 @@
 | 3 | 3.1 | Remove the appearance, selector and placement admin fields, leaving values inert | inline | done | 0496ba7 |
 | 3 | 3.2 | Lock the generated SHORTINIT config to engine constants with a regeneration test | inline | done | 37944f2 |
 | 3 | 3.3 | Raise the WordPress, WooCommerce and PHP baselines everywhere they are declared | inline | done | e390080 |
-| 3 | 3.4 | Add the runtime baseline guard, admin notice and non-zero CLI error | inline | done | pending |
-| 3 | 3.5 | Add the admin-only legacy shortcode occurrence detector | inline | todo | — |
+| 3 | 3.4 | Add the runtime baseline guard, admin notice and non-zero CLI error | inline | done | 0175c3e |
+| 3 | 3.5 | Add the admin-only legacy shortcode occurrence detector | inline | done | pending |
 | 3 | 3.6 | Add the dismissible per-user upgrade notice linking the migration guide | inline | todo | — |
 | 4 | 4.1 | Publish the Site Editor migration guide with the Product Collection pattern | inline | todo | — |
 | 4 | 4.2 | Convert BACKWARD_COMPATIBILITY.md promises into a dated migration record | inline | todo | — |
