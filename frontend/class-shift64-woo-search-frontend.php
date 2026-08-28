@@ -23,13 +23,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shift64_Woo_Search_Frontend {
 
 	/**
-	 * Whether the primary search assets were enqueued by this instance.
-	 *
-	 * @var bool
-	 */
-	private $assets_enqueued = false;
-
-	/**
 	 * Enqueue the fallback autocomplete assets.
 	 *
 	 * Nothing hooks `wp_enqueue_scripts` any more. The shared stylesheet reaches
@@ -39,7 +32,11 @@ class Shift64_Woo_Search_Frontend {
 	 * no Shift64 block therefore ships none of these assets.
 	 */
 	public function enqueue_assets() {
-		if ( $this->assets_enqueued ) {
+		// Two fallback blocks on one page would otherwise localize the config
+		// twice, so the guard is the enqueue state itself rather than a flag on
+		// this instance — the plugin keeps one long-lived instance, and a flag
+		// on it cannot notice the handle being dequeued again.
+		if ( wp_script_is( 'shift64-woo-search', 'enqueued' ) ) {
 			return;
 		}
 
@@ -48,8 +45,6 @@ class Shift64_Woo_Search_Frontend {
 		if ( empty( $host ) ) {
 			return;
 		}
-
-		$this->assets_enqueued = true;
 
 		wp_enqueue_style(
 			'shift64-woo-search',

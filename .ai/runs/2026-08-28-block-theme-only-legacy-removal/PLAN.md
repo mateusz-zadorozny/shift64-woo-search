@@ -22,8 +22,8 @@
 | 2 | 2.6 | Remove the AJAX fragment/pagination interception and its script | inline | done | 3cea974 |
 | 2 | 2.7 | Scope the legacy autocomplete script to the block fallback and drop the global enqueue | inline | done | 648bff8 |
 | 2 | 2.8 | Prune the removed archive, filter and theme-specific rules from the stylesheet | inline | done | ffbb008 |
-| 2 | 2.9 | Refactor the bootstrap and archive class down to query adaptation and engine hooks | inline | done | pending |
-| 2 | 2.10 | Add the frontend asset manifest test proving no global legacy assets load | inline | todo | — |
+| 2 | 2.9 | Refactor the bootstrap and archive class down to query adaptation and engine hooks | inline | done | 7a5775c |
+| 2 | 2.10 | Add the frontend asset manifest test proving no global legacy assets load | inline | done | pending |
 | 3 | 3.1 | Remove the appearance, selector and placement admin fields, leaving values inert | inline | todo | — |
 | 3 | 3.2 | Lock the generated SHORTINIT config to engine constants with a regeneration test | inline | todo | — |
 | 3 | 3.3 | Raise the WordPress, WooCommerce and PHP baselines everywhere they are declared | inline | todo | — |
