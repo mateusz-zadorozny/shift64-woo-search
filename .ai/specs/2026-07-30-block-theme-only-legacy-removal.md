@@ -1,6 +1,6 @@
 # Block Theme-Only Legacy Surface Removal
 
-> **Status:** draft
+> **Status:** implemented — PR #100, 2026-08-28
 
 ## 📝 TLDR
 

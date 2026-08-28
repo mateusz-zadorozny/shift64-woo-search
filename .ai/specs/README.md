@@ -24,7 +24,7 @@ and PRs.
 | [Block Theme Product Collection Integration](2026-07-30-block-theme-product-collection-integration.md) | ✅ implemented | PR #51; foundation for block-native controls |
 | [Composable Search Blocks](2026-07-30-composable-search-blocks.md) | ✅ implemented | PR #60 |
 | [Product Filter and Filter Pill Blocks](2026-07-30-product-filter-pill-blocks.md) | ✅ implemented | PR #72 |
-| [Block Theme-Only Legacy Surface Removal](2026-07-30-block-theme-only-legacy-removal.md) | 🚧 draft | final cleanup after all block-native specs |
+| [Block Theme-Only Legacy Surface Removal](2026-07-30-block-theme-only-legacy-removal.md) | ✅ implemented | PR #100; the classic frontend removed, baselines raised |
 | [One-Shot Isolated Worktree Test Environments](2026-07-31-one-shot-worktree-test-env.md) | ✅ implemented | PR #56 (issue #53) |
 | [Deprecate `logic = OR` and `fallback_trigger = no_results`](2026-08-27-deprecate-or-logic-and-no-results-trigger.md) | ✅ implemented | PR #87 (issue #85); deprecation window only, removal is a follow-up |
 | [Product Search Relevance Browser Test](2026-08-28-product-search-relevance-browser-test.md) | 🚧 draft | Follow-up to merged PR #90 |

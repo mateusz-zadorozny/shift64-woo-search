@@ -35,8 +35,8 @@
 | 4 | 4.3 | Update README.md, readme.txt and the changelog for the breaking release | inline | done | 1395f73 |
 | 5 | 5.1 | Drop the pagination-ownership `test.fail()` markers now the plugin defers | inline | done | dc5cb8f |
 | 5 | 5.2 | Remove the classic-theme Playwright project and its AJAX-swap journeys | inline | done | 08d4b92 |
-| 5 | 5.3 | Retarget the remaining E2E specs at the block-native surfaces | inline | done | pending |
-| 5 | 5.4 | Flip the spec status header and the specs index row | inline | todo | — |
+| 5 | 5.3 | Retarget the remaining E2E specs at the block-native surfaces | inline | done | 69b3c21 |
+| 5 | 5.4 | Flip the spec status header and the specs index row | inline | done | pending |
 
 ## Goal
 
