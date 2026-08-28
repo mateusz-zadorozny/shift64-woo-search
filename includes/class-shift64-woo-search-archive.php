@@ -98,9 +98,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		add_filter( 'woocommerce_catalog_orderby', array( $this, 'filter_sort_options' ) );
 		add_filter( 'ngettext_woocommerce', array( $this, 'filter_result_count_text' ), 10, 5 );
 		add_filter( 'ngettext_with_context_woocommerce', array( $this, 'filter_result_count_text_ctx' ), 10, 6 );
-		add_filter( 'template_include', array( $this, 'maybe_render_partial' ), 999 );
 		add_filter( 'paginate_links', array( $this, 'preserve_filter_params_in_pagination' ) );
-		add_filter( 'kadence_post_layout', array( $this, 'disable_kadence_hero_on_search' ) );
 		add_filter( 'pre_get_document_title', array( $this, 'filter_document_title' ), 20 );
 	}
 
@@ -1086,89 +1084,6 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	}
 
 	/**
-	 * For AJAX filter/pagination requests, render only the product wrap fragment
-	 * instead of the full page. Skips header, footer, sidebar, wp_head/wp_footer.
-	 *
-	 * @param string $template Template path.
-	 * @return string
-	 */
-	public function maybe_render_partial( $template ) {
-		if ( empty( $_SERVER['HTTP_X_REQUESTED_WITH'] ) || 'XMLHttpRequest' !== $_SERVER['HTTP_X_REQUESTED_WITH'] ) {
-			return $template;
-		}
-
-		if ( ! is_search() || 'product' !== get_query_var( 'post_type' ) ) {
-			return $template;
-		}
-
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return $template;
-		}
-
-		// Only intercept with partial fragment for Kadence theme.
-		// Standard Woo and block themes rely on full-page template rendering
-		// so block-template product cards (wp-block-post-title) keep their styling.
-		$is_kadence = function_exists( 'kadence' ) || defined( 'KADENCE_VERSION' ) || 'kadence' === get_template() || 'kadence' === get_stylesheet();
-		if ( ! $is_kadence ) {
-			return $template;
-		}
-
-		echo '<div class="kwt-products-wrap">';
-
-		// Top row: result count + ordering (Kadence hooks).
-		echo '<div class="kadence-shop-top-row">';
-		echo '<div class="kadence-shop-top-item kadence-woo-results-count">';
-		woocommerce_result_count();
-		echo '</div>';
-		echo '<div class="kadence-shop-top-item kadence-woo-ordering">';
-		woocommerce_catalog_ordering();
-		echo '</div>';
-		echo '</div>';
-
-		// Product loop.
-		if ( woocommerce_product_loop() ) {
-			woocommerce_product_loop_start();
-
-			if ( wc_get_loop_prop( 'total' ) ) {
-				while ( have_posts() ) {
-					the_post();
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce core hook.
-					do_action( 'woocommerce_shop_loop' );
-					wc_get_template_part( 'content', 'product' );
-				}
-			}
-
-			woocommerce_product_loop_end();
-
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce core hook.
-			do_action( 'woocommerce_after_shop_loop' );
-		} else {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce core hook.
-			do_action( 'woocommerce_no_products_found' );
-		}
-
-		echo '</div>';
-
-		// Debug info for admins, when the storefront debug panel is switched on.
-		if ( ! empty( $this->debug_log ) && $this->debug_enabled() ) {
-			echo '<!-- Shift64 Archive Debug (partial) -->';
-			echo '<div class="shift64-woo-search-archive-debug" style="display:none">';
-			foreach ( $this->debug_log as $entry ) {
-				echo esc_html( $entry ) . "\n";
-			}
-
-			$server_timing = $this->server_timing_entry();
-			if ( '' !== $server_timing ) {
-				echo esc_html( $server_timing ) . "\n";
-			}
-
-			echo '</div>';
-		}
-
-		exit;
-	}
-
-	/**
 	 * Override the browser document title on product search pages.
 	 *
 	 * We clear the main query's `s` param to skip MySQL LIKE, which leaves core
@@ -1200,24 +1115,6 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			esc_html__( 'Search results for: "%s"', 'shift64-woo-search' ),
 			$query
 		);
-	}
-
-	/**
-	 * Disable Kadence theme hero title section on product search pages.
-	 *
-	 * Kadence renders an archive hero (breadcrumbs + title) above the content
-	 * when title layout is "above". We hide it and render our own header
-	 * via woocommerce_archive_description instead.
-	 *
-	 * @param array $layout Kadence layout settings.
-	 * @return array
-	 */
-	public function disable_kadence_hero_on_search( $layout ) {
-		if ( is_search() && 'product' === get_query_var( 'post_type' )
-			&& 'yes' === get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			$layout['title'] = 'hide';
-		}
-		return $layout;
 	}
 
 	/**
