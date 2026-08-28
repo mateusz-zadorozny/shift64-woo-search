@@ -33,8 +33,8 @@
 | 4 | 4.1 | Publish the Site Editor migration guide with the Product Collection pattern | inline | done | ccef1e0 |
 | 4 | 4.2 | Convert BACKWARD_COMPATIBILITY.md promises into a dated migration record | inline | done | fc44d02 |
 | 4 | 4.3 | Update README.md, readme.txt and the changelog for the breaking release | inline | done | 1395f73 |
-| 5 | 5.1 | Drop the pagination-ownership `test.fail()` markers now the plugin defers | inline | done | pending |
-| 5 | 5.2 | Remove the classic-theme Playwright project and its AJAX-swap journeys | inline | todo | — |
+| 5 | 5.1 | Drop the pagination-ownership `test.fail()` markers now the plugin defers | inline | done | dc5cb8f |
+| 5 | 5.2 | Remove the classic-theme Playwright project and its AJAX-swap journeys | inline | done | pending |
 | 5 | 5.3 | Retarget the remaining E2E specs at the block-native surfaces | inline | todo | — |
 | 5 | 5.4 | Flip the spec status header and the specs index row | inline | todo | — |
 

@@ -65,9 +65,9 @@ theme — so the same holds on a block-theme dev site (LocalWP) running
 `bin/e2e-provision.sh` directly.
 
 Template parts are theme-scoped through the `wp_theme` term, so the header is
-simply **absent under Storefront**, including while
-`tests/e2e/classic-theme/` has it activated for the length of its spec file.
-Nothing needs tearing down around that switch. The suite addresses every search
+simply **absent under Storefront** — which is the supported behaviour rather than
+a gap: the plugin places nothing in a theme it does not own. Storefront is
+installed but no longer activated by anything in the suite. The suite addresses every search
 block by its provisioned `instanceId` (`search-e2e-*` on `/search-e2e/` and
 `shift64-e2e-header-*` in the header), so multiple instances of the same block
 never collide.

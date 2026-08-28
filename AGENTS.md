@@ -43,11 +43,11 @@ rename, or delete spec files — their paths are referenced from other specs,
 The suite's degraded project REALLY mutates the target site's Redis config
 and restores it in a teardown — if an aborted run leaves the site broken,
 re-run `npm run e2e:provision`. The environment's default theme is the block
-theme (`E2E_BLOCK_THEME`, default `twentytwentyfive`); the `classic-theme`
-project REALLY switches the site to `E2E_CLASSIC_THEME` (default
-`storefront`) for the plugin-owned classic AJAX-swap journeys and restores
-the previous theme in the spec's `afterAll`. If a hard-killed run leaves the
-wrong theme active, run `wp theme activate twentytwentyfive`, and delete
+theme (`E2E_BLOCK_THEME`, default `twentytwentyfive`) and no project switches
+it any more — the `classic-theme` project that activated Storefront was removed
+along with the plugin-owned AJAX swap it covered. Storefront is still installed
+but stays inactive. If a hard-killed run leaves the wrong theme active, run
+`wp theme activate twentytwentyfive`, and delete
 `wp-content/mu-plugins/shift64-e2e-force-page-reload.php` and
 `wp-content/mu-plugins/shift64-e2e-product-filters.php` (scenario fixtures
 the `block-theme` project installs and removes around its spec files).

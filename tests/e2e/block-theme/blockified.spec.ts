@@ -23,10 +23,10 @@ import { SEL } from '../helpers/search';
  *   | Product Collection + forcePageReload        | the browser      |
  *
  * The matrix used to carry a third row — classic Woo markup and custom pagers
- * owned by this plugin's AJAX swap — covered on Storefront by
- * tests/e2e/classic-theme/classic.spec.ts. The block theme-only release removed
- * that swap and, with it, the row and the spec file. The plugin now owns
- * pagination nowhere, which is what leaves exactly one owner per context.
+ * owned by this plugin's AJAX swap — covered on Storefront by a classic-theme
+ * project. The block theme-only release removed that swap and, with it, the row,
+ * the project and its spec file. The plugin now owns pagination nowhere, which
+ * is what leaves exactly one owner per context.
  *
  * These assertions were introduced as `test.fail()` while #20 was decided but
  * unimplemented. #20 landed, so they are ordinary passing tests and the markers

@@ -35,18 +35,13 @@ export default defineConfig({
 			testDir: 'tests/e2e/block-theme',
 			dependencies: ['main'],
 		},
-		// Classic (Storefront) projection of the plugin-owned AJAX-swap
-		// journeys (#63). It REALLY switches the target site's theme, but the
-		// switch is bounded by the spec file's beforeAll/afterAll rather than
-		// by a setup/teardown project pair: a spec file is the unit a worker
-		// runs to completion, so no other project can observe the switched
-		// theme, and no dependency edge has to be threaded through the
-		// degraded chain's teardown.
-		{
-			name: 'classic-theme',
-			testDir: 'tests/e2e/classic-theme',
-			dependencies: ['block-theme'],
-		},
+		// The classic (Storefront) projection lived here. It covered the
+		// plugin-owned AJAX archive swap, which the block theme-only release
+		// removed: with no swap there is nothing theme-specific left to project,
+		// and switching a real site to a classic theme to prove the plugin does
+		// nothing would only cost run time. Classic-theme graceful degradation —
+		// search and CLI keep working, no controls are injected — is asserted in
+		// PHPUnit, which needs no theme switch.
 		// The degraded chain REALLY mutates the target site's Redis config.
 		// Ordering is enforced by dependencies. restore-env may also run when
 		// the degrade setup was skipped (e.g. a red `main`) — that is safe by
@@ -56,16 +51,15 @@ export default defineConfig({
 			name: 'degrade-env',
 			testDir: 'tests/e2e/degraded',
 			testMatch: /degrade\.setup\.ts/,
-			// Depends on classic-theme, not main. All three are state-mutating
-			// chains; if they merely shared `main` as a dependency, their
-			// relative order would rest on undocumented intra-stage scheduling,
-			// and a degrade-env that ran first would point Redis at a dead port
-			// and red the theme-projection journeys (which need the takeover
-			// live). Making the edge explicit forces main -> block-theme ->
-			// classic-theme -> degrade-env -> degraded. classic-theme is a
-			// DEPENDENCY here, not a dependent, so restore-env still fires as
-			// soon as `degraded` is done.
-			dependencies: ['classic-theme'],
+			// Depends on block-theme, not main. Both are state-mutating chains;
+			// if they merely shared `main` as a dependency, their relative order
+			// would rest on undocumented intra-stage scheduling, and a
+			// degrade-env that ran first would point Redis at a dead port and
+			// red the block-theme journeys (which need a live Redis). Making the
+			// edge explicit forces main -> block-theme -> degrade-env ->
+			// degraded. block-theme is a DEPENDENCY here, not a dependent, so
+			// restore-env still fires as soon as `degraded` is done.
+			dependencies: ['block-theme'],
 			teardown: 'restore-env',
 		},
 		{
