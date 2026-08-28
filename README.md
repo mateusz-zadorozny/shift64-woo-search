@@ -13,8 +13,8 @@ This repository currently contains the `0.x` development line. The first public,
 
 ## Requirements
 
-- WordPress 6.0 or newer
-- WooCommerce
+- WordPress 7.0 or newer, running a block theme
+- WooCommerce 10.9 or newer
 - PHP 8.3 or newer with the `redis` extension
 - Redis Stack or another Redis deployment with the RediSearch module
 

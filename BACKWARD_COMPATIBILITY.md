@@ -322,7 +322,9 @@ as the shortcode rule and therefore has to stay after it in the file.
 Declared in three places that must agree: the plugin header, `readme.txt`, and `composer.json`
 (with `config.platform` pinned to `8.3.0`).
 
-- **WordPress 6.0** minimum
+- **WordPress 7.0** minimum (raised from 6.0 in the block-theme-only release; CI
+  exercises 7.0 alongside the current release)
+- **WooCommerce 10.9** minimum
 - **PHP 8.3** minimum (raised from 7.4 in #5; CI tests 8.3/8.4/8.5)
 - Redis Stack, or Redis with RediSearch, plus the PHP Redis extension
 

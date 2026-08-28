@@ -1,12 +1,17 @@
 <?php
 /**
- * Guards the declared PHP minimum against drift.
+ * Guards the declared runtime minimums against drift.
  *
  * Regression guard for issue #5: the repo declared PHP 7.4 in four places
  * while CI only exercised 8.3+, and commit f370337 changed the CI matrix
  * without touching any declaration — nothing noticed. These tests pin every
- * place that states the PHP floor to a single expected value, so raising it
+ * place that states a runtime floor to a single expected value, so raising one
  * again is impossible without updating all of them together (and this test).
+ *
+ * The block-theme-only release extended the same treatment to WordPress and
+ * WooCommerce. Both floors were raised because the block and Interactivity APIs
+ * the storefront now depends on require them, and a floor is only a promise if
+ * every declaration agrees and CI actually runs against it.
  *
  * @package Shift64_Woo_Search
  */
@@ -20,6 +25,16 @@ class Php_Requirement_Declarations_Test extends WP_UnitTestCase {
 	 * The single source of truth for the declared PHP minimum.
 	 */
 	const EXPECTED_PHP_MINIMUM = '8.3';
+
+	/**
+	 * The single source of truth for the declared WordPress minimum.
+	 */
+	const EXPECTED_WP_MINIMUM = '7.0';
+
+	/**
+	 * The single source of truth for the declared WooCommerce minimum.
+	 */
+	const EXPECTED_WC_MINIMUM = '10.9';
 
 	/**
 	 * Absolute path to the plugin root.
@@ -118,5 +133,120 @@ class Php_Requirement_Declarations_Test extends WP_UnitTestCase {
 				"CI tests PHP {$version}, which is below the declared minimum — either restore support or drop it from the matrix."
 			);
 		}
+	}
+
+	/**
+	 * The plugin header declares the WordPress and WooCommerce minimums.
+	 *
+	 * `Requires at least` is what WordPress itself enforces on install and
+	 * update; `WC requires at least` is what WooCommerce reads to warn a merchant
+	 * before the plugin misbehaves.
+	 */
+	public function test_plugin_header_declares_wordpress_and_woocommerce_minimums() {
+		$header = file_get_contents( $this->plugin_dir() . '/shift64-woo-search.php' );
+
+		$this->assertMatchesRegularExpression(
+			'/^\s*\*\s*Requires at least:\s*' . preg_quote( self::EXPECTED_WP_MINIMUM, '/' ) . '\s*$/m',
+			$header,
+			'Plugin header "Requires at least" must match the declared WordPress minimum.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/^\s*\*\s*WC requires at least:\s*' . preg_quote( self::EXPECTED_WC_MINIMUM, '/' ) . '\s*$/m',
+			$header,
+			'Plugin header "WC requires at least" must match the declared WooCommerce minimum.'
+		);
+	}
+
+	/**
+	 * The readme.txt header declares the same two minimums.
+	 */
+	public function test_readme_declares_wordpress_and_woocommerce_minimums() {
+		$readme = file_get_contents( $this->plugin_dir() . '/readme.txt' );
+
+		$this->assertMatchesRegularExpression(
+			'/^Requires at least:\s*' . preg_quote( self::EXPECTED_WP_MINIMUM, '/' ) . '\s*$/m',
+			$readme,
+			'readme.txt "Requires at least" must match the declared WordPress minimum.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/^WC requires at least:\s*' . preg_quote( self::EXPECTED_WC_MINIMUM, '/' ) . '\s*$/m',
+			$readme,
+			'readme.txt "WC requires at least" must match the declared WooCommerce minimum.'
+		);
+	}
+
+	/**
+	 * The readme.txt header never claims testing below the version it requires.
+	 */
+	public function test_readme_tested_up_to_is_not_below_the_minimum() {
+		$readme = file_get_contents( $this->plugin_dir() . '/readme.txt' );
+
+		$this->assertSame(
+			1,
+			preg_match( '/^Tested up to:\s*(\S+)\s*$/m', $readme, $matches ),
+			'readme.txt must declare "Tested up to".'
+		);
+		$this->assertTrue(
+			version_compare( $matches[1], self::EXPECTED_WP_MINIMUM, '>=' ),
+			sprintf(
+				'readme.txt claims testing up to WordPress %s, below the declared minimum of %s.',
+				$matches[1],
+				self::EXPECTED_WP_MINIMUM
+			)
+		);
+	}
+
+	/**
+	 * The prose documentation states the same floors as the machine-readable headers.
+	 *
+	 * A merchant reads the README and the docs site, not the plugin header, so a
+	 * disagreement between them is what actually strands somebody mid-upgrade.
+	 */
+	public function test_documentation_states_the_same_minimums() {
+		$sources = array(
+			'/README.md',
+			'/docs/src/content/docs/getting-started/requirements.mdx',
+			'/BACKWARD_COMPATIBILITY.md',
+		);
+
+		foreach ( $sources as $relative ) {
+			$path = $this->plugin_dir() . $relative;
+			$this->assertFileExists( $path );
+
+			$contents = file_get_contents( $path );
+
+			$this->assertMatchesRegularExpression(
+				'/WordPress\D{0,20}' . preg_quote( self::EXPECTED_WP_MINIMUM, '/' ) . '/',
+				$contents,
+				$relative . ' must state the declared WordPress minimum.'
+			);
+			$this->assertMatchesRegularExpression(
+				'/WooCommerce\D{0,20}' . preg_quote( self::EXPECTED_WC_MINIMUM, '/' ) . '/',
+				$contents,
+				$relative . ' must state the declared WooCommerce minimum.'
+			);
+		}
+	}
+
+	/**
+	 * CI runs the declared WordPress floor, not only the current release.
+	 *
+	 * Testing exclusively against the latest WordPress makes the declared minimum
+	 * an untested claim: the release would state 7.0 while every job ran 7.1 or
+	 * later. One matrix entry pins the floor so the claim is exercised.
+	 */
+	public function test_ci_matrix_exercises_the_declared_wordpress_minimum() {
+		$workflow = file_get_contents( $this->plugin_dir() . '/.github/workflows/release.yml' );
+
+		$this->assertMatchesRegularExpression(
+			'/wp-version:\s*"' . preg_quote( self::EXPECTED_WP_MINIMUM, '/' ) . '"/',
+			$workflow,
+			'CI must run one job against the declared WordPress minimum.'
+		);
+		$this->assertStringContainsString(
+			'wp-version: ["latest"]',
+			$workflow,
+			'CI must also track the current WordPress release.'
+		);
 	}
 }

@@ -10,8 +10,10 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: shift64-woo-search
  * Domain Path: /languages
- * Requires at least: 6.0
+ * Requires at least: 7.0
  * Requires PHP: 8.3
+ * WC requires at least: 10.9
+ * WC tested up to: 11.0
  *
  * @package Shift64_Woo_Search
  */

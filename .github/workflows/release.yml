@@ -103,7 +103,7 @@ jobs:
           git diff --check "$DIFF_BASE" "$DIFF_HEAD"
 
   test:
-    name: Tests (PHP ${{ matrix.php-version }})
+    name: Tests (PHP ${{ matrix.php-version }}, WP ${{ matrix.wp-version }})
     needs: changes
     if: needs.changes.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
@@ -111,6 +111,13 @@ jobs:
       fail-fast: false
       matrix:
         php-version: ["8.3", "8.4", "8.5"]
+        wp-version: ["latest"]
+        # The plugin declares a WordPress 7.0 floor, and a floor nothing runs
+        # against is a claim rather than a guarantee. One job pins it; the rest
+        # track the current release so a core change is still caught early.
+        include:
+          - php-version: "8.3"
+            wp-version: "7.0"
     services:
       mysql:
         image: mysql:8.0
@@ -162,7 +169,13 @@ jobs:
 
       - name: Determine WordPress version
         id: wp-version
+        env:
+          REQUESTED: ${{ matrix.wp-version }}
         run: |
+          if [ "$REQUESTED" != "latest" ]; then
+            echo "version=$REQUESTED" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           WP_VERSION="$(curl -fsSL https://api.wordpress.org/core/version-check/1.7/ | php -r '$data = json_decode(stream_get_contents(STDIN), true); echo $data["offers"][0]["version"] ?? "";')"
           if [ -z "$WP_VERSION" ]; then
             echo "Could not resolve latest WordPress version" >&2

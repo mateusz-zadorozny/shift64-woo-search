@@ -1,9 +1,11 @@
 === Shift64 Woo Search ===
 Contributors: mateuszzadorozny
 Tags: woocommerce, search, redis, redisearch, autocomplete
-Requires at least: 6.0
-Tested up to: 7.0
+Requires at least: 7.0
+Tested up to: 7.1
 Requires PHP: 8.3
+WC requires at least: 10.9
+WC tested up to: 11.0
 Requires Plugins: woocommerce
 Stable tag: 0.20.2
 License: GPLv2 or later
