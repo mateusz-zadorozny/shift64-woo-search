@@ -22,10 +22,7 @@ let resultsCountObserver = null;
 let resultsCountSyncTimer = null;
 let lastResultsCountUrl = '';
 
-const BREADCRUMB_SELECTORS = [
-	'.woocommerce-breadcrumb',
-	'.shift64-woo-search-header__breadcrumbs',
-];
+const BREADCRUMB_SELECTORS = [ '.woocommerce-breadcrumb' ];
 
 /**
  * Resolve a navigation target that cannot leave the current storefront.

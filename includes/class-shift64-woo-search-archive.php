@@ -100,14 +100,8 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 		add_filter( 'ngettext_with_context_woocommerce', array( $this, 'filter_result_count_text_ctx' ), 10, 6 );
 		add_filter( 'template_include', array( $this, 'maybe_render_partial' ), 999 );
 		add_filter( 'paginate_links', array( $this, 'preserve_filter_params_in_pagination' ) );
-		add_action( 'woocommerce_archive_description', array( $this, 'render_search_header' ), 5 );
-		add_filter( 'woocommerce_show_page_title', array( $this, 'hide_default_page_title' ) );
 		add_filter( 'kadence_post_layout', array( $this, 'disable_kadence_hero_on_search' ) );
 		add_filter( 'pre_get_document_title', array( $this, 'filter_document_title' ), 20 );
-
-		// Block template support: filter archive title used by Kadence dynamic headings.
-		add_filter( 'get_the_archive_title', array( $this, 'filter_archive_title' ), 20 );
-		add_shortcode( 'shift64_woo_search_breadcrumbs', array( $this, 'shortcode_breadcrumbs' ) );
 	}
 
 	/**
@@ -1180,86 +1174,6 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	}
 
 	/**
-	 * Render search results header with breadcrumbs and title.
-	 *
-	 * Hooked to woocommerce_archive_description — fires before the shop loop
-	 * but after the main content wrapper opens.
-	 */
-	public function render_search_header() {
-		if ( ! is_search() || 'product' !== get_query_var( 'post_type' ) ) {
-			return;
-		}
-
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return;
-		}
-
-		$query = $this->search_term;
-		if ( empty( $query ) ) {
-			$query = get_search_query();
-		}
-		if ( empty( $query ) ) {
-			return;
-		}
-
-		echo '<div class="shift64-woo-search-header">';
-		echo '<nav class="shift64-woo-search-header__breadcrumbs" aria-label="breadcrumb">';
-		echo '<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Home', 'shift64-woo-search' ) . '</a>';
-		echo '<span class="shift64-woo-search-header__separator"> &gt; </span>';
-		echo '<span>' . esc_html__( 'Search results', 'shift64-woo-search' ) . '</span>';
-		echo '</nav>';
-		echo '<h1 class="shift64-woo-search-header__title">';
-		echo esc_html__( 'Search results for:', 'shift64-woo-search' ) . ' &ldquo;' . esc_html( $query ) . '&rdquo;';
-		echo '</h1>';
-		echo '</div>';
-	}
-
-	/**
-	 * Hide WooCommerce default page title on search results (we render our own).
-	 *
-	 * @param bool $show Whether to show the page title.
-	 * @return bool
-	 */
-	public function hide_default_page_title( $show ) {
-		if ( is_search() && 'product' === get_query_var( 'post_type' )
-			&& 'yes' === get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return false;
-		}
-		return $show;
-	}
-
-	/**
-	 * Override archive title for product search pages.
-	 *
-	 * Kadence Blocks Pro dynamic heading (archive|archive_title) calls
-	 * get_the_archive_title(). Since we clear the 's' query var to prevent
-	 * MySQL LIKE, get_search_query() returns empty — this filter restores
-	 * the original search term in the title.
-	 *
-	 * @param string $title Archive title.
-	 * @return string
-	 */
-	public function filter_archive_title( $title ) {
-		if ( ! is_search() || 'product' !== get_query_var( 'post_type' ) ) {
-			return $title;
-		}
-
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return $title;
-		}
-
-		$query = $this->search_term;
-		if ( empty( $query ) ) {
-			$query = get_search_query();
-		}
-		if ( empty( $query ) ) {
-			return $title;
-		}
-
-		return esc_html__( 'Search results for:', 'shift64-woo-search' ) . ' &ldquo;' . esc_html( $query ) . '&rdquo;';
-	}
-
-	/**
 	 * Override the browser document title on product search pages.
 	 *
 	 * We clear the main query's `s` param to skip MySQL LIKE, which leaves core
@@ -1291,30 +1205,6 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			esc_html__( 'Search results for: "%s"', 'shift64-woo-search' ),
 			$query
 		);
-	}
-
-	/**
-	 * Shortcode: render search breadcrumbs for block templates.
-	 *
-	 * Usage: [shift64_woo_search_breadcrumbs]
-	 * Only renders on product search pages; returns empty otherwise.
-	 *
-	 * @return string
-	 */
-	public function shortcode_breadcrumbs() {
-		if ( ! is_search() || 'product' !== get_query_var( 'post_type' ) ) {
-			return '';
-		}
-
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return '';
-		}
-
-		return '<nav class="shift64-woo-search-header__breadcrumbs" aria-label="breadcrumb">'
-			. '<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Home', 'shift64-woo-search' ) . '</a>'
-			. '<span class="shift64-woo-search-header__separator"> &gt; </span>'
-			. '<span>' . esc_html__( 'Search results', 'shift64-woo-search' ) . '</span>'
-			. '</nav>';
 	}
 
 	/**
