@@ -34,6 +34,13 @@ class Archive_Fallback_Ladder_Test extends WP_UnitTestCase {
 	private $replies = array();
 
 	/**
+	 * Raw Redis calls recorded for request-shape assertions.
+	 *
+	 * @var array<int,array>
+	 */
+	private $redis_args = array();
+
+	/**
 	 * Shared Redis mock for the current test.
 	 *
 	 * @var Shift64_Woo_Search_Redis|null
@@ -45,9 +52,10 @@ class Archive_Fallback_Ladder_Test extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
-		$this->calls   = array();
-		$this->replies = array();
-		$this->redis   = null;
+		$this->calls      = array();
+		$this->replies    = array();
+		$this->redis_args = array();
+		$this->redis      = null;
 	}
 
 	/**
@@ -91,6 +99,7 @@ class Archive_Fallback_Ladder_Test extends WP_UnitTestCase {
 		$redis->method( 'get_index_name' )->willReturn( 'shift64_woo_search_product_idx' );
 		$redis->method( 'raw_command' )->willReturnCallback(
 			function () {
+				$this->redis_args[] = func_get_args();
 				return empty( $this->replies ) ? $this->empty_reply() : array_shift( $this->replies );
 			}
 		);
@@ -441,5 +450,152 @@ class Archive_Fallback_Ladder_Test extends WP_UnitTestCase {
 		$query->search_catalog( 'aero cedat', array(), 16, 1 );
 
 		$this->assertSame( array( 'hybrid:default' ), $this->calls );
+	}
+
+	/**
+	 * Product Collection relevance ranks the candidate window before slicing the
+	 * requested page, just like the dropdown's relevance path.
+	 */
+	public function test_search_catalog_reranks_before_pagination() {
+		$this->replies = array(
+			array(
+				2,
+				'shift64_woo_search:product:202',
+				'10',
+				array( 'post_id', '202', 'title', 'Dining Table Aero Cedar', 'stock_status', 'instock' ),
+				'shift64_woo_search:product:201',
+				'8',
+				array( 'post_id', '201', 'title', 'Aero Cedar Office Chair', 'stock_status', 'instock' ),
+			),
+		);
+
+		$query  = $this->recording_query( array( 'aero', 'cedar' ), array( 'strategy' => 'mixed' ) );
+		$result = $query->search_catalog( 'aero cedar', array(), 1, 1 );
+
+		$this->assertSame( array( 201 ), $result['ids'] );
+		$this->assertSame( 2, $result['total'] );
+	}
+
+	/**
+	 * In OR mode, complete term coverage wins before title-prefix boosting can
+	 * make a partial match look more relevant than the full answer.
+	 */
+	public function test_search_catalog_prioritizes_complete_or_coverage() {
+		$this->replies = array(
+			array(
+				2,
+				'shift64_woo_search:product:301',
+				'10',
+				array( 'post_id', '301', 'title', 'Aero Cedar Office Chair', 'stock_status', 'instock' ),
+				'shift64_woo_search:product:302',
+				'8',
+				array( 'post_id', '302', 'title', 'Aero Cedar Dining Table', 'stock_status', 'instock' ),
+			),
+		);
+
+		$query  = $this->recording_query(
+			array( 'aero', 'cedar', 'table' ),
+			array(
+				'strategy' => 'mixed',
+				'logic'    => 'OR',
+			)
+		);
+		$result = $query->search_catalog( 'aero cedar table', array(), 1, 1 );
+
+		$this->assertSame( array( 302 ), $result['ids'] );
+		$this->assertSame( 2, $result['total'] );
+	}
+
+	/**
+	 * A later Product Collection page is sliced only after the complete ranked
+	 * candidate window has been ordered.
+	 */
+	public function test_search_catalog_reranks_candidates_before_a_deep_page_slice() {
+		$this->replies = array(
+			array(
+				4,
+				'shift64_woo_search:product:301',
+				'10',
+				array( 'post_id', '301', 'title', 'Dining Table Aero Cedar', 'stock_status', 'instock' ),
+				'shift64_woo_search:product:302',
+				'9',
+				array( 'post_id', '302', 'title', 'Side Chair Aero Cedar', 'stock_status', 'instock' ),
+				'shift64_woo_search:product:303',
+				'8',
+				array( 'post_id', '303', 'title', 'Aero Cedar Office Chair', 'stock_status', 'instock' ),
+				'shift64_woo_search:product:304',
+				'7',
+				array( 'post_id', '304', 'title', 'Aero Cedar Table', 'stock_status', 'instock' ),
+			),
+		);
+
+		$query  = $this->recording_query( array( 'aero', 'cedar' ), array( 'strategy' => 'mixed' ) );
+		$result = $query->search_catalog( 'aero cedar', array(), 2, 2 );
+
+		$this->assertSame( array( 301, 302 ), $result['ids'] );
+		$this->assertSame( 4, $result['total'] );
+	}
+
+	/**
+	 * Deep pages beyond the bounded relevance window use Redis pagination
+	 * instead of turning the request page number into an unbounded fetch.
+	 */
+	public function test_search_catalog_caps_deep_page_candidate_fetches() {
+		$this->replies = array(
+			array(
+				1,
+				'shift64_woo_search:product:401',
+				array( 'post_id', '401' ),
+			),
+		);
+
+		$query  = $this->recording_query( array( 'series' ), array( 'strategy' => 'mixed' ) );
+		$result = $query->search_catalog( 'series', array(), 12, 5000 );
+		$args   = $this->redis_args[0];
+		$limit  = array_search( 'LIMIT', $args, true );
+
+		$this->assertSame( array( 401 ), $result['ids'] );
+		$this->assertSame( '59988', (string) $args[ $limit + 1 ] );
+		$this->assertSame( '12', (string) $args[ $limit + 2 ] );
+		$this->assertNotContains( 'WITHSCORES', $args );
+	}
+
+	/**
+	 * A scored pass whose rows are all removed by OR coverage must not claim a
+	 * positive result and stop the ladder with an empty Product Collection page.
+	 */
+	public function test_search_catalog_advances_when_a_ranked_pass_filters_every_row() {
+		$this->replies = array(
+			array(
+				1000,
+				'shift64_woo_search:product:501',
+				'10',
+				array( 'post_id', '501', 'title', 'Aero Office Chair', 'stock_status', 'instock' ),
+				'shift64_woo_search:product:502',
+				'9',
+				array( 'post_id', '502', 'title', 'Cedar Office Chair', 'stock_status', 'instock' ),
+			),
+			array(
+				1,
+				'shift64_woo_search:product:503',
+				'8',
+				array( 'post_id', '503', 'title', 'Aero Cedar Dining Table', 'stock_status', 'instock' ),
+			),
+		);
+
+		$query  = $this->recording_query(
+			array( 'aero', 'cedar', 'table' ),
+			array(
+				'strategy'                => 'strict_first',
+				'logic'                   => 'OR',
+				'token_reduction_enabled' => false,
+			)
+		);
+		$result = $query->search_catalog( 'aero cedar table', array(), 1, 1 );
+
+		$this->assertSame( array( 503 ), $result['ids'], wp_json_encode( $result ) );
+		$this->assertSame( array( 'strict:default', 'hybrid:1', 'fuzzy' ), $this->calls );
+		$this->assertCount( 2, $this->redis_args, 'The fallback pass should answer without executing the later fuzzy query.' );
+		$this->assertSame( 1, $result['total'] );
 	}
 }

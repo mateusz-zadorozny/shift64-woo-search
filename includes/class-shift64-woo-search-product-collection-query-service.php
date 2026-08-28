@@ -67,7 +67,8 @@ class Shift64_Woo_Search_Product_Collection_Query_Service {
 					1,
 					null,
 					'search',
-					$state->get_redis_operators()
+					$state->get_redis_operators(),
+					false
 				);
 				$terms  = $query->get_search_terms( $query->sanitize_query( $state->get_search() ) );
 			} else {
