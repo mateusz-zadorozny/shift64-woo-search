@@ -11,17 +11,17 @@
 class Shift64_Woo_Search_Blocks_Test extends WP_UnitTestCase {
 
 	/**
-	 * Parent and child blocks are registered while classic-theme shortcodes remain.
+	 * Parent and child blocks are registered; the classic-theme shortcodes are not.
 	 */
-	public function test_blocks_and_shortcodes_are_registered() {
+	public function test_blocks_are_registered_without_classic_shortcodes() {
 		$registry = WP_Block_Type_Registry::get_instance();
 
 		$this->assertTrue( $registry->is_registered( 'shift64-woo-search/search' ) );
 		$this->assertTrue( $registry->is_registered( 'shift64-woo-search/modal-search' ) );
 		$this->assertTrue( $registry->is_registered( 'shift64-woo-search/search-control' ) );
 		$this->assertTrue( $registry->is_registered( 'shift64-woo-search/search-panel' ) );
-		$this->assertTrue( shortcode_exists( 'shift64_woo_search' ) );
-		$this->assertTrue( shortcode_exists( 'shift64_woo_search_modal' ) );
+		$this->assertFalse( shortcode_exists( 'shift64_woo_search' ) );
+		$this->assertFalse( shortcode_exists( 'shift64_woo_search_modal' ) );
 	}
 
 	/**
