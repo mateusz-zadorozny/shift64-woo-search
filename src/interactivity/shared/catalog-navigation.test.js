@@ -42,9 +42,8 @@ describe( 'syncBreadcrumbs', () => {
 			document.querySelector( '.woocommerce-breadcrumb' ).textContent
 		).toBe( 'New Woo' );
 		expect(
-			document.querySelector(
-				'.shift64-woo-search-header__breadcrumbs'
-			).textContent
+			document.querySelector( '.shift64-woo-search-header__breadcrumbs' )
+				.textContent
 		).toBe( 'Stale header' );
 	} );
 } );

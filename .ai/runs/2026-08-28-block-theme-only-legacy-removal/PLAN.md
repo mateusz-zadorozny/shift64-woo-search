@@ -38,6 +38,7 @@
 | 5 | 5.3 | Retarget the remaining E2E specs at the block-native surfaces | inline | done | 69b3c21 |
 | 5 | 5.4 | Flip the spec status header and the specs index row | inline | done | f49ab24 |
 | 5 | 5.4-ds-fix | Regenerate the translation template after the string changes | inline | done | afa835c |
+| 5 | 5.4-review-fix | Fix the two CI failures the review pass surfaced | inline | done | pending |
 
 ## Goal
 
@@ -225,6 +226,15 @@ site to a classic theme to exercise it is removed with it.
 drove the shortcode form, the injected filter bar or the replaced sort control
 move to the block equivalents or are dropped where the block projects already
 cover them.
+
+**5.4-review-fix Fix the two CI failures the review pass surfaced.** The
+`om-auto-review-pr` pass read CI before reviewing and found two failing required
+checks, both introduced by this branch. `ReflectionMethod::setAccessible()` is
+deprecated in PHP 8.5 and errored five tests on that matrix leg; it has had no
+effect since PHP 8.1 and the plugin's floor is 8.3, so the calls are simply
+dropped. A Prettier violation in the catalog-navigation JS test failed
+`lint:blocks`; the local `lint-js` invocation had exited 0 without linting, so CI
+was the first thing to catch it.
 
 **5.4-ds-fix Regenerate the translation template after the string changes.**
 Appended at the final gate. `languages/shift64-woo-search.pot` is a generated

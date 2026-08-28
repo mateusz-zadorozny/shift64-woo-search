@@ -31,11 +31,13 @@ class Filter_Category_Exclusions_Test extends WP_UnitTestCase {
 	 * @return int[]
 	 */
 	private function excluded_ids() {
+		// No setAccessible() call: private methods have been reflection-invokable
+		// without it since PHP 8.1, and PHP 8.5 deprecates the call outright. The
+		// plugin's floor is 8.3, so the call would be pure deprecation noise.
 		$method = new ReflectionMethod(
 			Shift64_Woo_Search_Filter_Blocks::class,
 			'excluded_category_ids'
 		);
-		$method->setAccessible( true );
 
 		$result = $method->invoke( null );
 		sort( $result );
@@ -133,7 +135,6 @@ class Filter_Category_Exclusions_Test extends WP_UnitTestCase {
 	private function pill_options_for( $taxonomy, $selected ) {
 		$blocks = new Shift64_Woo_Search_Filter_Blocks();
 		$method = new ReflectionMethod( Shift64_Woo_Search_Filter_Blocks::class, 'pill_options' );
-		$method->setAccessible( true );
 
 		return $method->invoke(
 			$blocks,
