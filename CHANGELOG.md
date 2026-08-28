@@ -1,3 +1,10 @@
+## [0.20.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.20.1...v0.20.2) (2026-08-28)
+
+
+### Bug Fixes
+
+* **search:** rank Product Collection results before paging ([#84](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/84)) ([#90](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/90)) ([44d6433](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/44d643381abd5d00328c0172c9c9184265084d1d))
+
 ## [0.20.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.20.0...v0.20.1) (2026-08-27)
 
 
