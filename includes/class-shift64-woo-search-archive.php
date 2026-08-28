@@ -1113,12 +1113,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			return $template;
 		}
 
-		// Reset filter render guard for AJAX partial.
-		Shift64_Woo_Search_Filters::reset_rendered_flag();
-
 		echo '<div class="kwt-products-wrap">';
-
-		( new Shift64_Woo_Search_Filters() )->render_filters();
 
 		// Top row: result count + ordering (Kadence hooks).
 		echo '<div class="kadence-shop-top-row">';

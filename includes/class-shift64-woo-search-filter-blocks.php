@@ -547,6 +547,36 @@ class Shift64_Woo_Search_Filter_Blocks {
 	}
 
 	/**
+	 * Category term ids the Filter Pill must not offer.
+	 *
+	 * Merges WooCommerce's default category with the plugin's own exclusion
+	 * list. Both used to be applied by the classic filter-bar renderer the
+	 * block-theme-only cleanup deleted. The setting is facet configuration, not
+	 * appearance, so it stays in WP Admin and the block path applies it now. A
+	 * category the shopper already selected stays visible so the selection
+	 * remains removable.
+	 *
+	 * @return int[] Excluded term ids.
+	 */
+	private static function excluded_category_ids() {
+		$excluded = array();
+
+		$uncategorized = (int) get_option( 'default_product_cat', 0 );
+		if ( $uncategorized > 0 ) {
+			$excluded[] = $uncategorized;
+		}
+
+		$configured = get_option( 'shift64_woo_search_filter_categories_excluded', array() );
+		if ( is_array( $configured ) ) {
+			foreach ( $configured as $id ) {
+				$excluded[] = (int) $id;
+			}
+		}
+
+		return array_values( array_unique( $excluded ) );
+	}
+
+	/**
 	 * Options for one pill: taxonomy terms ordered and bounded per attributes.
 	 *
 	 * Counts come from the request-scoped facet provider (disjunctive Redis
@@ -592,11 +622,16 @@ class Shift64_Woo_Search_Filter_Blocks {
 			return array();
 		}
 
+		$excluded = 'product_cat' === $entry['taxonomy'] ? self::excluded_category_ids() : array();
+
 		$options = array();
 		$seen    = array();
 		foreach ( $terms as $term ) {
 			$count       = $have_counts ? ( $counts[ $term->name ] ?? 0 ) : null;
 			$is_selected = in_array( $term->slug, $selected, true );
+			if ( ! $is_selected && in_array( (int) $term->term_id, $excluded, true ) ) {
+				continue;
+			}
 			if ( $hide_empty && $have_counts && 0 === $count && ! $is_selected ) {
 				continue;
 			}

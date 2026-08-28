@@ -15,8 +15,8 @@
 | 1 | 1.1 | Publish the legacy-surface inventory and option classification table | inline | done | 5edd4d2 |
 | 1 | 1.2 | Add characterization tests for every preserved surface | inline | done | f0fec52 |
 | 2 | 2.1 | Remove the search and modal-search shortcodes, keeping the block fallback renderers | inline | done | 2183e3e |
-| 2 | 2.2 | Remove the breadcrumbs shortcode and the archive header/title output surfaces | inline | done | pending |
-| 2 | 2.3 | Remove the automatic filter-bar placement and the legacy filter renderer | inline | todo | — |
+| 2 | 2.2 | Remove the breadcrumbs shortcode and the archive header/title output surfaces | inline | done | 915929c |
+| 2 | 2.3 | Remove the automatic filter-bar placement and the legacy filter renderer | inline | done | pending |
 | 2 | 2.4 | Remove the Kadence partial-template takeover and theme-specific integration | inline | todo | — |
 | 2 | 2.5 | Remove the catalog sort-control takeover and result-count text replacement | inline | todo | — |
 | 2 | 2.6 | Remove the AJAX fragment/pagination interception and its script | inline | todo | — |
