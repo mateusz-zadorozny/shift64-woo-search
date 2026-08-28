@@ -86,3 +86,26 @@ count moved back to WooCommerce's own phrasing. Details: `checkpoint-2-checks.md
 plugin holds one long-lived instance, so the flag could not notice the handle being
 dequeued, and two fallback blocks on one page would have localized the config twice.
 Replaced with a `wp_script_is( ..., 'enqueued' )` check.
+
+## 2026-08-28T06:55:00Z — decision: PR title retyped from refactor to feat
+
+The repository squash-merges with `squash_merge_commit_title: COMMIT_OR_PR_TITLE`,
+so a multi-commit PR's title becomes the commit subject semantic-release analyzes.
+`.releaserc.json` runs `@semantic-release/commit-analyzer` with no `releaseRules`
+override, i.e. the Angular preset: `feat` minor, `fix`/`perf` patch, a
+`BREAKING CHANGE:` footer major, and **`refactor` no release at all**.
+
+The original title `refactor(frontend): remove the classic-theme legacy surface for
+block-theme-only ownership` would therefore have merged and shipped nothing, while
+the spec requires this to land as the next pre-1.0 minor with a changelog and an
+upgrade notice. Retitled to
+`feat(frontend): make the block theme the only supported storefront`, which bumps
+0.20.2 → 0.21.0.
+
+Deliberately **no** `BREAKING CHANGE:` footer, in any commit subject or body:
+semantic-release does not special-case 0.x, so that footer would cut 1.0.0 and
+declare the pre-1.0 phase over. The spec's Phasing calls this "the planned pre-1.0
+minor". The break is communicated through the changelog upgrade notice, the
+migration guide and `BACKWARD_COMPATIBILITY.md` (Steps 4.1–4.3) instead. The squash
+body is `COMMIT_MESSAGES`, so every commit subject on this branch is analyzed too —
+none may introduce that footer.
