@@ -75,14 +75,14 @@ flip the spec Status header plus the specs index row.
 
 ### Phase 1: Parity contract
 
-- [ ] 1.1 Add the spec file skeleton with the broad query, the two expected title arrays, and their generator-pointing comments
-- [ ] 1.2 Add the header-instance helper to tests/e2e/helpers/search.ts if it avoids duplicating selector strings
-- [ ] 1.3 Implement Scenario A — archive first four titles and header autocomplete first four titles agree
+- [x] 1.1 Add the spec file skeleton with the broad query, the two expected title arrays, and their generator-pointing comments — 379bbc1
+- [x] 1.2 Add the header-instance helper to tests/e2e/helpers/search.ts if it avoids duplicating selector strings — 379bbc1
+- [x] 1.3 Implement Scenario A — archive first four titles and header autocomplete first four titles agree — 379bbc1
 
 ### Phase 2: Ranked pagination and mobile shell
 
-- [ ] 2.1 Implement Scenario B — page 2 through the rendered pagination, ranked membership, and working navigation links
-- [ ] 2.2 Implement Scenario C — 390x844 shell visibility and no horizontal overflow
+- [x] 2.1 Implement Scenario B — page 2 through the rendered pagination, ranked membership, and working navigation links — 379bbc1
+- [x] 2.2 Implement Scenario C — 390x844 shell visibility and no horizontal overflow — 379bbc1
 
 ### Phase 3: Verification and spec lifecycle
 
