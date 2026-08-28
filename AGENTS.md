@@ -53,15 +53,16 @@ wrong theme active, run `wp theme activate twentytwentyfive`, and delete
 the `block-theme` project installs and removes around its spec files).
 
 The `block-theme` project encodes the **pagination ownership matrix** decided
-in #20, not "the plugin swaps everything": classic Woo markup / Kadence /
-custom pagers belong to this plugin; a Product Collection with
-`data-wp-router-region` belongs to WooCommerce's Interactivity API; a Product
-Collection with `forcePageReload` belongs to plain browser navigation. Its
-ownership assertions are marked `test.fail()` because #20 is decided but not
-yet implemented — the plugin still intercepts everywhere. **Do not "fix" them
-by relaxing the assertions**: a passing version would codify the opposite
-contract. When #20 lands they will start passing, which Playwright reports as
-a failure, and that is the signal to drop the markers. `blockified.spec.ts`
+in #20: a Product Collection with `data-wp-router-region` belongs to
+WooCommerce's Interactivity API, and one with `forcePageReload` belongs to
+plain browser navigation. The plugin owns pagination nowhere. The matrix used
+to have a third row — classic Woo markup, Kadence and custom pagers owned by
+the plugin's AJAX swap — which the block theme-only release removed along with
+the swap itself and the `classic-theme` project that covered it. The
+`test.fail()` markers these assertions once carried are gone: #20 landed and
+they pass. **Do not "fix" a failure here by relaxing an assertion** — a passing
+version of the wrong assertion would codify the opposite contract.
+`blockified.spec.ts`
 keeps its scope to pagination ownership; the Product Filters / Filter Pill
 journeys (which go through Woo's router as decided) live in their own
 `product-filters.spec.ts` within this project because they need the block

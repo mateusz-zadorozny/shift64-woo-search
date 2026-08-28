@@ -15,21 +15,22 @@ import { SEL } from '../helpers/search';
  * projection for it.
  *
  * WHAT THIS FILE ASSERTS IS AN OWNERSHIP CONTRACT, NOT "the plugin swaps
- * everything". Per the decision on #20, pagination ownership is:
+ * everything". Pagination ownership, per the decision on #20:
  *
  *   | context                                    | owner            |
  *   |--------------------------------------------|------------------|
- *   | classic Woo markup, Kadence, custom pager   | THIS PLUGIN      |
  *   | Product Collection + data-wp-router-region  | WooCommerce (IA) |
  *   | Product Collection + forcePageReload        | the browser      |
  *
- * Scenario 1 (classic markup, plugin owns the AJAX swap) is covered on
- * Storefront by tests/e2e/classic-theme/classic.spec.ts — it is not
- * duplicated here. This file covers the two block-theme columns.
+ * The matrix used to carry a third row — classic Woo markup and custom pagers
+ * owned by this plugin's AJAX swap — covered on Storefront by
+ * tests/e2e/classic-theme/classic.spec.ts. The block theme-only release removed
+ * that swap and, with it, the row and the spec file. The plugin now owns
+ * pagination nowhere, which is what leaves exactly one owner per context.
  *
  * These assertions were introduced as `test.fail()` while #20 was decided but
- * unimplemented. #20 has landed (ownsPagination() in the AJAX pagination
- * script), so they are now ordinary passing tests and the markers are gone.
+ * unimplemented. #20 landed, so they are ordinary passing tests and the markers
+ * are gone.
  *
  * What they caught on the pre-#20 code, for the record:
  *   - enhanced click  -> 2 fetches of the target page, and 2 history entries,
