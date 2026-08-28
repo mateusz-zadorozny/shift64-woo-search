@@ -71,6 +71,8 @@ flip the spec Status header plus the specs index row.
 
 ## Progress
 
+PR: #99
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Parity contract
@@ -86,7 +88,7 @@ flip the spec Status header plus the specs index row.
 
 ### Phase 3: Verification and spec lifecycle
 
-- [ ] 3.1 Run the targeted spec file against the worktree's provisioned site and reconcile any fixture drift
-- [ ] 3.2 Run the repository's normal E2E project set
-- [ ] 3.3 Run the configured validation gate (composer validate, phpcs, phpunit)
-- [ ] 3.4 Flip the spec Status header and the .ai/specs/README.md index row to implemented
+- [x] 3.1 Run the targeted spec file against the worktree's provisioned site and reconcile any fixture drift — 379bbc1
+- [x] 3.2 Run the repository's normal E2E project set — 379bbc1
+- [x] 3.3 Run the configured validation gate (composer validate, phpcs, phpunit) — 379bbc1
+- [x] 3.4 Flip the spec Status header and the .ai/specs/README.md index row to implemented — 49d9fd4
