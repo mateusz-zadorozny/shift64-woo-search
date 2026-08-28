@@ -205,26 +205,7 @@ test.describe('search relevance ordering (block-theme results surface)', () => {
 		await expect(pagination(page)).toBeVisible();
 	});
 
-	// KNOWN FAILING — the contract this asserts is the one we want, and the
-	// current frontend does not meet it. At 390px the provisioned storefront
-	// scrolls horizontally (390px viewport, 431px document), and hiding just the
-	// two plugin-owned blocks below brings the document back to exactly 390px:
-	//
-	//   .shift64-woo-search-block--form    header search block  -> 431px right edge
-	//   .shift64-woo-search-product-sort   results sort pill    -> 418px right edge
-	//
-	// The header block is a flex item whose control keeps its content min-size
-	// (input + submit button), so it cannot shrink into the header row. Tracked
-	// in #101; whether the fix belongs in the blocks' own CSS or in the
-	// provisioned header layout is that issue's call, not this file's.
-	//
-	// Marked test.fail() rather than weakened, per the same convention as the
-	// pagination-ownership assertions in tests/e2e/block-theme/blockified.spec.ts:
-	// a relaxed assertion would codify the overflow as acceptable. When #101
-	// lands this starts passing, Playwright reports that as a failure, and that
-	// is the signal to drop this marker.
 	test('the 390px results shell introduces no horizontal overflow', async ({ page }) => {
-		test.fail();
 		await page.setViewportSize(MOBILE_VIEWPORT);
 		await page.goto(BROAD_QUERY);
 		await expect(productCards(page).first()).toBeVisible();
