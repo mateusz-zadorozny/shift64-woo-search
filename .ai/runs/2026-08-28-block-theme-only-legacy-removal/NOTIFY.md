@@ -135,3 +135,25 @@ so an unreadable version means an active installation the guard cannot
 introspect; switching every storefront block off there would be worse than
 trusting it. A classic theme is likewise treated as supported — it gets an
 informational notice, not a disabled plugin.
+
+## 2026-08-28T07:24:06Z — final gate passed
+
+Every Tasks row is `done`. The configured gate is green — `composer validate
+--strict` valid, `phpcs` 8/8 clean, `phpunit` 789 tests / 8467 assertions against
+a 730 / 8385 baseline — as are the block metadata validator, the JS unit suites,
+`lint-js`, and a `wp-scripts build` that produced no diff against the committed
+bundles. Browser verification drove search, a filter pill (opening, applying,
+and browser Back), and the modal autocomplete end to end. Details, deviations and
+artifacts: `final-gate-checks.md`.
+
+Playwright was not run locally: `AGENTS.md` requires the agentic gate to stay
+hermetic and the degraded project really mutates a target site's Redis config.
+Phase 5's E2E changes are verified by review and by the CI `e2e` job that
+`release` depends on. Recorded here rather than left implicit.
+
+## 2026-08-28T07:24:06Z — Step 5.4-ds-fix appended at the final gate
+
+`languages/shift64-woo-search.pot` is a generated artifact committed to the repo
+and had gone stale: this release removed a large number of user-facing strings
+(the filter bar, the mobile tray, the retired settings fields) and added a few
+(the runtime and upgrade notices). Regenerated with `wp i18n make-pot`.

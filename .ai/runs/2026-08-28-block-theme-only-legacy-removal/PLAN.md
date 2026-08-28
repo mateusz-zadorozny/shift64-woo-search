@@ -37,7 +37,7 @@
 | 5 | 5.2 | Remove the classic-theme Playwright project and its AJAX-swap journeys | inline | done | 08d4b92 |
 | 5 | 5.3 | Retarget the remaining E2E specs at the block-native surfaces | inline | done | 69b3c21 |
 | 5 | 5.4 | Flip the spec status header and the specs index row | inline | done | f49ab24 |
-| 5 | 5.4-ds-fix | Regenerate the translation template after the string changes | inline | done | pending |
+| 5 | 5.4-ds-fix | Regenerate the translation template after the string changes | inline | done | afa835c |
 
 ## Goal
 
