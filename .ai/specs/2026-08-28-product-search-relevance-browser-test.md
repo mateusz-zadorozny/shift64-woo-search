@@ -1,6 +1,6 @@
 # Product Search Relevance Browser Test
 
-> **Status:** draft
+> **Status:** implemented — PR #99, 2026-08-28
 
 ## 📝 TLDR
 
@@ -114,6 +114,20 @@ covered by `tests/e2e/block-theme/blockified.spec.ts`.
 This is a shell and responsiveness check, not a second complete ranking
 journey. It should reuse the same provisioned environment and leave all
 fixture/site state untouched.
+
+> **Implementation note (PR #99).** This spec assumed the current UI already
+> satisfies the no-overflow contract. It does not: at 390 px the provisioned
+> storefront renders a 431 px document, and hiding just
+> `.shift64-woo-search-block--form` (the header search block) and
+> `.shift64-woo-search-product-sort` (the results sort pill) brings it back to
+> exactly 390 px. The implementation therefore splits Scenario C in two — a
+> passing shell-visibility test, and the overflow assertion shipped intact as a
+> `test.fail()`, following the convention
+> `tests/e2e/block-theme/blockified.spec.ts` used while #20 was decided but
+> unimplemented. The assertion was deliberately not weakened, because a relaxed
+> version would codify the overflow as acceptable. The defect is tracked in
+> #101; when it lands, the test starts passing, Playwright reports the
+> unexpected pass as a failure, and that is the signal to drop the marker.
 
 ## 📝 Research
 
