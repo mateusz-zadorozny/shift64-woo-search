@@ -36,7 +36,8 @@
 | 5 | 5.1 | Drop the pagination-ownership `test.fail()` markers now the plugin defers | inline | done | dc5cb8f |
 | 5 | 5.2 | Remove the classic-theme Playwright project and its AJAX-swap journeys | inline | done | 08d4b92 |
 | 5 | 5.3 | Retarget the remaining E2E specs at the block-native surfaces | inline | done | 69b3c21 |
-| 5 | 5.4 | Flip the spec status header and the specs index row | inline | done | pending |
+| 5 | 5.4 | Flip the spec status header and the specs index row | inline | done | f49ab24 |
+| 5 | 5.4-ds-fix | Regenerate the translation template after the string changes | inline | done | pending |
 
 ## Goal
 
@@ -224,6 +225,13 @@ site to a classic theme to exercise it is removed with it.
 drove the shortcode form, the injected filter bar or the replaced sort control
 move to the block equivalents or are dropped where the block projects already
 cover them.
+
+**5.4-ds-fix Regenerate the translation template after the string changes.**
+Appended at the final gate. `languages/shift64-woo-search.pot` is a generated
+artifact committed to the repository, and this release removed a large number of
+user-facing strings (the filter bar, the mobile tray, the retired settings
+fields) and added a few (the runtime and upgrade notices). `composer makepot`
+brings it back in step with the source.
 
 **5.4 Flip the spec status header and the specs index row.** Per `AGENTS.md`, the
 implementing PR flips `.ai/specs/2026-07-30-block-theme-only-legacy-removal.md`
