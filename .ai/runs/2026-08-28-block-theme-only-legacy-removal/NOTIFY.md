@@ -157,3 +157,26 @@ Phase 5's E2E changes are verified by review and by the CI `e2e` job that
 and had gone stale: this release removed a large number of user-facing strings
 (the filter bar, the mobile tray, the retired settings fields) and added a few
 (the runtime and upgrade notices). Regenerated with `wp i18n make-pot`.
+
+## 2026-08-28T07:47:00Z — review pass complete, CI green, PR ready
+
+`om-auto-review-pr` ran with the lock handed to it and back. It read CI before
+reviewing and found two failing required checks, both from this branch: a PHP 8.5
+`ReflectionMethod::setAccessible()` deprecation erroring five tests on that matrix
+leg, and a Prettier violation failing `lint:blocks`. Both fixed in `a01c118`. The
+review itself found one minor — dead render-guard state left behind when the
+classic filter renderer was deleted — fixed in `256a1d1`.
+
+CI is green on `256a1d1`: all four PHPUnit legs including the new WordPress 7.0
+floor job, plus **E2E (Playwright)**, which is the only verification of the Phase 5
+changes a local run could not provide.
+
+PR #100 flipped to ready, labeled `review`, `feature`, `refactor`, `needs-qa`,
+`priority-high`, `risk-high`. Lock released.
+
+## 2026-08-28T07:47:00Z — follow-up worth filing
+
+The local `wp-scripts lint-js` invocation exits 0 **without linting anything**:
+ESLint 9 finds no flat config and wp-scripts swallows it. CI caught the Prettier
+violation the local command passed. A lint command that cannot fail is worse than
+no lint command; worth a separate issue rather than folding into this PR.

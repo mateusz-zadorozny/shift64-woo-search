@@ -39,7 +39,7 @@
 | 5 | 5.4 | Flip the spec status header and the specs index row | inline | done | f49ab24 |
 | 5 | 5.4-ds-fix | Regenerate the translation template after the string changes | inline | done | afa835c |
 | 5 | 5.4-review-fix | Fix the two CI failures the review pass surfaced | inline | done | a01c118 |
-| 5 | 5.5-review-fix | Remove the render guard the deleted filter renderer was its only reader of | inline | done | pending |
+| 5 | 5.5-review-fix | Remove the render guard the deleted filter renderer was its only reader of | inline | done | 256a1d1 |
 
 ## Goal
 

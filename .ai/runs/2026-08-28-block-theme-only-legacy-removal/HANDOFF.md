@@ -1,53 +1,49 @@
 # Handoff — 2026-08-28-block-theme-only-legacy-removal
 
-**Last updated:** 2026-08-28T07:11:34Z
+**Last updated:** 2026-08-28T07:47:00Z
 **Branch:** `feat/block-theme-only-legacy-removal`
-**PR:** https://github.com/mateusz-zadorozny/shift64-woo-search/pull/100
-**Current phase/step:** Phase 4 Step 4.1
-**Last commit:** `b52ac23` — feat(admin): announce the block-only storefront with a dismissible upgrade notice
+**PR:** https://github.com/mateusz-zadorozny/shift64-woo-search/pull/100 — **ready for review**
+**Current phase/step:** complete — every Tasks row is `done`
+**Last commit:** `256a1d1` — refactor(filters): drop the render guard whose only reader was the deleted renderer
 
 ## What just happened
 
-- Phase 3 is complete and checkpoint 3 passed over Steps 3.1 … 3.6. WP Admin no
-  longer offers a setting the frontend does not read; the generated SHORTINIT
-  config is pinned to engine constants; WordPress 7.0 and WooCommerce 10.9 are
-  declared everywhere and one CI job runs against the floor; a runtime guard,
-  a leftover-shortcode detector and a dismissible upgrade notice are in place.
-- The PR title was retyped from `refactor(...)` to `feat(...)`: the repo
-  squash-merges with the PR title as the commit subject, and the Angular preset
-  semantic-release uses treats `refactor` as no release. No commit carries a
-  `BREAKING CHANGE:` footer, which would cut 1.0.0 rather than the intended
-  pre-1.0 minor.
+- The run is finished. All 25 planned Steps landed, plus three appended at the
+  gate and review stages (`5.4-ds-fix`, `5.4-review-fix`, `5.5-review-fix`).
+- The full local gate is green and **CI is green on `256a1d1`** — all four PHPUnit
+  matrix legs including the new WordPress 7.0 floor, and the E2E (Playwright)
+  suite, which is the only verification of the Phase 5 changes that a local run
+  could not provide.
+- The review pass found two blockers (a PHP 8.5 `setAccessible()` deprecation and
+  a Prettier violation) and one minor (dead render-guard state left by the
+  removal). All three are fixed.
+- The PR is ready for review, labeled, and carries checkpoint, final-gate,
+  review, CI and summary comments with browser screenshots.
 
 ## Next concrete action
 
-- Step 4.1: finish `docs/block-theme-migration.md`. The surface inventory and
-  option classification landed in Step 1.1; what is still missing is the
-  merchant-facing half — the nine-step Site Editor migration, the copyable
-  inherited Product Collection pattern, rollback steps including template backup,
-  and the page cache/CDN purge warning. The file already ends with a link to an
-  "Upgrading a store to the block-only frontend" anchor that does not exist yet.
+- Nothing for the agent. A maintainer reviews and approves; `needs-qa` is
+  retained so the QA gate applies, and manual QA should exercise a real upgrade
+  path — a store with the shortcodes still in published content, and a store on
+  a classic theme after the update.
 
 ## Blockers / open questions
 
-- None.
+- None blocking. One follow-up worth filing: the local
+  `wp-scripts lint-js` invocation exits 0 without linting, because ESLint 9 finds
+  no flat config. CI caught what it silently passed.
 
 ## Environment caveats
 
 - Dev runtime runnable: yes — `http://127.0.0.1:26641`, WordPress 7.1, symlinked
-  to this worktree so the running site always reflects HEAD.
-- Browser / UI checks: enabled. `agent-browser` needs `TMPDIR=/tmp`;
-  `bin/test-env.sh` needs `TMPDIR=/root/.cache`.
-- The repo's binaries lose their exec bit on this server: run `php
-  vendor/phpunit/phpunit/phpunit`, `php
-  vendor/squizlabs/php_codesniffer/bin/phpcs` and `node
-  node_modules/@wordpress/scripts/bin/wp-scripts.js` rather than the `.bin`
-  shims.
-- Playwright: outside the hermetic validation gate per `AGENTS.md`. Phase 5's E2E
-  changes are verified by review and CI, not run locally.
-- Database/migration state: clean.
+  to this worktree. Tear down with `TMPDIR=/root/.cache bash bin/test-env.sh down`.
+- `agent-browser` needs `TMPDIR=/tmp`; `bin/test-env.sh` needs `TMPDIR=/root/.cache`.
+- `node_modules/.bin/*` and `vendor/bin/*` lose their exec bit on this server:
+  invoke through `php`/`node`, and `chmod +x node_modules/.bin/*` before
+  `wp-scripts build`, which otherwise exits 1 with no output at all.
+- Playwright stays outside the hermetic gate per `AGENTS.md`; CI runs it.
 
 ## Worktree
 
 - Path: `.ai/cezar/worktrees/d81edb62-b15a-46e2-9f2a-6083590f9c51`
-- Created this run: no — reused the linked cezar worktree.
+- Created this run: no — reused the linked cezar worktree, so nothing to clean up.
