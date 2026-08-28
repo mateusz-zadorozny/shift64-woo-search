@@ -30,8 +30,8 @@
 | 3 | 3.4 | Add the runtime baseline guard, admin notice and non-zero CLI error | inline | done | 0175c3e |
 | 3 | 3.5 | Add the admin-only legacy shortcode occurrence detector | inline | done | 23f410b |
 | 3 | 3.6 | Add the dismissible per-user upgrade notice linking the migration guide | inline | done | b52ac23 |
-| 4 | 4.1 | Publish the Site Editor migration guide with the Product Collection pattern | inline | done | pending |
-| 4 | 4.2 | Convert BACKWARD_COMPATIBILITY.md promises into a dated migration record | inline | todo | — |
+| 4 | 4.1 | Publish the Site Editor migration guide with the Product Collection pattern | inline | done | ccef1e0 |
+| 4 | 4.2 | Convert BACKWARD_COMPATIBILITY.md promises into a dated migration record | inline | done | pending |
 | 4 | 4.3 | Update README.md, readme.txt and the changelog for the breaking release | inline | todo | — |
 | 5 | 5.1 | Drop the pagination-ownership `test.fail()` markers now the plugin defers | inline | todo | — |
 | 5 | 5.2 | Remove the classic-theme Playwright project and its AJAX-swap journeys | inline | todo | — |
