@@ -24,8 +24,8 @@
 | 2 | 2.8 | Prune the removed archive, filter and theme-specific rules from the stylesheet | inline | done | ffbb008 |
 | 2 | 2.9 | Refactor the bootstrap and archive class down to query adaptation and engine hooks | inline | done | 7a5775c |
 | 2 | 2.10 | Add the frontend asset manifest test proving no global legacy assets load | inline | done | 310c5d9 |
-| 3 | 3.1 | Remove the appearance, selector and placement admin fields, leaving values inert | inline | done | pending |
-| 3 | 3.2 | Lock the generated SHORTINIT config to engine constants with a regeneration test | inline | todo | — |
+| 3 | 3.1 | Remove the appearance, selector and placement admin fields, leaving values inert | inline | done | 0496ba7 |
+| 3 | 3.2 | Lock the generated SHORTINIT config to engine constants with a regeneration test | inline | done | pending |
 | 3 | 3.3 | Raise the WordPress, WooCommerce and PHP baselines everywhere they are declared | inline | todo | — |
 | 3 | 3.4 | Add the runtime baseline guard, admin notice and non-zero CLI error | inline | todo | — |
 | 3 | 3.5 | Add the admin-only legacy shortcode occurrence detector | inline | todo | — |
