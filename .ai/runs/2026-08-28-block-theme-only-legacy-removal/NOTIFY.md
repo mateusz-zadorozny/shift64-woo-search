@@ -29,3 +29,34 @@ The spec names WordPress 7.0 and WooCommerce 10.9 as the new minimums. Checked
 against `api.wordpress.org`: WordPress 7.1 and WooCommerce 11.0.1 are current, so
 both minimums are one release behind the current stable and are declarable
 without stranding the plugin. No deviation from the spec is needed.
+
+## 2026-08-28T06:34:36Z — checkpoint 1 (Steps 1.1 … 2.4)
+
+Full PHP gate green (phpcs 8/8, phpunit 744/8439 — up from the 730/8385 baseline),
+JS suites green (7 block metadata files, 9 suites / 119 tests), four storefront
+URLs HTTP 200 with no PHP notice in the body, and browser screenshots confirming
+the block-native search results page renders with its Search field, Product
+Filters pills, Product Sort control and Product Collection grid intact. Details
+and artifacts: `checkpoint-1-checks.md`.
+
+## 2026-08-28T06:34:36Z — decision: keep the childless-parent block fallback
+
+`shift64-woo-search/search` and `/modal-search` are preserved surfaces, and their
+childless form renders through the same markup builder the removed shortcodes
+used. The builders therefore moved onto the blocks class as fallback renderers
+instead of being deleted with the shortcode registrations.
+
+## 2026-08-28T06:34:36Z — decision: retain pre_get_document_title
+
+The spec removes archive header and title *output* surfaces. `pre_get_document_title`
+sets the browser document title rather than theme output, and the plugin clears the
+`s` query var, so dropping it would leave the search results page with an empty
+title. Retained, and recorded in the migration guide's retained-hooks table.
+
+## 2026-08-28T06:34:36Z — decision: port "Excluded Categories" to the block filters
+
+The setting was applied only by the deleted classic filter renderer, while the
+spec keeps facet settings. Rather than let a retained, still-UI-exposed option
+quietly stop working, its resolver moved into the Filter Pill option builder,
+with the selected-term escape hatch preserved so an excluded-but-selected
+category stays removable.

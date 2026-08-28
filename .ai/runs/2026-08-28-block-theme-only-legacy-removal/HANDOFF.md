@@ -1,23 +1,29 @@
 # Handoff — 2026-08-28-block-theme-only-legacy-removal
 
-**Last updated:** 2026-08-28T06:22:13Z
+**Last updated:** 2026-08-28T06:34:36Z
 **Branch:** `feat/block-theme-only-legacy-removal`
-**PR:** not yet opened
-**Current phase/step:** Phase 1 Step 1.1
-**Last commit:** — (run folder is the first commit)
+**PR:** https://github.com/mateusz-zadorozny/shift64-woo-search/pull/100
+**Current phase/step:** Phase 2 Step 2.5
+**Last commit:** `e9c9d10` — refactor(archive): remove the Kadence partial takeover and theme-specific integration
 
 ## What just happened
 
-- Resolved the spec by path and confirmed its Phase 0 prerequisite gate: all four
-  block-native prerequisite specs are `implemented` (PRs #51, #60, #72, #73), so
-  the removal is allowed to start.
-- Drafted the 24-Step plan, which is over the configured 20-Step threshold, so
-  this run uses the loop engine.
+- Checkpoint 1 passed over Steps 1.1 … 2.4: the full PHP gate, the JS suites, an
+  HTTP smoke of four storefront URLs, and browser screenshots of the block-native
+  search results page.
+- The classic surface removed so far: both search shortcodes, the breadcrumbs
+  shortcode, the archive header and title overrides, the injected filter bar with
+  its mobile tray, and the Kadence partial-template takeover.
+- Two behaviors were deliberately carried over rather than dropped: the childless
+  parent block's fallback markup, and the "Excluded Categories" facet setting.
 
 ## Next concrete action
 
-- Start Step 1.1: publish the legacy-surface inventory and option classification
-  table that every later deletion is checked against.
+- Step 2.5: remove the `woocommerce_catalog_orderby` sort-control takeover and the
+  `ngettext_woocommerce` result-count replacement from
+  `includes/class-shift64-woo-search-archive.php`. Checkpoint 1's screenshot shows
+  the count still reading "Products: 4"; after this Step it should read
+  WooCommerce's own phrasing.
 
 ## Blockers / open questions
 
@@ -25,14 +31,18 @@
 
 ## Environment caveats
 
-- Dev runtime runnable: yes — `bin/test-env.sh up` provisioned WordPress 7.1 on
-  `http://127.0.0.1:26641` with a dedicated Redis and MySQL for this worktree.
-- Browser / UI checks: enabled (agent-browser needs `TMPDIR=/tmp`).
-- Playwright: outside the hermetic validation gate per `AGENTS.md`; E2E changes in
-  Phase 5 are verified by review and CI, not run locally.
-- Database/migration state: clean. Baseline gate green before any change —
-  `composer validate --strict` valid, `phpcs` 8/8 clean, `phpunit` 730 tests /
-  8385 assertions passing.
+- Dev runtime runnable: yes — `http://127.0.0.1:26641`, WordPress 7.1, symlinked
+  to this worktree so the running site always reflects HEAD.
+- Browser / UI checks: enabled. `agent-browser` needs `TMPDIR=/tmp`;
+  `bin/test-env.sh` needs `TMPDIR=/root/.cache`.
+- The repo's binaries lose their exec bit on this server: run `php
+  vendor/phpunit/phpunit/phpunit`, `php
+  vendor/squizlabs/php_codesniffer/bin/phpcs` and `node
+  node_modules/@wordpress/scripts/bin/wp-scripts.js` rather than the `.bin`
+  shims.
+- Playwright: outside the hermetic validation gate per `AGENTS.md`. Phase 5's E2E
+  changes are verified by review and CI, not run locally.
+- Database/migration state: clean.
 
 ## Worktree
 
