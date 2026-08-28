@@ -18,6 +18,13 @@ This repository currently contains the `0.x` development line. The first public,
 - PHP 8.3 or newer with the `redis` extension
 - Redis Stack or another Redis deployment with the RediSearch module
 
+The storefront is rendered by block templates: search, filters, sorting and the
+results grid are Site Editor blocks placed around an inherited WooCommerce
+Product Collection. On a classic theme the plugin still indexes, searches and
+serves its autocomplete endpoint, but it injects no controls into the theme's
+output. Upgrading a store that used the pre-1.0 shortcodes and placement hooks is
+covered in [the block theme migration guide](docs/block-theme-migration.md).
+
 ## Installation
 
 1. Place this repository in `wp-content/plugins/shift64-woo-search`.

@@ -172,6 +172,116 @@ Admin.
 
 None. Every key above shipped in a release, so none is removed outright.
 
-## Migration steps
+## Upgrading a store to the block-only frontend
 
-See [Upgrading a store to the block-only frontend](#upgrading-a-store-to-the-block-only-frontend).
+Do this **before** updating, on a staging copy if you have one. The update itself
+is not destructive — no product data, index or setting is deleted — but a
+storefront that relied on the removed surfaces will render without its search,
+filter and sort controls until its templates are edited.
+
+### Before you update
+
+1. **Confirm you are on a block theme.** Appearance → Editor exists only for
+   block themes. If it does not, switch to one first: on a classic theme the
+   plugin keeps indexing and searching, and the SHORTINIT endpoint and the CLI
+   keep working, but no storefront control is rendered.
+2. **Find and replace the removed shortcodes.** Search your pages, posts,
+   widgets, and any page-builder content for `[shift64_woo_search]`,
+   `[shift64_woo_search_modal]` and `[shift64_woo_search_breadcrumbs]`. After the
+   update WP Admin reports remaining occurrences for one release, but a tag left
+   in published content prints as literal text on the storefront in the meantime.
+3. **Back up your block templates.** Export them from Appearance → Editor →
+   Templates. This is what makes a rollback possible; see below.
+
+### Edit each product template
+
+In Appearance → Editor → Templates, open every template that lists products —
+Product Catalog, Product Search Results, and each product-taxonomy archive you
+have enabled — and for each one:
+
+4. **Insert one inherited Product Collection** if the template does not already
+   have one. Add the WooCommerce **Product Collection** block and leave its query
+   inheriting the template's own query. One per template: a second collection
+   gives the page two competing product lists.
+5. **Insert Search or Modal Search** where the search box belongs — usually the
+   header template rather than each archive.
+6. **Insert Product Filters**, then add a **Filter Pill** inside it for each facet
+   you want to offer, and configure each pill's taxonomy and display options.
+7. **Insert Product Sort**, choose and order the sort modes you want to offer, or
+   leave it out entirely if you do not want a sort control.
+8. **Save, then check the storefront**: search, each filter, sort, pagination, and
+   the mobile layout. Use Back and Forward as well — filtering and paging update
+   the URL, and both should restore the results you were looking at.
+9. **Remove the leftovers**: old shortcode blocks, widgets holding the removed
+   tags, and any theme-specific placeholder that existed only to receive the
+   plugin's injected markup.
+10. **Run Shift64 setup or a rebuild only if asked.** Check the Facets and sorting
+    status in the plugin's admin screens; if neither says a rebuild is required,
+    your index is already correct and nothing needs re-indexing for this upgrade.
+
+### The Product Collection the controls attach to
+
+Shift64's controls attach to a Product Collection that inherits the template
+query. In block markup that is:
+
+```html
+<!-- wp:woocommerce/product-collection {"queryId":0,"query":{"inherit":true,"isProductCollectionBlock":true}} -->
+  <!-- wp:woocommerce/product-template -->
+    <!-- your product card blocks -->
+  <!-- /wp:woocommerce/product-template -->
+  <!-- wp:query-pagination -->
+    <!-- wp:query-pagination-previous /-->
+    <!-- wp:query-pagination-numbers /-->
+    <!-- wp:query-pagination-next /-->
+  <!-- /wp:query-pagination -->
+<!-- /wp:woocommerce/product-collection -->
+```
+
+Three properties are what the plugin looks for: `isProductCollectionBlock` is
+`true`, `inherit` is `true`, and `queryId` is a stable number. Everything inside
+is yours — card composition, columns, alignment, no-results content and
+pagination layout are deliberately unconstrained, and the plugin never rewrites
+them. Inserting the block through the editor produces this shape by default; the
+markup above is only here so you can recognise a correct one.
+
+If a template has controls but no compatible Product Collection, the editor shows
+a setup notice on the control and the storefront still navigates natively. The
+plugin will not create a hidden product loop to compensate.
+
+### After you update
+
+- **Purge caches.** Page caches and CDNs will still be serving the old markup and
+  the old asset URLs. Purge both, or shoppers see a mixture of the two frontends
+  until the cache expires.
+- **Expect old JavaScript to do nothing.** A cached copy of the removed scripts
+  finds none of the nodes it looked for and exits without error.
+- **Check the admin notices.** The plugin reports any remaining shortcode
+  occurrences, and tells you if the runtime is below the supported baseline.
+
+### Rolling back
+
+Rolling back is supported for one release, and takes three things, not one:
+
+1. **Reinstall the previous plugin version.** No option is deleted by this
+   release. The retired appearance, selector and tray-width settings keep their
+   stored values, so the old frontend finds its configuration again.
+2. **Restore the block templates you exported.** The new blocks you inserted are
+   unknown to the old version and would render as unrecognised block comments.
+   This is why the template backup is step 3 and not an afterthought.
+3. **Purge caches again.**
+
+No Redis downgrade or index rebuild is needed either way: the index schema, key
+naming and stored data are untouched by this release.
+
+## Requirements
+
+This release raises the supported baseline to **WordPress 7.0**, **WooCommerce
+10.9** and **PHP 8.3**, because the block and Interactivity APIs the storefront
+is built on require them.
+
+Below that baseline the plugin does not switch itself off wholesale: search,
+indexing, the SHORTINIT endpoint, the admin screens and the CLI keep working, and
+only the block layer stops loading — registering blocks against an API that is
+not there is how a version mismatch becomes a fatal error. An admin notice names
+what to upgrade, and the CLI exits with a non-zero explanatory error rather than
+failing part-way through a rebuild.
