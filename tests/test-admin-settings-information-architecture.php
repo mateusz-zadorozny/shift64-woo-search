@@ -24,13 +24,13 @@
  * properties, which no single-surface suite can express:
  *
  * 1. The registry is complete and internally consistent — six ordered workspaces,
- *    nineteen destinations, one explicit, existing, unshared renderer each.
+ *    eighteen destinations, one explicit, existing, unshared renderer each.
  * 2. All twelve legacy aliases match the spec's alias table *literally*, so a registry
  *    change cannot quietly redefine what a bookmark means.
  * 3. Single ownership — the option keys a section renders are exactly the ones the
  *    spec's "Existing Surface Placement" tables assign it, and no key is rendered by
  *    two sections.
- * 4. Render-without-write — a sweep of all nineteen destinations plus all twelve
+ * 4. Render-without-write — a sweep of all eighteen destinations plus all twelve
  *    aliases leaves every `shift64_woo_search_*` option byte-identical.
  * 5. Saving one section cannot reach another section's options, credentials included.
  * 6. Credentials never appear outside the Connection form.
@@ -100,7 +100,10 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 			'index'       => array( 'system', 'index' ),
 			'redis'       => array( 'system', 'connection' ),
 			'search'      => array( 'relevance', 'basic' ),
-			'frontend'    => array( 'experience', 'search-field' ),
+			// The Search Field section was retired with the classic frontend; the
+			// alias keeps working and lands on the section that inherited its one
+			// surviving setting.
+			'frontend'    => array( 'experience', 'autocomplete' ),
 		);
 	}
 
@@ -123,17 +126,10 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 	private function spec_option_ownership() {
 		return array(
 			'overview/overview'               => array(),
-			'experience/search-field'         => array(
-				'shift64_woo_search_debounce',
-				'shift64_woo_search_input_selector',
-				'shift64_woo_search_additional_selectors',
-				'shift64_woo_search_button_selector',
-			),
 			'experience/autocomplete'         => array(
 				'shift64_woo_search_min_query',
 				'shift64_woo_search_autocomplete_limit',
-				'shift64_woo_search_dropdown_width_mode',
-				'shift64_woo_search_dropdown_width',
+				'shift64_woo_search_debounce',
 				'shift64_woo_search_show_sku',
 				'shift64_woo_search_show_category',
 				'shift64_woo_search_show_brand',
@@ -202,17 +198,10 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 	 */
 	private function generic_section_payloads() {
 		return array(
-			'experience/search-field'         => array(
-				'shift64_woo_search_debounce'             => '175',
-				'shift64_woo_search_input_selector'       => '.ia-input',
-				'shift64_woo_search_additional_selectors' => '.ia-extra',
-				'shift64_woo_search_button_selector'      => '.ia-button',
-			),
 			'experience/autocomplete'         => array(
 				'shift64_woo_search_min_query'             => '3',
 				'shift64_woo_search_autocomplete_limit'    => '8',
-				'shift64_woo_search_dropdown_width_mode'   => 'custom',
-				'shift64_woo_search_dropdown_width'        => '820',
+				'shift64_woo_search_debounce'              => '175',
 				'shift64_woo_search_show_sku'              => 'no',
 				'shift64_woo_search_show_category'         => 'yes',
 				'shift64_woo_search_show_brand'            => 'no',
@@ -385,13 +374,13 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 
 	/**
 	 * The navigation contract in one assertion set: six workspaces, in the documented
-	 * order, nineteen destinations between them, each workspace landing on a section it
+	 * order, eighteen destinations between them, each workspace landing on a section it
 	 * actually declares.
 	 *
 	 * A default pointing at a section of another workspace — or at none at all — would
 	 * make a workspace link resolve somewhere the secondary navigation never offers.
 	 */
-	public function test_registry_declares_six_ordered_workspaces_and_nineteen_destinations() {
+	public function test_registry_declares_six_ordered_workspaces_and_eighteen_destinations() {
 		$workspaces = Shift64_Woo_Search_Admin_Routes::get_workspaces();
 
 		$this->assertSame(
@@ -410,7 +399,7 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 			);
 		}
 
-		$this->assertSame( 19, $destinations );
+		$this->assertSame( 18, $destinations );
 	}
 
 	/**
@@ -441,7 +430,7 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 			$callbacks[] = $declared;
 		}
 
-		$this->assertCount( 19, $callbacks );
+		$this->assertCount( 18, $callbacks );
 		$this->assertSame(
 			count( $callbacks ),
 			count( array_unique( $callbacks ) ),
@@ -572,7 +561,7 @@ class Shift64_Woo_Search_Admin_Information_Architecture_Test extends WP_UnitTest
 			$routes[] = array( $legacy_tab, null );
 		}
 
-		$this->assertCount( 32, $routes, 'The sweep must cover the default landing, 19 destinations, and 12 aliases.' );
+		$this->assertCount( 31, $routes, 'The sweep must cover the default landing, 18 destinations, and 12 aliases.' );
 
 		$before = $this->option_snapshot();
 		$this->assertNotEmpty( $before, 'The snapshot must observe real stored options.' );

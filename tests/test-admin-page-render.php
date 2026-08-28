@@ -286,25 +286,58 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 	// ── Search Experience sections ─────────────────────────────
 
 	/**
-	 * The Search Field section owns the four selector/debounce fields, reachable
-	 * through both the canonical route and the legacy `frontend` bookmark.
+	 * The retired appearance, selector and tray-width fields render nowhere.
 	 *
-	 * @dataProvider search_field_route_provider
+	 * The Search Field section existed to point the plugin at a theme's search box
+	 * by CSS selector; the Search block renders its own field, so there is nothing
+	 * left to point at. The section is gone, its `frontend` bookmark still
+	 * resolves, and none of the retired keys appears on any Search Experience
+	 * route — a field left rendering would post a value nothing reads, which is
+	 * worse than no field at all.
+	 *
+	 * @dataProvider experience_route_provider
 	 *
 	 * @param string      $tab     Requested `tab` value.
 	 * @param string|null $section Requested `section` value.
 	 */
-	public function test_search_field_section_renders_the_frontend_selector_fields( $tab, $section ) {
+	public function test_retired_frontend_fields_render_on_no_experience_route( $tab, $section ) {
 		$html = $this->render( $tab, $section );
 
-		foreach ( array( 'debounce', 'input_selector', 'additional_selectors', 'button_selector' ) as $field ) {
-			$this->assertStringContainsString( 'name="shift64_woo_search_' . $field . '"', $html );
+		$retired = array(
+			'input_selector',
+			'additional_selectors',
+			'button_selector',
+			'dropdown_width_mode',
+			'dropdown_width',
+		);
+
+		foreach ( $retired as $field ) {
+			$this->assertStringNotContainsString(
+				'shift64_woo_search_' . $field,
+				$html,
+				sprintf( '%s was retired by the block-theme-only cleanup.', $field )
+			);
 		}
 	}
 
-	public function search_field_route_provider() {
+	/**
+	 * The legacy `frontend` bookmark still lands on a real section.
+	 *
+	 * @dataProvider experience_route_provider
+	 *
+	 * @param string      $tab     Requested `tab` value.
+	 * @param string|null $section Requested `section` value.
+	 */
+	public function test_experience_routes_land_on_the_autocomplete_section( $tab, $section ) {
+		$html = $this->render( $tab, $section );
+
+		$this->assertStringContainsString( 'name="shift64_woo_search_debounce"', $html );
+		$this->assertStringContainsString( 'name="shift64_woo_search_min_query"', $html );
+	}
+
+	public function experience_route_provider() {
 		return array(
-			'canonical'         => array( 'experience', 'search-field' ),
+			'canonical'         => array( 'experience', 'autocomplete' ),
 			'legacy alias'      => array( 'frontend', null ),
 			'workspace default' => array( 'experience', null ),
 		);
@@ -312,8 +345,9 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 
 	/**
 	 * Section forms submit only their own keys, so a section may render only the
-	 * fields it owns. Autocomplete owns the dropdown fields; `full_limit` sizes the
-	 * full results page and stays with Relevance.
+	 * fields it owns. Autocomplete owns the dropdown fields — including the
+	 * debounce inherited from the retired Search Field section; `full_limit` sizes
+	 * the full results page and stays with Relevance.
 	 */
 	public function test_autocomplete_section_renders_only_the_fields_it_owns() {
 		$html = $this->render( 'experience', 'autocomplete' );
@@ -321,8 +355,7 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 		$fields = array(
 			'min_query',
 			'autocomplete_limit',
-			'dropdown_width_mode',
-			'dropdown_width',
+			'debounce',
 			'show_sku',
 			'show_category',
 			'show_brand',
@@ -335,7 +368,6 @@ class Shift64_Woo_Search_Admin_Page_Render_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertStringNotContainsString( 'shift64_woo_search_full_limit', $html );
-		$this->assertStringNotContainsString( 'shift64_woo_search_debounce', $html );
 	}
 
 	/**
