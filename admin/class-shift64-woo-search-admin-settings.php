@@ -33,6 +33,11 @@ class Shift64_Woo_Search_Admin_Settings {
 	 *
 	 * Consumers cast on read, so values stay strings here — `'30'`, not `30`.
 	 *
+	 * Dropping a key from this list is how the block-theme-only cleanup made the
+	 * retired appearance, selector and tray-width settings inert: their stored
+	 * rows are left exactly as they are, so rolling the plugin back finds them,
+	 * but nothing in WP Admin renders them and no payload can write them.
+	 *
 	 * @return string[] Allowlisted scalar option names.
 	 */
 	private static function scalar_options() {
@@ -46,8 +51,6 @@ class Shift64_Woo_Search_Admin_Settings {
 			'shift64_woo_search_redis_prefix',
 			'shift64_woo_search_min_query',
 			'shift64_woo_search_autocomplete_limit',
-			'shift64_woo_search_dropdown_width_mode',
-			'shift64_woo_search_dropdown_width',
 			'shift64_woo_search_show_sku',
 			'shift64_woo_search_show_category',
 			'shift64_woo_search_show_brand',
@@ -57,9 +60,6 @@ class Shift64_Woo_Search_Admin_Settings {
 			'shift64_woo_search_outofstock_mode',
 			'shift64_woo_search_outofstock_demote_factor',
 			'shift64_woo_search_debounce',
-			'shift64_woo_search_input_selector',
-			'shift64_woo_search_additional_selectors',
-			'shift64_woo_search_button_selector',
 			'shift64_woo_search_strategy',
 			'shift64_woo_search_fallback_trigger',
 			'shift64_woo_search_fallback_score_threshold',

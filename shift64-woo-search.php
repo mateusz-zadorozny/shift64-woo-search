@@ -10,8 +10,10 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: shift64-woo-search
  * Domain Path: /languages
- * Requires at least: 6.0
+ * Requires at least: 7.0
  * Requires PHP: 8.3
+ * WC requires at least: 10.9
+ * WC tested up to: 11.0
  *
  * @package Shift64_Woo_Search
  */
@@ -44,6 +46,8 @@ function shift64_woo_search_woocommerce_inactive_notice() {
 }
 
 // Include files.
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-requirements.php';
+require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-legacy-shortcodes.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-redis.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-schema.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-stats.php';
@@ -78,7 +82,6 @@ require_once SHIFT64_WOO_SEARCH_PATH . 'frontend/class-shift64-woo-search-fronte
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-pill-style.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-filter-blocks.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-blocks.php';
-require_once SHIFT64_WOO_SEARCH_PATH . 'frontend/class-shift64-woo-search-filters.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'admin/class-shift64-woo-search-admin-routes.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'admin/class-shift64-woo-search-admin-settings.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'admin/class-shift64-woo-search-admin.php';
@@ -311,6 +314,8 @@ class Shift64_Woo_Search_Plugin {
 			return;
 		}
 
+		Shift64_Woo_Search_Legacy_Shortcodes::forget();
+
 		if ( ! $this->install_mu_plugin() || ! $this->generate_mu_plugin_config() ) {
 			set_transient( $backoff_key, 1, HOUR_IN_SECONDS );
 			return;
@@ -325,8 +330,10 @@ class Shift64_Woo_Search_Plugin {
 		$this->maybe_create_tables();
 		$this->maybe_update_mu_plugin();
 
-		// Admin notices for Redis status.
+		// Admin notices for Redis status, the runtime baseline, leftover
+		// shortcodes, and the block-theme-only upgrade announcement.
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+		add_action( 'admin_init', array( $this, 'maybe_dismiss_upgrade_notice' ) );
 
 		// Proactive heal: WP Redis Object Cache flush drops all RediSearch indexes
 		// (FLUSHDB on any db is instance-wide for RediSearch). Recreate ours immediately
@@ -350,18 +357,33 @@ class Shift64_Woo_Search_Plugin {
 			new Shift64_Woo_Search_Admin();
 		}
 
-		// Shared shortcode renderers and dynamic blocks must also exist in the editor.
-		$frontend = new Shift64_Woo_Search_Frontend();
-		new Shift64_Woo_Search_Blocks( $frontend );
-		new Shift64_Woo_Search_Catalog_Navigation();
-		new Shift64_Woo_Search_Editor_Facets_Rest();
+		// Blocks register in the editor as well as on the storefront. The frontend
+		// object is no longer a classic renderer of its own — it is the asset
+		// loader the childless-parent block fallback calls, and it hooks nothing.
+		//
+		// Below the declared WordPress/WooCommerce floor the block half of the
+		// plugin does not boot at all: registering blocks against a block or
+		// Interactivity API that is not there is how a version mismatch becomes a
+		// fatal. Search, indexing, the SHORTINIT endpoint, the admin screens and
+		// the CLI are unaffected, and admin_notices() explains what to upgrade.
+		$requirements_met = Shift64_Woo_Search_Requirements::are_met();
 
-		// Frontend autocomplete and search integrations.
+		if ( $requirements_met ) {
+			$frontend = new Shift64_Woo_Search_Frontend();
+			new Shift64_Woo_Search_Blocks( $frontend );
+			new Shift64_Woo_Search_Catalog_Navigation();
+			new Shift64_Woo_Search_Editor_Facets_Rest();
+		}
+
+		// Storefront query integrations. Every one of these adapts a query or
+		// publishes data to a block; none of them places markup in a theme.
 		if ( ! is_admin() ) {
 			new Shift64_Woo_Search_Archive();
 			new Shift64_Woo_Search_Taxonomy_Archive();
-			new Shift64_Woo_Search_Product_Collection_Query();
-			new Shift64_Woo_Search_Filters();
+
+			if ( $requirements_met ) {
+				new Shift64_Woo_Search_Product_Collection_Query();
+			}
 		}
 
 		// WP-CLI.
@@ -369,6 +391,30 @@ class Shift64_Woo_Search_Plugin {
 			Shift64_Woo_Search_CLI::register_commands();
 		}
 	}
+
+	/**
+	 * Identifier for the block-theme-only upgrade notice.
+	 *
+	 * An identifier rather than a version: a patch release must not resurrect a
+	 * notice somebody already dismissed, and a later breaking release should be
+	 * able to raise its own without disturbing this one.
+	 */
+	const UPGRADE_NOTICE_ID = 'block-theme-only';
+
+	/**
+	 * User meta key recording which upgrade notice a user dismissed.
+	 */
+	const UPGRADE_NOTICE_META = 'shift64_woo_search_upgrade_notice_dismissed';
+
+	/**
+	 * Query argument that dismisses the upgrade notice.
+	 */
+	const UPGRADE_NOTICE_QUERY_ARG = 'shift64_woo_search_dismiss_upgrade_notice';
+
+	/**
+	 * Where the upgrade notice sends a merchant for the full migration steps.
+	 */
+	const MIGRATION_GUIDE_URL = 'https://github.com/mateusz-zadorozny/shift64-woo-search/blob/main/docs/block-theme-migration.md';
 
 	/**
 	 * Current data version. Bump whenever an upgrade needs to do work beyond
@@ -587,9 +633,195 @@ class Shift64_Woo_Search_Plugin {
 	}
 
 	/**
+	 * Explain an unsupported runtime, without ever breaking one.
+	 *
+	 * Two distinct situations, deliberately worded differently. Below the version
+	 * floor the block half of the plugin is switched off and the notice is an
+	 * error, because storefront controls really are missing. On a supported
+	 * version with a classic theme nothing is broken at all — the plugin simply
+	 * renders no storefront controls, which is the intended outcome of the
+	 * block-theme-only release — so that notice is informational and points at
+	 * the migration guide.
+	 *
+	 * Both are shown only to users who can manage the plugin, since neither is
+	 * actionable by anyone else.
+	 */
+	private function render_runtime_requirement_notices() {
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$unmet = Shift64_Woo_Search_Requirements::unmet();
+
+		if ( ! empty( $unmet ) ) {
+			?>
+			<div class="notice notice-error">
+				<p>
+					<strong><?php esc_html_e( 'Shift64 Woo Search:', 'shift64-woo-search' ); ?></strong>
+					<?php esc_html_e( 'Storefront blocks are switched off until this site meets the plugin\'s runtime requirements. Search, indexing and the CLI keep working.', 'shift64-woo-search' ); ?>
+				</p>
+				<ul>
+					<?php foreach ( $unmet as $requirement ) : ?>
+						<li><?php echo esc_html( $requirement ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
+			<?php
+			return;
+		}
+
+		if ( ! Shift64_Woo_Search_Requirements::block_theme_active() ) {
+			?>
+			<div class="notice notice-info">
+				<p>
+					<strong><?php esc_html_e( 'Shift64 Woo Search:', 'shift64-woo-search' ); ?></strong>
+					<?php esc_html_e( 'This site runs a classic theme. Search, indexing and the CLI work normally, but the storefront controls are Site Editor blocks and are not injected into a classic theme. Switch to a block theme and place the blocks to use them.', 'shift64-woo-search' ); ?>
+				</p>
+			</div>
+			<?php
+		}
+	}
+
+	/**
+	 * Announce the block-theme-only storefront and link the migration guide.
+	 *
+	 * This release changes what a storefront looks like, and it does so on
+	 * update rather than on any action the merchant took. A changelog entry is
+	 * not enough: most merchants never read one. So the plugin says it in WP
+	 * Admin, once, to the people who can act on it.
+	 *
+	 * Dismissal is per user and permanent, keyed by an identifier rather than a
+	 * version number so that a later release can raise a different notice without
+	 * un-dismissing this one, and so that a patch release does not resurrect it.
+	 */
+	private function render_upgrade_notice() {
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		if ( self::UPGRADE_NOTICE_ID === get_user_meta( get_current_user_id(), self::UPGRADE_NOTICE_META, true ) ) {
+			return;
+		}
+
+		$dismiss_url = wp_nonce_url(
+			add_query_arg( self::UPGRADE_NOTICE_QUERY_ARG, '1' ),
+			self::UPGRADE_NOTICE_QUERY_ARG
+		);
+
+		?>
+		<div class="notice notice-info">
+			<p>
+				<strong><?php esc_html_e( 'Shift64 Woo Search: the storefront is now block-only.', 'shift64-woo-search' ); ?></strong>
+			</p>
+			<p>
+				<?php esc_html_e( 'Search, filters, sorting and the results grid are Site Editor blocks placed in your block templates. The classic-theme shortcodes and the controls this plugin used to inject into a theme have been removed, so a storefront that relied on them needs its templates edited once.', 'shift64-woo-search' ); ?>
+			</p>
+			<p>
+				<a href="<?php echo esc_url( self::MIGRATION_GUIDE_URL ); ?>" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Read the migration guide', 'shift64-woo-search' ); ?>
+				</a>
+				<span aria-hidden="true"> | </span>
+				<a href="<?php echo esc_url( $dismiss_url ); ?>"><?php esc_html_e( 'Dismiss', 'shift64-woo-search' ); ?></a>
+			</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Record a per-user dismissal of the upgrade notice.
+	 *
+	 * Hooked to `admin_init` so the redirect happens before any output. The nonce
+	 * is what stops the dismissal being triggered for someone else by a crafted
+	 * link, and the capability check is repeated here because a nonce proves who
+	 * sent the request, not what they are allowed to do.
+	 */
+	public function maybe_dismiss_upgrade_notice() {
+		if ( ! isset( $_GET[ self::UPGRADE_NOTICE_QUERY_ARG ] ) ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), self::UPGRADE_NOTICE_QUERY_ARG ) ) {
+			return;
+		}
+
+		update_user_meta( get_current_user_id(), self::UPGRADE_NOTICE_META, self::UPGRADE_NOTICE_ID );
+
+		$redirect = remove_query_arg( array( self::UPGRADE_NOTICE_QUERY_ARG, '_wpnonce' ) );
+
+		if ( wp_safe_redirect( $redirect ) ) {
+			exit;
+		}
+	}
+
+	/**
+	 * Report removed shortcode tags still sitting in content.
+	 *
+	 * A tag that is no longer registered prints as literal text on the
+	 * storefront, with nothing anywhere to say why. This notice is the one
+	 * release of grace period: it names the posts so they can be fixed, and it
+	 * never renders the tag. Shown only to users who can manage the plugin, and
+	 * only when there is something to report — the scan behind it is cached, so
+	 * an ordinary admin page load costs one transient read.
+	 */
+	private function render_legacy_shortcode_notice() {
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$occurrences = Shift64_Woo_Search_Legacy_Shortcodes::find();
+
+		if ( empty( $occurrences ) ) {
+			return;
+		}
+
+		?>
+		<div class="notice notice-warning">
+			<p>
+				<strong><?php esc_html_e( 'Shift64 Woo Search:', 'shift64-woo-search' ); ?></strong>
+				<?php esc_html_e( 'These entries still contain search shortcodes that this version removed. A removed shortcode is printed as plain text on the storefront, so replace each one with the matching Site Editor block.', 'shift64-woo-search' ); ?>
+			</p>
+			<ul>
+				<?php foreach ( $occurrences as $occurrence ) : ?>
+					<li>
+						<?php
+						$edit_link = get_edit_post_link( $occurrence['id'] );
+						$title     = '' !== $occurrence['title']
+							? $occurrence['title']
+							/* translators: %d: post ID. */
+							: sprintf( __( 'Untitled (#%d)', 'shift64-woo-search' ), $occurrence['id'] );
+
+						if ( $edit_link ) {
+							printf(
+								'<a href="%1$s">%2$s</a>',
+								esc_url( $edit_link ),
+								esc_html( $title )
+							);
+						} else {
+							echo esc_html( $title );
+						}
+
+						echo ' — ';
+						echo esc_html( '[' . implode( '] [', $occurrence['tags'] ) . ']' );
+						?>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Display admin notices for Redis connection status.
 	 */
 	public function admin_notices() {
+		$this->render_upgrade_notice();
+		$this->render_runtime_requirement_notices();
+		$this->render_legacy_shortcode_notice();
+
 		$host = get_option( 'shift64_woo_search_redis_host', '' );
 
 		if ( empty( $host ) ) {

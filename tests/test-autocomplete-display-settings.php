@@ -174,96 +174,77 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 		$this->assert_switch( false, $this->localized_config()['showSku'] );
 	}
 
-	// ── Dropdown width ─────────────────────────────────────────
+	// ── Retired dropdown width ─────────────────────────────────
 
 	/**
-	 * By default the tray matches the search field, exactly as it always has.
+	 * The configurable tray width is inert, and its option rows survive untouched.
 	 *
-	 * Expressed as a zero width and, crucially, as the *absence* of the custom property:
-	 * the stylesheet's own `auto` / `100%` fallbacks are what reproduce the original
-	 * behaviour, so emitting the variable at all would silently opt every site in.
+	 * The width was a global appearance control: an administrator set one number
+	 * in WP Admin and every autocomplete tray on the site took it, whatever
+	 * rendered it. The block-theme-only cleanup replaced that with the Search
+	 * Panel block's own `maxWidth`, which each placement owns. The stored rows
+	 * stay so a version rollback finds them, and the tray falls back to matching
+	 * the search field — the behaviour every site had before the setting existed.
 	 */
-	public function test_width_defaults_to_matching_the_search_field() {
-		$this->assertSame( 0, Shift64_Woo_Search_Frontend::get_dropdown_width() );
-		$this->assertStringNotContainsString( '--s64ws-dropdown-width', $this->inline_style() );
-	}
-
-	/**
-	 * A stored width is ignored until the mode opts into it.
-	 *
-	 * The number field keeps its value when a merchant switches back to matching the
-	 * field, so the mode — not the presence of a number — has to be what decides.
-	 */
-	public function test_stored_width_is_inert_while_the_mode_matches_the_field() {
-		update_option( 'shift64_woo_search_dropdown_width', '880' );
-
-		$this->assertSame( 0, Shift64_Woo_Search_Frontend::get_dropdown_width() );
-		$this->assertStringNotContainsString( '--s64ws-dropdown-width', $this->inline_style() );
-	}
-
-	/**
-	 * A custom width reaches the stylesheet as a custom property.
-	 */
-	public function test_configured_width_is_emitted_as_a_custom_property() {
+	public function test_configured_tray_width_no_longer_reaches_the_frontend() {
 		update_option( 'shift64_woo_search_dropdown_width_mode', 'custom' );
 		update_option( 'shift64_woo_search_dropdown_width', '880' );
 
-		$this->assertSame( 880, Shift64_Woo_Search_Frontend::get_dropdown_width() );
-		$this->assertStringContainsString( ':root{--s64ws-dropdown-width:880px;}', $this->inline_style() );
+		$this->assertArrayNotHasKey(
+			'dropdownWidth',
+			$this->localized_config(),
+			'The script no longer takes a tray width; the Search Panel block owns it.'
+		);
+		$this->assertStringNotContainsString(
+			'--s64ws-dropdown-width',
+			$this->inline_style(),
+			'No global custom property may be emitted for the tray width.'
+		);
+		$this->assertFalse(
+			method_exists( 'Shift64_Woo_Search_Frontend', 'get_dropdown_width' ),
+			'The width resolver was removed with the setting it served.'
+		);
+
+		$this->assertSame( 'custom', get_option( 'shift64_woo_search_dropdown_width_mode' ) );
+		$this->assertSame( '880', get_option( 'shift64_woo_search_dropdown_width' ) );
+	}
+
+	// ── Retired theme selectors ────────────────────────────────
+
+	/**
+	 * The script binds to the fallback's own field, never to configured selectors.
+	 *
+	 * Enhancing arbitrary theme inputs by CSS selector was the mechanism that let
+	 * the plugin take over a classic theme's search box. Like the width, the
+	 * option rows survive for rollback but nothing reads them.
+	 */
+	public function test_configured_theme_selectors_no_longer_reach_the_frontend() {
+		update_option( 'shift64_woo_search_input_selector', '.theme-search-input' );
+		update_option( 'shift64_woo_search_additional_selectors', '.theme-extra-input' );
+		update_option( 'shift64_woo_search_button_selector', '.theme-search-button' );
+
+		$config = $this->localized_config();
+
+		$this->assertSame( '.shift64-woo-search-field__input', $config['selectors'] );
+		$this->assertArrayNotHasKey( 'searchButtonSelector', $config );
+
+		$this->assertSame( '.theme-search-input', get_option( 'shift64_woo_search_input_selector' ) );
+		$this->assertSame( '.theme-extra-input', get_option( 'shift64_woo_search_additional_selectors' ) );
+		$this->assertSame( '.theme-search-button', get_option( 'shift64_woo_search_button_selector' ) );
 	}
 
 	/**
-	 * Matching the field is reported to the script as a zero width, so it knows not to
-	 * correct for overflow a field-width tray cannot produce.
+	 * Nothing enqueues the fallback assets on an ordinary page view.
 	 *
-	 * Split from the custom-width case because `enqueue_assets()` is guarded against
-	 * running twice, so one test cannot observe two different configs.
+	 * The class used to hook `wp_enqueue_scripts`, so the stylesheet and script
+	 * shipped with every storefront request whether or not anything on the page
+	 * used them. Assets now arrive through block metadata, or through the
+	 * childless-parent fallback calling this method directly.
 	 */
-	public function test_config_reports_zero_width_when_matching_the_field() {
-		// Stringified in transit like every other scalar in the localized config.
-		$this->assertSame( '0', $this->localized_config()['dropdownWidth'] );
-	}
-
-	/**
-	 * A custom width is handed to the script so it can keep the tray on screen.
-	 */
-	public function test_config_carries_a_custom_width() {
-		update_option( 'shift64_woo_search_dropdown_width_mode', 'custom' );
-		update_option( 'shift64_woo_search_dropdown_width', '880' );
-
-		$this->assertSame( '880', $this->localized_config()['dropdownWidth'] );
-	}
-
-	/**
-	 * Stored values are cast and bounded before they reach the stylesheet.
-	 *
-	 * Out-of-range numbers clamp to the nearest supported edge; values that are not a
-	 * usable number at all fall back to the stock width. Either way the emitted rule is
-	 * a plain integer, so nothing from the options table can break out into CSS.
-	 *
-	 * @dataProvider width_bounds_provider
-	 *
-	 * @param mixed $stored   Raw stored option value.
-	 * @param int   $expected Width the frontend must use.
-	 */
-	public function test_width_is_clamped_and_sanitized( $stored, $expected ) {
-		update_option( 'shift64_woo_search_dropdown_width_mode', 'custom' );
-		update_option( 'shift64_woo_search_dropdown_width', $stored );
-
-		$this->assertSame( $expected, Shift64_Woo_Search_Frontend::get_dropdown_width() );
-		$this->assertStringContainsString( '--s64ws-dropdown-width:' . $expected . 'px', $this->inline_style() );
-	}
-
-	public function width_bounds_provider() {
-		return array(
-			'below the minimum' => array( '120', 320 ),
-			'at the minimum'    => array( '320', 320 ),
-			'at the maximum'    => array( '1200', 1200 ),
-			'above the maximum' => array( '5000', 1200 ),
-			'empty string'      => array( '', 645 ),
-			'non-numeric'       => array( 'wide', 645 ),
-			'css injection'     => array( '900px;} body{display:none}', 900 ),
-			'negative'          => array( '-40', 645 ),
+	public function test_assets_are_not_enqueued_by_a_page_view() {
+		$this->assertFalse(
+			has_action( 'wp_enqueue_scripts', array( $this->frontend, 'enqueue_assets' ) ),
+			'The global frontend enqueue was removed; assets are block-scoped now.'
 		);
 	}
 
@@ -294,27 +275,27 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 	}
 
 	/**
-	 * The modal opts out of the custom width, and does so from a later rule.
+	 * The modal tray stays as wide as its dialog, and does so from a later rule.
 	 *
 	 * `.shift64-woo-search-modal__search .shift64-woo-search-results` and
 	 * `.shift64-woo-search-shortcode .shift64-woo-search-results` have identical
 	 * specificity — the modal's markup carries both classes — so the exemption only
 	 * holds while it stays *after* the rule it is overriding. Reordering the file would
-	 * silently reinstate the custom width inside the dialog, which is why the order is
+	 * silently constrain the tray inside the dialog, which is why the order is
 	 * asserted rather than just the declaration.
 	 */
-	public function test_modal_tray_opts_out_of_the_custom_width() {
+	public function test_modal_tray_stays_as_wide_as_its_dialog() {
 		$css = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'frontend/css/shift64-woo-search.css' );
 
-		$shortcode = strpos( $css, '.shift64-woo-search-shortcode .shift64-woo-search-results {' );
-		$modal     = strpos( $css, '.shift64-woo-search-modal__search .shift64-woo-search-results {' );
+		$fallback = strpos( $css, '.shift64-woo-search-shortcode .shift64-woo-search-results {' );
+		$modal    = strpos( $css, '.shift64-woo-search-modal__search .shift64-woo-search-results {' );
 
-		$this->assertIsInt( $shortcode, 'The shortcode tray rule was not found.' );
+		$this->assertIsInt( $fallback, 'The fallback tray rule was not found.' );
 		$this->assertIsInt( $modal, 'The modal tray exemption is missing.' );
 		$this->assertGreaterThan(
-			$shortcode,
+			$fallback,
 			$modal,
-			'The modal exemption must come after the shortcode rule or it loses on source order.'
+			'The modal exemption must come after the fallback rule or it loses on source order.'
 		);
 
 		preg_match(
@@ -327,44 +308,34 @@ class Shift64_Woo_Search_Autocomplete_Display_Settings_Test extends WP_UnitTestC
 			$matches[1],
 			'The modal tray must stay as wide as its dialog.'
 		);
-		$this->assertStringNotContainsString(
-			'--s64ws-dropdown-width',
-			$matches[1],
-			'The modal tray must not consult the custom width at all.'
-		);
 	}
 
 	/**
-	 * The stylesheet must *size* the tray, not merely floor it.
+	 * The retired custom-width plumbing is gone from the stylesheet too.
 	 *
-	 * The first cut of this setting set `min-width` on the results container. That is a
-	 * no-op wherever the search field is already wider than the configured value — a
-	 * full-width search block, for one — so the setting appeared to do nothing at all
-	 * on the layout most likely to need it. A floor also cannot make the tray narrower,
-	 * which is half of what the setting is for.
-	 *
-	 * Asserted against the stylesheet because there is no DOM here to measure; browser
-	 * QA covers what it actually looks like.
+	 * The tray sized itself from a `--s64ws-dropdown-width` custom property that
+	 * the global appearance setting emitted. With the setting inert, a rule still
+	 * reading that variable would be dead plumbing that reads like a live feature
+	 * — and would quietly come back to life if anything ever set the property
+	 * again. The tray tracks its own field instead.
 	 */
-	public function test_stylesheet_sizes_the_results_tray_rather_than_flooring_it() {
+	public function test_stylesheet_no_longer_reads_the_retired_width_property() {
 		$css = file_get_contents( SHIFT64_WOO_SEARCH_PATH . 'frontend/css/shift64-woo-search.css' );
+
+		$this->assertStringNotContainsString(
+			'--s64ws-dropdown-width',
+			$css,
+			'The custom tray width was replaced by the Search Panel block\'s own maxWidth.'
+		);
 
 		// Anchored at line start so a selector list merely *ending* in this class does
 		// not match ahead of the container's own rule.
 		preg_match( '/^\.shift64-woo-search-results \{(.*?)^\}/ms', $css, $matches );
 		$this->assertNotEmpty( $matches, 'The results container rule was not found.' );
-
-		$rule = $matches[1];
-
 		$this->assertMatchesRegularExpression(
-			'/^\s*width:\s*var\(--s64ws-dropdown-width,\s*auto\)/m',
-			$rule,
-			'The tray must size from --s64ws-dropdown-width, falling back to matching the field.'
-		);
-		$this->assertDoesNotMatchRegularExpression(
-			'/^\s*min-width:\s*var\(--s64ws-dropdown-width/m',
-			$rule,
-			'A min-width floor leaves the setting inert on layouts wider than it.'
+			'/^\s*width:\s*auto;/m',
+			$matches[1],
+			'The tray must track the width of the search field it belongs to.'
 		);
 	}
 }

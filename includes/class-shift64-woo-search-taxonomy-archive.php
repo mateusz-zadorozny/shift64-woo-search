@@ -62,9 +62,9 @@ class Shift64_Woo_Search_Taxonomy_Archive implements Shift64_Woo_Search_Facet_Co
 	/**
 	 * Per-request cache of Redis-filtered product IDs, keyed by
 	 * `{taxonomy}:{term_id}:md5(user_filters)`. First query computes,
-	 * subsequent calls (e.g. Kadence block sub-query after the main
-	 * query already intercepted) reuse the result — Redis is hit once
-	 * per page regardless of how many child WP_Query instances render.
+	 * subsequent calls (a block sub-query running after the main query was
+	 * already intercepted) reuse the result — Redis is hit once per page
+	 * regardless of how many child WP_Query instances render.
 	 *
 	 * @var array<string, int[]>
 	 */
@@ -80,8 +80,8 @@ class Shift64_Woo_Search_Taxonomy_Archive implements Shift64_Woo_Search_Facet_Co
 
 		add_action( 'pre_get_posts', array( $this, 'intercept' ), 99 );
 
-		// Catch non-main queries (Kadence Woo Template Block creates its own
-		// WP_Query with is_main_query()=false, skipping pre_get_posts). See
+		// Catch non-main queries: a block that builds its own WP_Query runs
+		// with is_main_query() === false and so skips pre_get_posts. See
 		// issue #17.
 		add_filter( 'posts_clauses', array( $this, 'inject_post_in' ), 10, 2 );
 	}
@@ -203,7 +203,7 @@ class Shift64_Woo_Search_Taxonomy_Archive implements Shift64_Woo_Search_Facet_Co
 		$scope_filters = array( $scope_config['filter_key'] => array( $term->name ) );
 
 		// Fetch once, cache for the rest of the request so posts_clauses
-		// (Kadence block sub-queries, widgets) reuses the same Redis result.
+		// (block sub-queries, widgets) reuses the same Redis result.
 		// get_cached_ids_for_term() populates $this->active_filters as a side
 		// effect; Facets::compute below relies on that.
 		$post_ids = $this->get_cached_ids_for_term( $term );

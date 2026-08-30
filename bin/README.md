@@ -97,7 +97,7 @@ Two details make it portable in a way a raw Site Editor export is not: the
 another site's menu), and the `wp_theme` / `wp_template_part_area` terms are
 set explicitly, which is what makes WordPress resolve the row as *this theme's*
 header. Because the part is theme-scoped, it is simply absent under a classic
-theme such as Storefront, which is what `tests/e2e/classic-theme/` activates for
-the length of its spec file.
+theme such as Storefront — which is the supported behaviour: the plugin places
+nothing in a theme it does not own.
 
 Production Redis provisioning is intentionally outside the plugin repository. BYOR operators should use their own infrastructure tooling; the managed service will use a separate private control plane.

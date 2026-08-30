@@ -24,17 +24,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shift64_Woo_Search_Filter_Blocks {
 
 	/**
-	 * Whether the new Product Filters block has rendered in this request.
-	 *
-	 * The legacy hook renderer runs later inside WooCommerce's product loop.
-	 * Once the block is present, it owns the filter UI and the hook renderer
-	 * must stay silent so shoppers do not get two filter systems.
-	 *
-	 * @var bool
-	 */
-	private static $has_rendered_product_filters = false;
-
-	/**
 	 * Hook the canonical-URL normalization for no-JS form submissions.
 	 */
 	public function __construct() {
@@ -42,22 +31,12 @@ class Shift64_Woo_Search_Filter_Blocks {
 	}
 
 	/**
-	 * Whether the new parent block has rendered during this request.
-	 *
-	 * @return bool
-	 */
-	public static function has_rendered_product_filters() {
-		return self::$has_rendered_product_filters;
-	}
-
-	/**
 	 * Redirect `filter_x[]=a&filter_x[]=b` (what a no-JS checkbox form
 	 * submits) to the canonical `filter_x=a,b` form.
 	 *
 	 * Only the two new parsers understand the array form; the taxonomy
-	 * archive interceptor, the legacy renderer, and WooCommerce layered nav
-	 * all silently drop it, so pills would show a selection the query never
-	 * applied. One early redirect converges every consumer — and shared
+	 * archive interceptor and WooCommerce layered nav both silently drop it,
+	 * so pills would show a selection the query never applied. One early redirect converges every consumer — and shared
 	 * URLs/page caches — on the canonical scalar form.
 	 */
 	public function redirect_array_filter_params() {
@@ -158,8 +137,7 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 * @return string
 	 */
 	public function render_product_filters( $attributes, $content, $block ) {
-		self::$has_rendered_product_filters = true;
-		$runtime_id                         = sanitize_html_class( $attributes['runtimeId'] ?? '' );
+		$runtime_id = sanitize_html_class( $attributes['runtimeId'] ?? '' );
 		if ( '' === $runtime_id ) {
 			$runtime_id = 'shift64-woo-search-filters';
 		}
@@ -395,9 +373,8 @@ class Shift64_Woo_Search_Filter_Blocks {
 	 * Clear the per-request selection cache (tests).
 	 */
 	public static function reset() {
-		self::$selections                   = null;
-		self::$pill_sequence                = 0;
-		self::$has_rendered_product_filters = false;
+		self::$selections    = null;
+		self::$pill_sequence = 0;
 	}
 
 	/**
@@ -547,6 +524,36 @@ class Shift64_Woo_Search_Filter_Blocks {
 	}
 
 	/**
+	 * Category term ids the Filter Pill must not offer.
+	 *
+	 * Merges WooCommerce's default category with the plugin's own exclusion
+	 * list. Both used to be applied by the classic filter-bar renderer the
+	 * block-theme-only cleanup deleted. The setting is facet configuration, not
+	 * appearance, so it stays in WP Admin and the block path applies it now. A
+	 * category the shopper already selected stays visible so the selection
+	 * remains removable.
+	 *
+	 * @return int[] Excluded term ids.
+	 */
+	private static function excluded_category_ids() {
+		$excluded = array();
+
+		$uncategorized = (int) get_option( 'default_product_cat', 0 );
+		if ( $uncategorized > 0 ) {
+			$excluded[] = $uncategorized;
+		}
+
+		$configured = get_option( 'shift64_woo_search_filter_categories_excluded', array() );
+		if ( is_array( $configured ) ) {
+			foreach ( $configured as $id ) {
+				$excluded[] = (int) $id;
+			}
+		}
+
+		return array_values( array_unique( $excluded ) );
+	}
+
+	/**
 	 * Options for one pill: taxonomy terms ordered and bounded per attributes.
 	 *
 	 * Counts come from the request-scoped facet provider (disjunctive Redis
@@ -592,11 +599,16 @@ class Shift64_Woo_Search_Filter_Blocks {
 			return array();
 		}
 
+		$excluded = 'product_cat' === $entry['taxonomy'] ? self::excluded_category_ids() : array();
+
 		$options = array();
 		$seen    = array();
 		foreach ( $terms as $term ) {
 			$count       = $have_counts ? ( $counts[ $term->name ] ?? 0 ) : null;
 			$is_selected = in_array( $term->slug, $selected, true );
+			if ( ! $is_selected && in_array( (int) $term->term_id, $excluded, true ) ) {
+				continue;
+			}
 			if ( $hide_empty && $have_counts && 0 === $count && ! $is_selected ) {
 				continue;
 			}

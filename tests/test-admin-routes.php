@@ -77,8 +77,8 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 			'experience' => array(
 				'experience',
 				'Search Experience',
-				'search-field',
-				array( 'search-field', 'autocomplete', 'query-suggestions', 'category-suggestions' ),
+				'autocomplete',
+				array( 'autocomplete', 'query-suggestions', 'category-suggestions' ),
 			),
 			'results'    => array( 'results', 'Results & Filters', 'coverage', array( 'coverage', 'facets' ) ),
 			'relevance'  => array(
@@ -92,14 +92,14 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_registry_declares_exactly_nineteen_canonical_routes() {
+	public function test_registry_declares_exactly_eighteen_canonical_routes() {
 		$count = 0;
 
 		foreach ( Shift64_Woo_Search_Admin_Routes::get_workspaces() as $workspace ) {
 			$count += count( $workspace['sections'] );
 		}
 
-		$this->assertSame( 19, $count );
+		$this->assertSame( 18, $count );
 	}
 
 	public function test_every_section_declares_a_label_and_a_callback() {
@@ -140,7 +140,6 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 	public function canonical_route_provider() {
 		return array(
 			'overview/overview'               => array( 'overview', 'overview', 'render_overview_tab' ),
-			'experience/search-field'         => array( 'experience', 'search-field', 'render_experience_search_field_section' ),
 			'experience/autocomplete'         => array( 'experience', 'autocomplete', 'render_experience_autocomplete_section' ),
 			'experience/query-suggestions'    => array( 'experience', 'query-suggestions', 'render_experience_query_suggestions_section' ),
 			'experience/category-suggestions' => array( 'experience', 'category-suggestions', 'render_experience_category_suggestions_section' ),
@@ -262,7 +261,7 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 			'index'       => array( 'index', 'system', 'index' ),
 			'redis'       => array( 'redis', 'system', 'connection' ),
 			'search'      => array( 'search', 'relevance', 'basic' ),
-			'frontend'    => array( 'frontend', 'experience', 'search-field' ),
+			'frontend'    => array( 'frontend', 'experience', 'autocomplete' ),
 		);
 	}
 
@@ -335,7 +334,7 @@ class Shift64_Woo_Search_Admin_Routes_Test extends WP_UnitTestCase {
 	public function workspace_default_provider() {
 		return array(
 			'overview'   => array( 'overview', 'overview' ),
-			'experience' => array( 'experience', 'search-field' ),
+			'experience' => array( 'experience', 'autocomplete' ),
 			'results'    => array( 'results', 'coverage' ),
 			'relevance'  => array( 'relevance', 'basic' ),
 			'insights'   => array( 'insights', 'statistics' ),

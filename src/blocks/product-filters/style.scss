@@ -125,6 +125,15 @@
 }
 
 @media (min-width: 783px) {
+	// The panel is absolutely positioned inside a pill, but the Product
+	// Collection that follows can establish its own stacking context. Lift
+	// the filter row as a unit so an open desktop panel remains above product
+	// images and controls instead of being visually and interactively covered.
+	.shift64-woo-search-product-filters {
+		position: relative;
+		z-index: var(--s64ws-pill-row-z, 1);
+	}
+
 	.shift64-woo-search-product-filters.is-mobile-mode-combined
 		.shift64-woo-search-product-filters__pills[hidden] {
 		display: contents !important;

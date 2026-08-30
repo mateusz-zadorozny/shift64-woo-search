@@ -2,7 +2,16 @@
 /**
  * Archive/Search query interceptor — replaces WooCommerce MySQL queries with Redis FT.SEARCH.
  *
- * Phase 6.0: Only intercepts product search results pages (?s=query&post_type=product).
+ * Only intercepts product search results pages (`?s=query&post_type=product`).
+ *
+ * This class is a *query* integration and nothing else. It used to render as
+ * well: an archive header, a theme-specific page fragment, a replacement sort
+ * control and result count, and pagination links it rewrote on the way out. The
+ * block-theme-only cleanup removed all of that, because the template owns the
+ * page. What is left is the interception, the Redis search itself, the facet
+ * data it publishes to the Filter blocks, the opt-in debug panel, and the
+ * browser document title the cleared `s` query var would otherwise blank out.
+ * No method here renders a product loop or calls a WooCommerce template.
  *
  * @package Shift64_Woo_Search
  */
@@ -95,19 +104,7 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 
 		add_action( 'pre_get_posts', array( $this, 'intercept' ), 99 );
 		add_action( 'wp_footer', array( $this, 'render_debug' ), 999 );
-		add_filter( 'woocommerce_catalog_orderby', array( $this, 'filter_sort_options' ) );
-		add_filter( 'ngettext_woocommerce', array( $this, 'filter_result_count_text' ), 10, 5 );
-		add_filter( 'ngettext_with_context_woocommerce', array( $this, 'filter_result_count_text_ctx' ), 10, 6 );
-		add_filter( 'template_include', array( $this, 'maybe_render_partial' ), 999 );
-		add_filter( 'paginate_links', array( $this, 'preserve_filter_params_in_pagination' ) );
-		add_action( 'woocommerce_archive_description', array( $this, 'render_search_header' ), 5 );
-		add_filter( 'woocommerce_show_page_title', array( $this, 'hide_default_page_title' ) );
-		add_filter( 'kadence_post_layout', array( $this, 'disable_kadence_hero_on_search' ) );
 		add_filter( 'pre_get_document_title', array( $this, 'filter_document_title' ), 20 );
-
-		// Block template support: filter archive title used by Kadence dynamic headings.
-		add_filter( 'get_the_archive_title', array( $this, 'filter_archive_title' ), 20 );
-		add_shortcode( 'shift64_woo_search_breadcrumbs', array( $this, 'shortcode_breadcrumbs' ) );
 	}
 
 	/**
@@ -1001,265 +998,6 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	}
 
 	/**
-	 * Filter WooCommerce catalog orderby options on search pages.
-	 *
-	 * Core WooCommerce removes 'Default sorting' on search results and maps
-	 * default menu_order to relevance. Shift64 prepends relevance and removes
-	 * menu_order in search contexts while retaining the remaining options.
-	 *
-	 * @param array<string,string> $options Available sort options.
-	 * @return array<string,string>
-	 */
-	public function filter_sort_options( $options ) {
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return $options;
-		}
-
-		if ( ! is_search() ) {
-			return $options;
-		}
-
-		$filtered = array(
-			'relevance' => __( 'Search relevance', 'shift64-woo-search' ),
-		);
-
-		foreach ( $options as $key => $label ) {
-			if ( 'menu_order' === $key ) {
-				continue;
-			}
-			$filtered[ $key ] = $label;
-		}
-
-		return $filtered;
-	}
-
-	/**
-	 * Replace WooCommerce result count text on search pages (_n variant).
-	 *
-	 * @param string $translation Translated text.
-	 * @param string $single      Singular form.
-	 * @param string $plural      Plural form.
-	 * @param int    $number      Count.
-	 * @param string $domain      Text domain.
-	 * @return string
-	 */
-	public function filter_result_count_text( $translation, $single, $plural, $number, $domain ) {
-		return $this->replace_result_count( $translation, $single );
-	}
-
-	/**
-	 * Replace WooCommerce result count text on search pages (_nx variant).
-	 *
-	 * @param string $translation Translated text.
-	 * @param string $single      Singular form.
-	 * @param string $plural      Plural form.
-	 * @param int    $number      Count.
-	 * @param string $context     Translation context.
-	 * @param string $domain      Text domain.
-	 * @return string
-	 */
-	public function filter_result_count_text_ctx( $translation, $single, $plural, $number, $context, $domain ) {
-		return $this->replace_result_count( $translation, $single );
-	}
-
-	/**
-	 * Shared result count replacement logic.
-	 *
-	 * Returns a format string — WooCommerce's printf() fills in the placeholders.
-	 *
-	 * @param string $translation Original translated text.
-	 * @param string $single      English singular form to match against.
-	 * @return string
-	 */
-	private function replace_result_count( $translation, $single ) {
-		if ( ! is_search() || 'product' !== get_query_var( 'post_type' ) ) {
-			return $translation;
-		}
-
-		if ( 'Showing all %1$d result' === $single ) {
-			return 'Products: %1$d';
-		}
-
-		if ( 'Showing %1$d&ndash;%2$d of %3$d result' === $single ) {
-			return 'Products: %3$d';
-		}
-
-		if ( 'Showing the single result' === $single ) {
-			return 'Products: 1';
-		}
-
-		return $translation;
-	}
-
-	/**
-	 * For AJAX filter/pagination requests, render only the product wrap fragment
-	 * instead of the full page. Skips header, footer, sidebar, wp_head/wp_footer.
-	 *
-	 * @param string $template Template path.
-	 * @return string
-	 */
-	public function maybe_render_partial( $template ) {
-		if ( empty( $_SERVER['HTTP_X_REQUESTED_WITH'] ) || 'XMLHttpRequest' !== $_SERVER['HTTP_X_REQUESTED_WITH'] ) {
-			return $template;
-		}
-
-		if ( ! is_search() || 'product' !== get_query_var( 'post_type' ) ) {
-			return $template;
-		}
-
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return $template;
-		}
-
-		// Only intercept with partial fragment for Kadence theme.
-		// Standard Woo and block themes rely on full-page template rendering
-		// so block-template product cards (wp-block-post-title) keep their styling.
-		$is_kadence = function_exists( 'kadence' ) || defined( 'KADENCE_VERSION' ) || 'kadence' === get_template() || 'kadence' === get_stylesheet();
-		if ( ! $is_kadence ) {
-			return $template;
-		}
-
-		// Reset filter render guard for AJAX partial.
-		Shift64_Woo_Search_Filters::reset_rendered_flag();
-
-		echo '<div class="kwt-products-wrap">';
-
-		( new Shift64_Woo_Search_Filters() )->render_filters();
-
-		// Top row: result count + ordering (Kadence hooks).
-		echo '<div class="kadence-shop-top-row">';
-		echo '<div class="kadence-shop-top-item kadence-woo-results-count">';
-		woocommerce_result_count();
-		echo '</div>';
-		echo '<div class="kadence-shop-top-item kadence-woo-ordering">';
-		woocommerce_catalog_ordering();
-		echo '</div>';
-		echo '</div>';
-
-		// Product loop.
-		if ( woocommerce_product_loop() ) {
-			woocommerce_product_loop_start();
-
-			if ( wc_get_loop_prop( 'total' ) ) {
-				while ( have_posts() ) {
-					the_post();
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce core hook.
-					do_action( 'woocommerce_shop_loop' );
-					wc_get_template_part( 'content', 'product' );
-				}
-			}
-
-			woocommerce_product_loop_end();
-
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce core hook.
-			do_action( 'woocommerce_after_shop_loop' );
-		} else {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce core hook.
-			do_action( 'woocommerce_no_products_found' );
-		}
-
-		echo '</div>';
-
-		// Debug info for admins, when the storefront debug panel is switched on.
-		if ( ! empty( $this->debug_log ) && $this->debug_enabled() ) {
-			echo '<!-- Shift64 Archive Debug (partial) -->';
-			echo '<div class="shift64-woo-search-archive-debug" style="display:none">';
-			foreach ( $this->debug_log as $entry ) {
-				echo esc_html( $entry ) . "\n";
-			}
-
-			$server_timing = $this->server_timing_entry();
-			if ( '' !== $server_timing ) {
-				echo esc_html( $server_timing ) . "\n";
-			}
-
-			echo '</div>';
-		}
-
-		exit;
-	}
-
-	/**
-	 * Render search results header with breadcrumbs and title.
-	 *
-	 * Hooked to woocommerce_archive_description — fires before the shop loop
-	 * but after the main content wrapper opens.
-	 */
-	public function render_search_header() {
-		if ( ! is_search() || 'product' !== get_query_var( 'post_type' ) ) {
-			return;
-		}
-
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return;
-		}
-
-		$query = $this->search_term;
-		if ( empty( $query ) ) {
-			$query = get_search_query();
-		}
-		if ( empty( $query ) ) {
-			return;
-		}
-
-		echo '<div class="shift64-woo-search-header">';
-		echo '<nav class="shift64-woo-search-header__breadcrumbs" aria-label="breadcrumb">';
-		echo '<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Home', 'shift64-woo-search' ) . '</a>';
-		echo '<span class="shift64-woo-search-header__separator"> &gt; </span>';
-		echo '<span>' . esc_html__( 'Search results', 'shift64-woo-search' ) . '</span>';
-		echo '</nav>';
-		echo '<h1 class="shift64-woo-search-header__title">';
-		echo esc_html__( 'Search results for:', 'shift64-woo-search' ) . ' &ldquo;' . esc_html( $query ) . '&rdquo;';
-		echo '</h1>';
-		echo '</div>';
-	}
-
-	/**
-	 * Hide WooCommerce default page title on search results (we render our own).
-	 *
-	 * @param bool $show Whether to show the page title.
-	 * @return bool
-	 */
-	public function hide_default_page_title( $show ) {
-		if ( is_search() && 'product' === get_query_var( 'post_type' )
-			&& 'yes' === get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return false;
-		}
-		return $show;
-	}
-
-	/**
-	 * Override archive title for product search pages.
-	 *
-	 * Kadence Blocks Pro dynamic heading (archive|archive_title) calls
-	 * get_the_archive_title(). Since we clear the 's' query var to prevent
-	 * MySQL LIKE, get_search_query() returns empty — this filter restores
-	 * the original search term in the title.
-	 *
-	 * @param string $title Archive title.
-	 * @return string
-	 */
-	public function filter_archive_title( $title ) {
-		if ( ! is_search() || 'product' !== get_query_var( 'post_type' ) ) {
-			return $title;
-		}
-
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return $title;
-		}
-
-		$query = $this->search_term;
-		if ( empty( $query ) ) {
-			$query = get_search_query();
-		}
-		if ( empty( $query ) ) {
-			return $title;
-		}
-
-		return esc_html__( 'Search results for:', 'shift64-woo-search' ) . ' &ldquo;' . esc_html( $query ) . '&rdquo;';
-	}
-
-	/**
 	 * Override the browser document title on product search pages.
 	 *
 	 * We clear the main query's `s` param to skip MySQL LIKE, which leaves core
@@ -1291,48 +1029,6 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 			esc_html__( 'Search results for: "%s"', 'shift64-woo-search' ),
 			$query
 		);
-	}
-
-	/**
-	 * Shortcode: render search breadcrumbs for block templates.
-	 *
-	 * Usage: [shift64_woo_search_breadcrumbs]
-	 * Only renders on product search pages; returns empty otherwise.
-	 *
-	 * @return string
-	 */
-	public function shortcode_breadcrumbs() {
-		if ( ! is_search() || 'product' !== get_query_var( 'post_type' ) ) {
-			return '';
-		}
-
-		if ( 'yes' !== get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			return '';
-		}
-
-		return '<nav class="shift64-woo-search-header__breadcrumbs" aria-label="breadcrumb">'
-			. '<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Home', 'shift64-woo-search' ) . '</a>'
-			. '<span class="shift64-woo-search-header__separator"> &gt; </span>'
-			. '<span>' . esc_html__( 'Search results', 'shift64-woo-search' ) . '</span>'
-			. '</nav>';
-	}
-
-	/**
-	 * Disable Kadence theme hero title section on product search pages.
-	 *
-	 * Kadence renders an archive hero (breadcrumbs + title) above the content
-	 * when title layout is "above". We hide it and render our own header
-	 * via woocommerce_archive_description instead.
-	 *
-	 * @param array $layout Kadence layout settings.
-	 * @return array
-	 */
-	public function disable_kadence_hero_on_search( $layout ) {
-		if ( is_search() && 'product' === get_query_var( 'post_type' )
-			&& 'yes' === get_option( 'shift64_woo_search_archive_enabled', 'no' ) ) {
-			$layout['title'] = 'hide';
-		}
-		return $layout;
 	}
 
 	/**
@@ -1517,43 +1213,5 @@ class Shift64_Woo_Search_Archive implements Shift64_Woo_Search_Facet_Context {
 	 */
 	private function build_config() {
 		return Shift64_Woo_Search_Settings::search_config();
-	}
-
-	/**
-	 * Append active filter_pa_* parameters to WooCommerce pagination links.
-	 *
-	 * Without this, clicking page 2 while a filter is active silently drops
-	 * the filter and shows unfiltered results.
-	 *
-	 * @param string $link Pagination link HTML.
-	 * @return string Modified link with filter params preserved.
-	 */
-	public function preserve_filter_params_in_pagination( $link ) {
-		if ( empty( $this->active_filters ) ) {
-			return $link;
-		}
-
-		// Collect filter_* query params from the current request.
-		$filter_params = array();
-		foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			if ( str_starts_with( $key, 'filter_' ) ) {
-				$filter_params[ sanitize_key( $key ) ] = sanitize_text_field( wp_unslash( $value ) );
-			}
-		}
-
-		if ( empty( $filter_params ) ) {
-			return $link;
-		}
-
-		// Inject filter params into each href in the pagination link.
-		return preg_replace_callback(
-			'/href=["\']([^"\']+)["\']/',
-			function ( $matches ) use ( $filter_params ) {
-				$url = html_entity_decode( $matches[1] );
-				$url = add_query_arg( $filter_params, $url );
-				return 'href="' . esc_url( $url ) . '"';
-			},
-			$link
-		);
 	}
 }

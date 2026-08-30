@@ -61,12 +61,8 @@ class Shift64_Woo_Search_Admin_Routes {
 			),
 			'experience' => array(
 				'label'    => __( 'Search Experience', 'shift64-woo-search' ),
-				'default'  => 'search-field',
+				'default'  => 'autocomplete',
 				'sections' => array(
-					'search-field'         => array(
-						'label'    => __( 'Search Field', 'shift64-woo-search' ),
-						'callback' => 'render_experience_search_field_section',
-					),
 					'autocomplete'         => array(
 						'label'    => __( 'Autocomplete', 'shift64-woo-search' ),
 						'callback' => 'render_experience_autocomplete_section',
@@ -193,7 +189,11 @@ class Shift64_Woo_Search_Admin_Routes {
 			'index'       => array( 'system', 'index' ),
 			'redis'       => array( 'system', 'connection' ),
 			'search'      => array( 'relevance', 'basic' ),
-			'frontend'    => array( 'experience', 'search-field' ),
+			// The Search Field section was retired with the classic frontend: the
+			// Search block renders its own field, so there is no theme selector
+			// to configure. Its one surviving setting, the autocomplete debounce,
+			// lives in Autocomplete, which is where the alias now lands.
+			'frontend'    => array( 'experience', 'autocomplete' ),
 		);
 	}
 

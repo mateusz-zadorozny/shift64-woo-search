@@ -7,11 +7,30 @@ change violates it.
 ## Where the line sits today
 
 `CONTRIBUTING.md` says it plainly: **the `0.x` line is for product validation, and `1.0.0` marks
-the stable public contract.** The plugin is at `0.1.0`, so breaking changes are permitted — but
+the stable public contract.** The plugin is on `0.x`, so breaking changes are permitted — but
 they are never silent. On `0.x`, a break needs a changelog entry and a migration note. From
 `1.0.0` on, every rule below hardens into a major-version requirement.
 
 The surfaces are listed in rough order of how much it hurts when they break.
+
+### Breaks taken so far
+
+Each one is recorded in place, in the section that used to promise it, so the
+promise and its withdrawal are read together rather than the promise quietly
+disappearing:
+
+| Date | Break | Where |
+|---|---|---|
+| 2026-08-28 | The classic-theme shortcodes removed without aliases | §8 |
+| 2026-08-28 | The archive-swap asset handle and two `shift64_woo_search_config` keys removed | §9 |
+| 2026-08-28 | Theme placement and output hooks no longer registered | §5 |
+| 2026-08-28 | Five appearance and theme-selector options made inert (still stored) | §6 |
+| 2026-08-28 | Runtime floor raised to WordPress 7.0 / WooCommerce 10.9 | §10 |
+| 2026-08-28 | The `experience/search-field` admin section removed | §11 |
+
+All six are one release: the block theme-only cleanup
+(`.ai/specs/2026-07-30-block-theme-only-legacy-removal.md`), whose merchant-facing
+migration is [`docs/block-theme-migration.md`](docs/block-theme-migration.md).
 
 ## 1. The SHORTINIT endpoint (highest exposure)
 
@@ -126,6 +145,15 @@ The plugin fires exactly one filter for third parties:
 
 **Breaking:** removing it, renaming it, changing its argument list or the meaning of the value.
 
+The WordPress and WooCommerce hooks the plugin *registers on* are a different
+matter, and the block theme-only release removed a set of them: the placement
+actions, theme-output filters and template takeover listed in
+[`docs/block-theme-migration.md`](docs/block-theme-migration.md). Those were never
+a contract offered to third parties — they were the mechanism by which the plugin
+injected markup into a theme — but a site that unhooked one to suppress the
+plugin's output will find the callback no longer there. Nothing to unhook is the
+intended state.
+
 **Required path:** `apply_filters_deprecated()` for one minor release. New hooks are additive and
 free — but every hook added is a promise, so add them deliberately.
 
@@ -140,7 +168,7 @@ Every setting is its own top-level `wp_option` (there is no settings array, and 
 `_filter_categories_*`, `_filter_brands_enabled`, `_brand_suggest_enabled`, `_weights`,
 `_category_boosts`, `_category_suggest_exclude`), and
 archive/frontend (`_archive_enabled`, `_archive_debug_enabled`, `_taxonomy_archive_scopes`,
-`_price_sort_mode`, `_debounce`, `_input_selector`, `_additional_selectors`, `_button_selector`).
+`_price_sort_mode`, `_debounce`).
 
 **Breaking:** renaming an option; changing its stored type or shape; changing a default in a way
 that alters behavior for installs that never set it explicitly.
@@ -201,6 +229,34 @@ default are. The admin information-architecture migration moved controls between
 renaming, retyping, or re-defaulting a single option; see §11 for the route contract and for the
 one write-behavior change that shipped with it.
 
+### Made inert 2026-08-28 — the appearance and theme-selector settings
+
+Five keys are **still stored and still readable, and no longer read by anything**:
+
+| Option | What it configured |
+|---|---|
+| `shift64_woo_search_input_selector` | The CSS selector the autocomplete attached itself to in an arbitrary theme. |
+| `shift64_woo_search_additional_selectors` | Extra selectors to enhance. |
+| `shift64_woo_search_button_selector` | The theme's search submit button. |
+| `shift64_woo_search_dropdown_width_mode` | Global autocomplete tray width mode. |
+| `shift64_woo_search_dropdown_width` | Global custom tray width in pixels. |
+
+Nothing about the rows themselves changed: no key was renamed, retyped or
+re-defaulted, and none was deleted. That is deliberate, and it is what makes a
+rollback work — reinstalling the previous plugin version finds its configuration
+exactly where it left it. What changed is that no code reads them, no WP Admin
+field renders them, they are absent from the save allowlist so no payload can
+write them, and they never reach the generated SHORTINIT config.
+
+They configured the classic frontend: pointing the plugin at a theme's search box
+by CSS selector, and sizing every autocomplete tray on the site from one number.
+The Search block renders its own field, and the Search Panel block owns its own
+`maxWidth`, so neither has anything left to configure.
+
+**Deleting these rows is a separate, breaking change** and takes the required
+path above in full. This release does not do it; the rollback window is the whole
+point of leaving them.
+
 ### Deprecated values
 
 Two option *values* are deprecated. Nothing about them has changed on this surface: both keys keep
@@ -249,41 +305,62 @@ screen relies on.
 the endpoint's `$wpdb->insert()` and the admin readers must land in the same PR. `ip_hash` is a
 hash, not an IP — keep it that way.
 
-## 8. Shortcode
+## 8. Shortcodes and block names
 
-- `[shift64_woo_search_breadcrumbs]` — no attributes
-  (`includes/class-shift64-woo-search-archive.php:99`)
+### Removed 2026-08-28 — the classic-theme shortcodes
+
+These three tags were protected surface until the block theme-only release
+(`.ai/specs/2026-07-30-block-theme-only-legacy-removal.md`). They are now
+**removed**, deliberately and without aliases, under the `0.x` breaking-change
+allowance:
+
 - `[shift64_woo_search]` — attributes: `placeholder`, `button`, `label`
 - `[shift64_woo_search_modal]` — attributes: `placeholder`, `button`, `label`,
   `trigger_label`, `close_label`, `clear_label`, `icon`
+- `[shift64_woo_search_breadcrumbs]` — no attributes
 
-It lives in user content, which means a rename breaks pages the user wrote by hand and cannot be
-migrated by us. Treat the tag as permanent; if it must change, register the old tag as an alias
-and keep it.
+The entries are recorded rather than deleted, because the promise they carried is
+what makes this a break worth documenting. This file previously said "treat the
+tag as permanent; if it must change, register the old tag as an alias and keep
+it." That was the right rule for a plugin with two frontends. Keeping the aliases
+would have meant keeping the classic renderer they call, which is the thing the
+release exists to remove — so the rule was broken knowingly, once, before `1.0.0`.
 
-Registered dynamic block names:
+A removed tag left in content renders as literal text. For one release WP Admin
+reports where they still occur, and never renders them. Migration:
+[`docs/block-theme-migration.md`](docs/block-theme-migration.md).
+
+**No further shortcode may be added.** The storefront surface is blocks.
+
+### Registered dynamic block names
 
 - `shift64-woo-search/search`
 - `shift64-woo-search/modal-search`
 - `shift64-woo-search/search-control` (structural child)
 - `shift64-woo-search/search-panel` (structural child)
+- `shift64-woo-search/product-filters`
+- `shift64-woo-search/filter-pill`
+- `shift64-woo-search/product-sort`
 
-The two parent names and their legacy attribute keys are persistent content APIs. New content
-saves a locked Control/Panel pair under either parent. Existing self-closing parent comments
-remain valid: the PHP fallback renders their old attributes until the content is migrated in
-the editor. Custom legacy modal appearance fields are migration-only; standard child block
-supports are the forward styling contract, so exact visual parity is not guaranteed.
+The two parent names and their legacy attribute keys are persistent content APIs
+and were **not** touched by the removal above. New content saves a locked
+Control/Panel pair under either parent. Existing self-closing parent comments
+remain valid: the PHP fallback renders their old attributes until the content is
+migrated in the editor.
 
-The shortcodes remain permanent and keep the `shift64-woo-search` classic runtime. That
-runtime deliberately skips roots marked `data-shift64-search-root`; metadata blocks use the
-public `shift64-woo-search/search` Interactivity API namespace instead. Neither interface may
-be removed when the other changes. See `docs/composable-search-blocks.md` for the migration
-matrix and rollback behavior.
+That fallback is the reason the shortcodes' markup builders still exist. They
+moved onto the blocks class as the childless-parent renderers when the shortcode
+registrations were removed — the tags are gone, the markup a saved block produces
+is not. Custom legacy modal appearance fields are migration-only; standard child
+block supports are the forward styling contract, so exact visual parity is not
+guaranteed.
+
+See `docs/composable-search-blocks.md` for the child migration matrix.
 
 ## 9. Frontend assets
 
-Handles: `shift64-woo-search` (style + script), `shift64-woo-search-ajax-pagination`,
-`shift64-woo-search-admin` (style + script).
+Handles: `shift64-woo-search` (style + script), `shift64-woo-search-admin`
+(style + script).
 Localized objects: `shift64_woo_search_config` (frontend), `shift64_woo_search_admin` (admin).
 
 **Breaking:** renaming a handle (themes dequeue and depend on them); removing or retyping a key
@@ -291,6 +368,22 @@ in `shift64_woo_search_config`.
 
 **Required path:** treat `shift64_woo_search_config` as the endpoint's response shape — additive
 keys are free, removals and renames are not.
+
+### Removed 2026-08-28 — the archive-swap script and two config keys
+
+- **`shift64-woo-search-ajax-pagination`** — removed with the AJAX archive
+  fragment swap it drove. Pagination belongs to Product Collection's router or to
+  plain browser navigation, per the ownership matrix decided in #20.
+- **`shift64_woo_search_config.dropdownWidth`** and
+  **`shift64_woo_search_config.searchButtonSelector`** — removed. Both existed to
+  serve global appearance and theme-selector settings that this release retired;
+  see section 6.
+
+The remaining `shift64-woo-search` style and script are no longer enqueued on
+every request. The stylesheet arrives through block metadata when a Shift64 block
+renders, and the script only when a childless parent block renders its fallback.
+A page with no Shift64 block ships neither. The handles themselves are unchanged,
+so a theme that dequeues them still works.
 
 `showBrand` and `brandsHeaderText` were added alongside the brand surfaces, mirroring
 `showCategory` / `categoriesHeaderText`. A brandless product renders no label regardless of the
@@ -304,30 +397,47 @@ not as `false`. The script therefore reads them through its `isEnabled()` helper
 `config.showX !== false` guard silently treated every disabled switch as enabled and must not
 be reintroduced.
 
-`--s64ws-dropdown-width` sizes the expanded search field and the results tray. Unlike the other
-`--s64ws-*` tokens it has **no `:root` default**, and that is load-bearing: unset, the
-stylesheet's own `auto` / `100%` fallbacks keep the tray matching the search field, which is the
-behaviour every site had before #41. The plugin emits it as an inline style only when
-`shift64_woo_search_dropdown_width_mode` is `custom`, taking the value from
-`shift64_woo_search_dropdown_width` clamped to 320–1200px. Giving the property a `:root` default
-would opt every site into a fixed-width tray at once.
-
-The custom width is a **classic/inline concern only**. The modal search keeps its original
-sizing — its tray is always as wide as its own dialog — enforced by
-`.shift64-woo-search-modal__search .shift64-woo-search-results`, which has the same specificity
-as the shortcode rule and therefore has to stay after it in the file.
+The `--s64ws-dropdown-width` custom property is gone with the setting that emitted
+it. The results tray tracks the width of the field it belongs to, which is the
+behaviour every site had before #41; per-placement width is now the Search Panel
+block's own `maxWidth`.
 
 ## 10. Runtime requirements
 
-Declared in three places that must agree: the plugin header, `readme.txt`, and `composer.json`
-(with `config.platform` pinned to `8.3.0`).
+Declared in several places that must agree: the plugin header, `readme.txt`,
+`composer.json` (with `config.platform` pinned to `8.3.0`), `README.md`, the docs
+site, this file, and the CI matrix.
+`tests/test-php-requirement-declarations.php` pins every one of them to a single
+value per floor and fails the build when they drift apart.
 
-- **WordPress 6.0** minimum
+- **WordPress 7.0** minimum (raised from 6.0 in the block-theme-only release; CI
+  exercises 7.0 alongside the current release)
+- **WooCommerce 10.9** minimum
 - **PHP 8.3** minimum (raised from 7.4 in #5; CI tests 8.3/8.4/8.5)
 - Redis Stack, or Redis with RediSearch, plus the PHP Redis extension
 
-**Breaking:** raising any minimum. **Required path:** bump all three declarations together,
+**Breaking:** raising any minimum. **Required path:** bump every declaration together,
 say so prominently in the changelog, and treat it as a minor bump at least — on `1.0.0+`, a major.
+
+### Raised 2026-08-28 — WordPress 7.0 and WooCommerce 10.9
+
+The block theme-only release raised the WordPress floor from 6.0 and introduced a
+WooCommerce floor, because the block and Interactivity APIs the storefront is
+built on require them. Both are declared in the plugin header
+(`Requires at least`, `WC requires at least`) and exercised in CI, which now runs
+one job pinned to WordPress 7.0 alongside the jobs tracking the current release —
+a floor nothing runs against is a claim, not a guarantee.
+
+Below the floor the plugin does **not** switch itself off wholesale. Search,
+indexing, the SHORTINIT endpoint, the admin screens and the CLI keep working; only
+the block layer stops loading, because registering blocks against a missing API is
+how a version mismatch becomes a fatal. An admin notice names what to upgrade, and
+the CLI exits non-zero with an explanation rather than failing part-way through a
+rebuild.
+
+The active theme is deliberately **not** part of this check. A classic theme is a
+supported runtime that simply renders no storefront controls; it gets an
+informational notice, not a disabled plugin.
 
 The PHP floor is machine-checked: `.phpcs.xml.dist` runs the `PHPCompatibilityWP` standard with
 `testVersion 8.3-`, so `vendor/bin/phpcs` (locally and in CI) flags code that does not run on
@@ -347,13 +457,13 @@ truth for what exists, so the map belongs here.
 
 `admin.php?page=shift64-woo-search&tab={workspace}&section={section}`
 
-Six workspaces, nineteen sections. Omitting `section` lands on the workspace default (marked
+Six workspaces, eighteen sections. Omitting `section` lands on the workspace default (marked
 `*`), so the short form `…&tab=system` stays valid even if a default is renamed.
 
 | `tab` | `section` values |
 |---|---|
 | `overview` | `overview`* (the page's landing route; `section` is ignored) |
-| `experience` | `search-field`*, `autocomplete`, `query-suggestions`, `category-suggestions` |
+| `experience` | `autocomplete`*, `query-suggestions`, `category-suggestions` |
 | `results` | `coverage`*, `facets` |
 | `relevance` | `basic`*, `matching`, `synonyms`, `merchandising`, `field-weights`, `test-search`, `compare-passes` |
 | `insights` | `statistics`* |
@@ -369,6 +479,19 @@ making a section reachable only with JavaScript.
 **Required path:** keep the retired slug accepted as an alias for at least one minor release and
 say in the changelog where its settings went.
 
+#### Removed 2026-08-28 — `experience/search-field`
+
+The Search Field section held the three theme-selector fields and the autocomplete
+debounce. The selectors configured the classic frontend and are now inert
+(section 6); the debounce moved to `experience/autocomplete`, which is also the
+workspace default now. The section slug no longer resolves.
+
+This takes the required path above through the alias table rather than through a
+retired slug: `tab=frontend`, the legacy bookmark that pointed at it, still
+resolves and now lands on `experience/autocomplete`. A hand-written
+`…&tab=experience&section=search-field` falls back to the workspace default, which
+is the same destination. No bookmark 404s.
+
 ### Legacy tab aliases
 
 The twelve pre-migration `tab` values still resolve, and are **expected to keep resolving for at
@@ -380,7 +503,7 @@ that was appended by hand.
 
 | Legacy `tab` | Resolves to |
 |---|---|
-| `frontend` | `experience` / `search-field` |
+| `frontend` | `experience` / `autocomplete` |
 | `suggestions` | `experience` / `query-suggestions` |
 | `catboost` | `experience` / `category-suggestions` |
 | `filters` | `results` / `facets` |

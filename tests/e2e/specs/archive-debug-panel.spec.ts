@@ -7,9 +7,10 @@ import { wpCli } from '../helpers/env';
  *
  * Gating behavior that PHPUnit cannot reach, because it is decided in the
  * browser: the panel stays absent for a shop manager who has not switched it
- * on, and never renders for a logged-out shopper. (The companion journey —
- * the panel refreshing alongside the plugin's AJAX grid swap — only exists on
- * classic Woo markup and lives in tests/e2e/classic-theme/classic.spec.ts.)
+ * on, and never renders for a logged-out shopper. (A companion journey used to
+ * cover the panel refreshing alongside the plugin's AJAX grid swap; the block
+ * theme-only release removed that swap, so the panel is simply re-rendered by
+ * the ordinary page load or Product Collection navigation.)
  *
  * This spec REALLY flips `shift64_woo_search_archive_debug_enabled` on the
  * target site and restores the previous value in afterAll — same contract as the

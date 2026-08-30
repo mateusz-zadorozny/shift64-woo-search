@@ -125,6 +125,10 @@
 
 ## [Unreleased]
 
+### Breaking Changes
+
+* **frontend:** make the block theme the only supported storefront. The classic-theme shortcodes, injected archive controls, AJAX pagination swap, and their theme-selector settings are retired; WordPress 7.0 and WooCommerce 10.9 are now required. Follow the [block-theme migration guide](docs/block-theme-migration.md) before updating, export templates and purge caches for rollback, and note that retired settings remain stored but inert so a rollback can recover them.
+
 ### Features
 
 * **sort:** native WooCommerce catalog sorting engine and Product Sort block ([#73](https://github.com/mateusz-zadorozny/shift64-woo-search/pull/73))
