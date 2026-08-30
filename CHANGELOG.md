@@ -1,3 +1,10 @@
+# [0.21.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.20.2...v0.21.0) (2026-08-30)
+
+
+### Features
+
+* **frontend:** make the block theme the only supported storefront ([#100](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/100)) ([443dc58](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/443dc58bae46a34f4c82c9f4dd6b226c8312df9f))
+
 ## [0.20.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.20.1...v0.20.2) (2026-08-28)
 
 
