@@ -1,3 +1,10 @@
+## [0.21.1](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.21.0...v0.21.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **admin:** declare WooCommerce feature compatibility ([#103](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/103)) ([4ba716e](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/4ba716ee96628851079b865c7190aeebc2869e4c))
+
 # [0.21.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.20.2...v0.21.0) (2026-08-30)
 
 
