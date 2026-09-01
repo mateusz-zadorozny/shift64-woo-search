@@ -69,7 +69,7 @@ $header_markup = <<<'MARKUP'
 <!-- /wp:columns --></div>
 <!-- /wp:group -->
 
-<!-- wp:group {"align":"full","layout":{"type":"flex","flexWrap":"nowrap","justifyContent":"space-between"}} -->
+<!-- wp:group {"align":"full","layout":{"type":"default"}} -->
 <div class="wp-block-group alignfull"><!-- wp:group {"style":{"spacing":{"padding":{"right":"0","left":"0"}}},"layout":{"type":"constrained"}} -->
 <div class="wp-block-group" style="padding-right:0;padding-left:0"><!-- wp:shift64-woo-search/search {"instanceId":"shift64-e2e-header-inline"} -->
 <!-- wp:shift64-woo-search/search-control /-->

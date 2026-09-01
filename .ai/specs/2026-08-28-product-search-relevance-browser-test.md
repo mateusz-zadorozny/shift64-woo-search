@@ -139,7 +139,13 @@ fixture/site state untouched.
 > flex-shrink constraints on the plugin-owned search and product-sort
 > blocks), dropped the marker, and the assertion now runs active and
 > passing. The assertion was never weakened, because a relaxed version
-> would codify the overflow as acceptable.
+> would codify the overflow as acceptable. #101's open question — blocks'
+> CSS or the provisioned header layout — turned out to be answered "both":
+> the provisioned header's search row also needed a layout fix
+> (`bin/provision-block-theme-header.php`), because wrapping the search
+> block's constrained group in a single-child nowrap flex group made the
+> row size to its font-dependent max-content, which overflowed a 390px
+> viewport on Linux font metrics (CI) while fitting on macOS.
 
 ## 📝 Research
 
