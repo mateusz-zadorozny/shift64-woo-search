@@ -43,25 +43,26 @@ rename, or delete spec files — their paths are referenced from other specs,
 The suite's degraded project REALLY mutates the target site's Redis config
 and restores it in a teardown — if an aborted run leaves the site broken,
 re-run `npm run e2e:provision`. The environment's default theme is the block
-theme (`E2E_BLOCK_THEME`, default `twentytwentyfive`); the `classic-theme`
-project REALLY switches the site to `E2E_CLASSIC_THEME` (default
-`storefront`) for the plugin-owned classic AJAX-swap journeys and restores
-the previous theme in the spec's `afterAll`. If a hard-killed run leaves the
-wrong theme active, run `wp theme activate twentytwentyfive`, and delete
+theme (`E2E_BLOCK_THEME`, default `twentytwentyfive`) and no project switches
+it any more — the `classic-theme` project that activated Storefront was removed
+along with the plugin-owned AJAX swap it covered. Storefront is still installed
+but stays inactive. If a hard-killed run leaves the wrong theme active, run
+`wp theme activate twentytwentyfive`, and delete
 `wp-content/mu-plugins/shift64-e2e-force-page-reload.php` and
 `wp-content/mu-plugins/shift64-e2e-product-filters.php` (scenario fixtures
 the `block-theme` project installs and removes around its spec files).
 
 The `block-theme` project encodes the **pagination ownership matrix** decided
-in #20, not "the plugin swaps everything": classic Woo markup / Kadence /
-custom pagers belong to this plugin; a Product Collection with
-`data-wp-router-region` belongs to WooCommerce's Interactivity API; a Product
-Collection with `forcePageReload` belongs to plain browser navigation. Its
-ownership assertions are marked `test.fail()` because #20 is decided but not
-yet implemented — the plugin still intercepts everywhere. **Do not "fix" them
-by relaxing the assertions**: a passing version would codify the opposite
-contract. When #20 lands they will start passing, which Playwright reports as
-a failure, and that is the signal to drop the markers. `blockified.spec.ts`
+in #20: a Product Collection with `data-wp-router-region` belongs to
+WooCommerce's Interactivity API, and one with `forcePageReload` belongs to
+plain browser navigation. The plugin owns pagination nowhere. The matrix used
+to have a third row — classic Woo markup, Kadence and custom pagers owned by
+the plugin's AJAX swap — which the block theme-only release removed along with
+the swap itself and the `classic-theme` project that covered it. The
+`test.fail()` markers these assertions once carried are gone: #20 landed and
+they pass. **Do not "fix" a failure here by relaxing an assertion** — a passing
+version of the wrong assertion would codify the opposite contract.
+`blockified.spec.ts`
 keeps its scope to pagination ownership; the Product Filters / Filter Pill
 journeys (which go through Woo's router as decided) live in their own
 `product-filters.spec.ts` within this project because they need the block
@@ -88,6 +89,6 @@ Source MU-plugin files live in `mu-plugins/` and are deployed on activation, plu
 - Constants: `SHIFT64_WOO_SEARCH_*`
 - Text domain and plugin slug: `shift64-woo-search`
 - Redis keys: `{prefix}:product:{id}`; product index: `{prefix}_product_idx`
-- Minimum runtime: WordPress 6.0 and PHP 8.3
+- Minimum runtime: WordPress 7.0, WooCommerce 10.9, and PHP 8.3
 
 Redis and RediSearch remain the only search backend in this repository. Do not add Elasticsearch or Elastica.

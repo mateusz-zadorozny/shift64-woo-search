@@ -125,30 +125,67 @@ class Shift64_Woo_Search_Admin_Settings_Test extends WP_UnitTestCase {
 	/**
 	 * The quick-search density controls round-trip through the generic seam.
 	 *
-	 * These four are what let a merchant thin out an over-full dropdown, so they have
-	 * to be reachable by the Autocomplete form's partial save — and only by it. The
-	 * sentinels prove the write stayed scoped.
+	 * These are what let a merchant thin out an over-full dropdown, so they have to
+	 * be reachable by the Autocomplete form's partial save — and only by it. The
+	 * sentinels prove the write stayed scoped. The tray-width pair that used to
+	 * ride along here is covered by its own inertness test below.
 	 */
 	public function test_quick_search_density_settings_round_trip() {
 		$this->seed_sentinels();
 
 		$saved = Shift64_Woo_Search_Admin_Settings::persist(
 			array(
-				'shift64_woo_search_show_sku'            => 'no',
-				'shift64_woo_search_show_category'       => 'yes',
-				'shift64_woo_search_show_brand'          => 'no',
-				'shift64_woo_search_dropdown_width_mode' => 'custom',
-				'shift64_woo_search_dropdown_width'      => '900',
+				'shift64_woo_search_show_sku'      => 'no',
+				'shift64_woo_search_show_category' => 'yes',
+				'shift64_woo_search_show_brand'    => 'no',
+				'shift64_woo_search_debounce'      => '210',
 			)
 		);
 
-		$this->assertSame( 5, $saved );
+		$this->assertSame( 4, $saved );
 		$this->assertSame( 'no', get_option( 'shift64_woo_search_show_sku' ) );
 		$this->assertSame( 'yes', get_option( 'shift64_woo_search_show_category' ) );
 		$this->assertSame( 'no', get_option( 'shift64_woo_search_show_brand' ) );
-		$this->assertSame( 'custom', get_option( 'shift64_woo_search_dropdown_width_mode' ) );
-		$this->assertSame( '900', get_option( 'shift64_woo_search_dropdown_width' ) );
+		$this->assertSame( '210', get_option( 'shift64_woo_search_debounce' ) );
 		$this->assert_sentinels_intact();
+	}
+
+	/**
+	 * The retired appearance and selector keys can no longer be written.
+	 *
+	 * Making a setting inert is only half a guarantee: the field is gone from WP
+	 * Admin, but the save handler is a generic AJAX seam that accepts an arbitrary
+	 * payload, so a stale form or a hand-crafted request could still write a value
+	 * nothing reads. Dropping the keys from the allowlist is what closes that, and
+	 * this is the assertion that keeps them dropped.
+	 *
+	 * The stored rows themselves are deliberately left alone — that is what makes
+	 * rolling the plugin back to the previous version recover the old settings.
+	 */
+	public function test_retired_appearance_and_selector_keys_are_no_longer_writable() {
+		$retired = array(
+			'shift64_woo_search_dropdown_width_mode'  => 'custom',
+			'shift64_woo_search_dropdown_width'       => '900',
+			'shift64_woo_search_input_selector'       => '.attacker-input',
+			'shift64_woo_search_additional_selectors' => '.attacker-extra',
+			'shift64_woo_search_button_selector'      => '.attacker-button',
+		);
+
+		foreach ( array_keys( $retired ) as $key ) {
+			update_option( $key, 'preserved-for-rollback' );
+		}
+
+		$saved = Shift64_Woo_Search_Admin_Settings::persist( $retired );
+
+		$this->assertSame( 0, $saved, 'No retired key may be written through the generic seam.' );
+
+		foreach ( array_keys( $retired ) as $key ) {
+			$this->assertSame(
+				'preserved-for-rollback',
+				get_option( $key ),
+				sprintf( '%s must keep its stored value so a rollback finds it.', $key )
+			);
+		}
 	}
 
 	/**

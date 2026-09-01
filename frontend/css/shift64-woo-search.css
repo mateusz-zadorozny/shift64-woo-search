@@ -118,20 +118,18 @@
     outline-offset: 2px;
 }
 
-/* The shortcode and block wrappers are as wide as whatever column they sit in, so
-   this rule pins the tray to the field. It defers to a custom width when one is
-   configured — being the more specific selector, whatever it sets here silently
-   overrides the container rule below, so the fallback has to be spelled out. */
+/* The fallback and block wrappers are as wide as whatever column they sit in, so
+   this rule pins the tray to the field. The configurable custom width that this
+   used to defer to was a global appearance control; the Search Panel block owns
+   its own maxWidth now, so the tray simply tracks its field again. */
 .shift64-woo-search-shortcode .shift64-woo-search-results {
-    width: var(--s64ws-dropdown-width, 100%);
+    width: 100%;
     min-width: 0;
     max-width: calc(100vw - 32px);
 }
 
 /* The modal owns its own width — its dialog is already a deliberate, centred size,
-   and a tray narrower or wider than the dialog it sits in just looks broken. The
-   custom width is a classic/inline concern only, so opt the modal back out. Equal
-   specificity to the rule above, so this has to stay after it. */
+   and a tray narrower or wider than the dialog it sits in just looks broken. */
 .shift64-woo-search-modal__search .shift64-woo-search-results {
     width: 100%;
     max-width: none;
@@ -490,20 +488,6 @@ body.shift64-woo-search-modal-open {
 }
 
 /* ================================================================
-   Search Wrapper — Positioning context for dropdown
-   ================================================================ */
-.shift64-woo-search-main-header__search,
-.shift64-woo-search-header-search {
-    position: relative;
-    transition: min-width 0.25s ease, max-width 0.25s ease;
-}
-
-.shift64-woo-search-main-header__search.shift64-woo-search--expanded {
-    min-width: var(--s64ws-dropdown-width, 645px);
-    max-width: var(--s64ws-dropdown-width, 645px);
-}
-
-/* ================================================================
    Dropdown Container
    ================================================================ */
 .shift64-woo-search-results {
@@ -511,13 +495,10 @@ body.shift64-woo-search-modal-open {
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    /* Unset, the tray stays anchored to both edges of the search field — the
-       default, and how it has always behaved. A custom width over-constrains the
-       box, which drops the right anchor and sizes the tray outright; `min-width`
-       could not do that, being a no-op wherever the field is already wider. The
-       viewport cap keeps an over-wide setting from causing a horizontal
-       scrollbar on narrower desktops. */
-    width: var(--s64ws-dropdown-width, auto);
+    /* Anchored to both edges of the search field, which is how the tray has
+       always behaved by default. The viewport cap is what keeps a wide field
+       from producing a horizontal scrollbar on narrower desktops. */
+    width: auto;
     max-width: calc(100vw - 32px);
     z-index: var(--s64ws-dropdown-z);
     background: var(--s64ws-dropdown-bg);
@@ -759,8 +740,6 @@ body.shift64-woo-search-modal-open {
    reach the input — otherwise the overlay (z-index = dropdown-z - 1) sits
    visually on top of the input and breaks text selection. The overlay still
    covers everything else, so clicks on links underneath are still blocked. */
-.shift64-woo-search-main-header__search > .shift64-woo-search-field,
-.shift64-woo-search-header-search > .shift64-woo-search-field,
 .shift64-woo-search-shortcode > .shift64-woo-search-field {
     position: relative;
     z-index: var(--s64ws-dropdown-z);
@@ -770,9 +749,7 @@ body.shift64-woo-search-modal-open {
    Mobile — Full-width dropdown, capped height
    ================================================================ */
 @media (max-width: 1024px) {
-    /* Below this breakpoint the tray tracks the search field's own width and the
-       configured width does not apply, so the sizing above is handed back to the
-       left/right anchoring it replaced. */
+    /* Full-bleed within the field, with no viewport cap to fight. */
     .shift64-woo-search-results,
     .shift64-woo-search-shortcode .shift64-woo-search-results {
         right: 0;
@@ -783,12 +760,6 @@ body.shift64-woo-search-modal-open {
     .shift64-woo-search-results {
         max-height: 70vh;
         border-radius: var(--s64ws-dropdown-radius) var(--s64ws-dropdown-radius);
-    }
-
-    /* Disable wrapper expansion on mobile. */
-    .shift64-woo-search-main-header__search.shift64-woo-search--expanded {
-        min-width: 0;
-        max-width: none;
     }
 
     .shift64-woo-search-modal {
@@ -819,778 +790,7 @@ body.shift64-woo-search-modal-open {
         animation: none;
     }
 }
-/* ================================================================
-   Faceted Filters — Pill Dropdowns
-   ================================================================ */
-#shift64-woo-search-filters.shift64-woo-search-filters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 0;
-    padding: 0;
-}
-
-/* Merge filters row with top-row into one flex line */
-.kwt-products-wrap {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-}
-
-.kwt-products-wrap > #shift64-woo-search-filters {
-    flex: 1 1 auto;
-}
-
-.kwt-products-wrap > .woocommerce-notices-wrapper {
-    width: 100%;
-    order: -1;
-}
-
-.kwt-products-wrap > .kadence-shop-top-row {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 0 0 20px auto;
-    padding: 0;
-    width: auto;
-}
-
-.kwt-products-wrap > ul.products {
-    width: 100%;
-}
-
-.kwt-products-wrap .kadence-shop-top-item.kadence-woo-results-count {
-    margin: 0;
-}
-
-.kwt-products-wrap .kadence-shop-top-item.kadence-woo-ordering {
-    margin: 0;
-}
-
-/* Ordering select styled as pill */
-.kwt-products-wrap .woocommerce-ordering select.orderby {
-    height: 40px;
-    padding: 0 36px 0 18px;
-    background-color: var(--global-palette8, #f5f7fa);
-    border: 2px solid transparent;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--global-palette3, #1a1a2e);
-    font-family: inherit;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%231a1a2e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    background-size: 12px;
-    transition: background-color 0.15s, border-color 0.15s;
-    box-sizing: border-box;
-    line-height: 1;
-}
-
-.kwt-products-wrap .woocommerce-ordering select.orderby:hover,
-.kwt-products-wrap .woocommerce-ordering select.orderby:focus,
-.kwt-products-wrap .woocommerce-ordering select.orderby:active {
-    background-color: var(--global-palette8, #f5f7fa);
-    border-color: var(--global-palette3, #1a1a2e);
-    outline: none;
-    box-shadow: none;
-    color: var(--global-palette3, #1a1a2e);
-}
-
-/* Result count text styling */
-.kwt-products-wrap .woocommerce-result-count {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--global-palette5, #666);
-    margin: 0;
-    white-space: nowrap;
-}
-
-/* Single filter wrapper — positioned for dropdown */
-#shift64-woo-search-filters .shift64-woo-search-filter {
-    position: relative;
-}
-
-/* Pill button */
-#shift64-woo-search-filters .shift64-woo-search-filter__pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 40px;
-    padding: 0 18px;
-    background: var(--global-palette8, #f5f7fa);
-    border: 2px solid transparent;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--global-palette3, #1a1a2e);
-    line-height: 1;
-    white-space: nowrap;
-    transition: background 0.15s, border-color 0.15s;
-    font-family: inherit;
-    box-sizing: border-box;
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter__pill:hover,
-#shift64-woo-search-filters .shift64-woo-search-filter__pill:active,
-#shift64-woo-search-filters .shift64-woo-search-filter--open .shift64-woo-search-filter__pill {
-    background: var(--global-palette8, #f5f7fa);
-    border-color: var(--global-palette3, #1a1a2e);
-    box-shadow: none;
-    color: var(--global-palette3, #1a1a2e);
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter__pill-label {
-    pointer-events: none;
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter__pill-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    background: var(--global-palette3, #1a1a2e);
-    color: var(--global-palette9, #fff);
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter__chevron {
-    flex-shrink: 0;
-    transition: transform 0.2s;
-    pointer-events: none;
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter--open .shift64-woo-search-filter__chevron {
-    transform: rotate(180deg);
-}
-
-/* Dropdown panel */
-#shift64-woo-search-filters .shift64-woo-search-filter__dropdown {
-    display: none;
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    z-index: 100;
-    min-width: 280px;
-    max-width: 96vw;
-    width: max-content;
-    max-height: 320px;
-    overflow-y: auto;
-    background: var(--global-palette9, #fff);
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    padding: 8px 0;
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter--open .shift64-woo-search-filter__dropdown {
-    display: block;
-}
-
-/* Dropdown list */
-#shift64-woo-search-filters .shift64-woo-search-filter__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter__item {
-    margin: 0;
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter__item label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    font-size: 15px;
-    line-height: 1.4;
-    padding: 8px 16px;
-    transition: background 0.1s;
-    color: var(--global-palette3, #1a1a2e);
-    white-space: nowrap;
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter__item label:hover {
-    background: var(--global-palette8, #f5f7fa);
-    color: var(--global-palette3, #1a1a2e);
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter__checkbox {
-    margin: 0;
-    flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
-    accent-color: var(--global-palette3, #1a1a2e);
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filter__label {
-    flex: 1;
-    min-width: 0;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-/* Clear filters button */
-#shift64-woo-search-filters .shift64-woo-search-filters__clear {
-    display: inline-flex;
-    align-items: center;
-    height: 40px;
-    padding: 0 18px;
-    background: var(--global-palette8, #f5f7fa);
-    border: 2px solid transparent;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--global-palette3, #1a1a2e);
-    line-height: 1;
-    white-space: nowrap;
-    font-family: inherit;
-    transition: background 0.15s, border-color 0.15s;
-    box-sizing: border-box;
-}
-
-#shift64-woo-search-filters .shift64-woo-search-filters__clear:hover,
-#shift64-woo-search-filters .shift64-woo-search-filters__clear:active {
-    background: var(--global-palette8, #f5f7fa);
-    border-color: var(--global-palette3, #1a1a2e);
-    box-shadow: none;
-    color: var(--global-palette3, #1a1a2e);
-}
-
-/* Loading state — applied by JS during AJAX */
-#shift64-woo-search-filters.shift64-woo-search-filters--loading {
-    opacity: 0.5;
-    pointer-events: none;
-    transition: opacity 0.2s;
-}
-
-/* ================================================================
-   Search Results Header — Breadcrumbs + Title
-   ================================================================ */
-.shift64-woo-search-header {
-    margin-bottom: 24px;
-}
-
-.shift64-woo-search-header__breadcrumbs {
-    font-size: 13px;
-    color: var(--global-palette5, #666);
-    margin-bottom: 8px;
-}
-
-.shift64-woo-search-header__breadcrumbs a {
-    color: var(--global-palette5, #666);
-    text-decoration: none;
-}
-
-.shift64-woo-search-header__breadcrumbs a:hover {
-    text-decoration: underline;
-}
-
-.shift64-woo-search-header__separator {
-    margin: 0 2px;
-    color: var(--global-palette5, #666);
-}
-
-.shift64-woo-search-header__title {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--global-palette3, #1a1a2e);
-    margin: 0;
-    line-height: 1.3;
-}
-
-/* ================================================================
-   Mobile Trigger Bar — hidden on desktop
-   ================================================================ */
-.shift64-woo-search-mobile-bar {
-    display: none;
-}
-
-.shift64-woo-search-mobile-bar__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    height: 40px;
-    padding: 0 20px;
-    border: none;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    white-space: nowrap;
-    line-height: 1;
-    box-sizing: border-box;
-    color: var(--global-palette1, #0057b8);
-    background: rgba(0, 87, 184, 0.1);
-    background: color-mix(in srgb, var(--global-palette1, #0057b8) 10%, transparent);
-    transition: background 0.15s;
-}
-
-.shift64-woo-search-mobile-bar__btn:hover,
-.shift64-woo-search-mobile-bar__btn:active {
-    background: rgba(0, 87, 184, 0.2);
-    background: color-mix(in srgb, var(--global-palette1, #0057b8) 20%, transparent);
-}
-
-.shift64-woo-search-mobile-bar__btn svg {
-    flex-shrink: 0;
-}
-
-.shift64-woo-search-mobile-bar__count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    background: var(--global-palette1, #0057b8);
-    color: var(--global-palette9, #fff);
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-}
-
-/* ================================================================
-   Filter Modal — full screen overlay
-   ================================================================ */
-.shift64-woo-search-filter-modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-}
-
-.shift64-woo-search-filter-modal--open {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-}
-
-.shift64-woo-search-filter-modal__backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-}
-
-.shift64-woo-search-filter-modal__panel {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 500px;
-    max-height: 75vh;
-    margin: 0 auto;
-    background: var(--global-palette9, #fff);
-    border-radius: 16px 16px 0 0;
-    overflow: hidden;
-    z-index: 1;
-    animation: shift64-woo-search-slide-up 0.25s ease-out;
-}
-
-@keyframes shift64-woo-search-slide-up {
-    from { transform: translateY(30px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-/* Header */
-.shift64-woo-search-filter-modal__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 20px 16px;
-    border-bottom: 1px solid var(--global-palette7, #e0e0e0);
-    flex-shrink: 0;
-}
-
-.shift64-woo-search-filter-modal__heading {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--global-palette3, #1a1a2e);
-    margin: 0;
-    line-height: 1.2;
-}
-
-.shift64-woo-search-filter-modal__close {
-    display: block;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    transition: opacity 0.15s;
-}
-
-.shift64-woo-search-filter-modal__close:hover,
-.shift64-woo-search-filter-modal__close:focus,
-.shift64-woo-search-filter-modal__close:active {
-    background: transparent;
-    box-shadow: none;
-    opacity: 0.7;
-}
-
-.shift64-woo-search-filter-modal__close img {
-    display: block;
-    width: 32px;
-    height: 32px;
-}
-
-/* Body — scrollable */
-.shift64-woo-search-filter-modal__body {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-/* Accordion sections */
-.shift64-woo-search-filter-modal__section {
-    border-bottom: 1px solid var(--global-palette7, #e0e0e0);
-}
-
-.shift64-woo-search-filter-modal__section-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 16px 20px;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    cursor: pointer;
-    font-family: inherit;
-    text-align: left;
-    color: var(--global-palette3, #1a1a2e);
-    box-shadow: none;
-    transition: background 0.15s;
-}
-
-.shift64-woo-search-filter-modal__section-toggle:hover,
-.shift64-woo-search-filter-modal__section-toggle:focus,
-.shift64-woo-search-filter-modal__section-toggle:active {
-    background: var(--global-palette8, #f5f7fa);
-    color: var(--global-palette3, #1a1a2e);
-    border-radius: 0;
-    box-shadow: none;
-    transform: none;
-}
-
-.shift64-woo-search-filter-modal__section-label {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.shift64-woo-search-filter-modal__section-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--global-palette3, #1a1a2e);
-    line-height: 1.3;
-    display: inline-block;
-}
-
-.shift64-woo-search-filter-modal__section-title::first-letter {
-    text-transform: uppercase;
-}
-
-.shift64-woo-search-filter-modal__section-subtitle {
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--global-palette5, #666);
-    line-height: 1.3;
-}
-
-.shift64-woo-search-filter-modal__chevron {
-    flex-shrink: 0;
-    color: var(--global-palette4, #4a4a5a);
-    transition: transform 0.2s;
-}
-
-.shift64-woo-search-filter-modal__section--open .shift64-woo-search-filter-modal__chevron {
-    transform: rotate(180deg);
-}
-
-.shift64-woo-search-filter-modal__section-body {
-    display: none;
-    padding: 0 20px 16px;
-}
-
-.shift64-woo-search-filter-modal__section--open .shift64-woo-search-filter-modal__section-body {
-    display: block;
-}
-
-/* Checkbox list inside sections */
-.shift64-woo-search-filter-modal__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.shift64-woo-search-filter-modal__item {
-    margin: 0;
-}
-
-.shift64-woo-search-filter-modal__item label {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 0;
-    cursor: pointer;
-    font-size: 15px;
-    line-height: 1.4;
-    color: var(--global-palette3, #1a1a2e);
-}
-
-.shift64-woo-search-filter-modal__checkbox {
-    margin: 0;
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    accent-color: var(--global-palette3, #1a1a2e);
-}
-
-.shift64-woo-search-filter-modal__label {
-    flex: 1;
-    min-width: 0;
-}
-
-/* Footer — sticky at bottom */
-.shift64-woo-search-filter-modal__footer {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
-    background: var(--global-palette9, #fff);
-    border-top: 1px solid var(--global-palette7, #e0e0e0);
-    flex-shrink: 0;
-}
-
-.shift64-woo-search-filter-modal__apply {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    height: 48px;
-    padding: 0 24px;
-    background: var(--global-palette3, #1a1a2e);
-    color: var(--global-palette9, #fff);
-    border: none;
-    border-radius: 999px;
-    font-size: 15px;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: opacity 0.15s;
-}
-
-.shift64-woo-search-filter-modal__apply:hover {
-    opacity: 0.85;
-}
-
-.shift64-woo-search-filter-modal__apply svg {
-    flex-shrink: 0;
-}
-
-.shift64-woo-search-filter-modal__clear {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    height: 48px;
-    padding: 0 20px;
-    background: var(--global-palette8, #f5f7fa);
-    color: var(--global-palette5, #666);
-    border: none;
-    border-radius: 999px;
-    box-shadow: inset 0 0 0 1px currentColor;
-    font-size: 14px;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: opacity 0.15s;
-}
-
-.shift64-woo-search-filter-modal__clear:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-
-.shift64-woo-search-filter-modal__clear svg {
-    flex-shrink: 0;
-}
-
-/* ================================================================
-   Sort Bottom Sheet
-   ================================================================ */
-.shift64-woo-search-sort-sheet {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-}
-
-.shift64-woo-search-sort-sheet--open {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-}
-
-.shift64-woo-search-sort-sheet__backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-}
-
-.shift64-woo-search-sort-sheet__panel {
-    position: relative;
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
-    background: var(--global-palette9, #fff);
-    border-radius: 16px 16px 0 0;
-    z-index: 1;
-    animation: shift64-woo-search-slide-up 0.25s ease-out;
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
-}
-
-/* Header */
-.shift64-woo-search-sort-sheet__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 20px 16px;
-    border-bottom: 1px solid var(--global-palette7, #e0e0e0);
-}
-
-.shift64-woo-search-sort-sheet__heading {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--global-palette3, #1a1a2e);
-    margin: 0;
-    line-height: 1.2;
-}
-
-.shift64-woo-search-sort-sheet__close {
-    display: block;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    transition: opacity 0.15s;
-}
-
-.shift64-woo-search-sort-sheet__close:hover,
-.shift64-woo-search-sort-sheet__close:focus,
-.shift64-woo-search-sort-sheet__close:active {
-    background: transparent;
-    box-shadow: none;
-    opacity: 0.7;
-}
-
-.shift64-woo-search-sort-sheet__close img {
-    display: block;
-    width: 32px;
-    height: 32px;
-}
-
-/* Radio options */
-.shift64-woo-search-sort-sheet__body {
-    padding: 8px 0;
-}
-
-.shift64-woo-search-sort-sheet__option {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 20px;
-    cursor: pointer;
-    font-size: 16px;
-    line-height: 1.4;
-    color: var(--global-palette3, #1a1a2e);
-    transition: background 0.1s;
-}
-
-.shift64-woo-search-sort-sheet__option:hover {
-    background: var(--global-palette8, #f5f7fa);
-}
-
-.shift64-woo-search-sort-sheet__radio {
-    margin: 0;
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    accent-color: var(--global-palette3, #1a1a2e);
-}
-
-/* ================================================================
-   Mobile Breakpoint — show mobile UI, hide desktop
-   ================================================================ */
-@media (max-width: 768px) {
-    /* Show mobile trigger bar — left/right layout */
-    .shift64-woo-search-mobile-bar {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-    }
-
-    .shift64-woo-search-mobile-bar__btn {
-        font-size: 13px;
-        height: 36px;
-        padding: 0 16px;
-    }
-
-    /* Hide desktop filter pills and clear button */
-    #shift64-woo-search-filters .shift64-woo-search-filter,
-    #shift64-woo-search-filters .shift64-woo-search-filters__clear {
-        display: none;
-    }
-
-    /* Hide desktop ordering select */
-    .kwt-products-wrap .kadence-shop-top-item.kadence-woo-ordering {
-        display: none;
-    }
-
-    /* Result count row: full width, stacked ABOVE filters via order */
-    .kwt-products-wrap > .kadence-shop-top-row {
-        width: 100%;
-        margin: 0 0 12px 0;
-        order: -1;
-    }
-
-    /* Filters row below result count */
-    .kwt-products-wrap > #shift64-woo-search-filters {
-        width: 100%;
-        margin-bottom: 16px;
-    }
-
-    /* Hide debug bar on mobile */
-    .shift64-woo-search-debug-bar {
-        display: none !important;
-    }
-}
-
-/* Body scroll lock when modal/sheet is open */
+/* Body scroll lock while the modal search dialog is open */
 body.shift64-woo-search-modal-open {
     overflow: hidden;
 }
@@ -1600,9 +800,8 @@ body.shift64-woo-search-modal-open {
    WooCommerce and only when the Diagnostics setting is on.
 
    These rules used to live as an inline style attribute on the element.
-   They moved here so the AJAX handler can rebuild the bar after a filter
-   change without restating the styling in JavaScript. The mobile
-   `display: none` override above still applies. */
+   They moved here so the styling does not have to be restated in
+   JavaScript whenever the bar is rebuilt. */
 .shift64-woo-search-debug-bar {
     position: fixed;
     bottom: 0;
@@ -1616,4 +815,14 @@ body.shift64-woo-search-modal-open {
     max-height: 200px;
     overflow-y: auto;
     opacity: 0.95;
+}
+
+/* A fixed-position diagnostic strip is unusable on a phone, and it is only ever
+   visible to a logged-in administrator who opted in, so hide it below the mobile
+   breakpoint. */
+@media (max-width: 768px) {
+
+    .shift64-woo-search-debug-bar {
+        display: none !important;
+    }
 }

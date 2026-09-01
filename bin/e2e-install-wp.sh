@@ -9,16 +9,14 @@
 # The block theme (Twenty Twenty-Five by default) is installed AND activated:
 # the plugin is developed and QA'd for modern block themes (theme.json / Site
 # Editor era), so the default environment must match that baseline. WooCommerce
-# renders its blockified archive templates on it, and Woo's compatibility layer
-# still fires the classic shop-loop hooks the filter bar and ordering control
-# hang on — the bulk of the suite runs here.
+# renders its blockified archive templates on it, and every Shift64 storefront
+# control is a block placed in those templates — the whole suite runs here.
 #
-# Storefront is installed alongside it but left INACTIVE: the classic-theme
-# Playwright project (tests/e2e/classic-theme/) activates it for the duration
-# of its own spec file — covering the plugin-owned classic AJAX-swap journeys —
-# and restores the block theme afterwards. Installing it here — rather than at
-# switch time — keeps that switch a local `wp theme activate` instead of a
-# network install in the middle of a run.
+# Storefront is installed alongside it but left INACTIVE. Nothing activates it
+# any more: the classic-theme project that did was removed with the plugin-owned
+# AJAX archive swap it covered. It stays installed because a classic theme
+# present-but-inactive is the shape a real store has mid-migration, and having
+# one locally available is useful for manual checks of the classic-theme notice.
 #
 # WordPress, WooCommerce, Storefront, and the block theme versions are
 # deliberately UNPINNED:
@@ -60,8 +58,7 @@ wp theme install "${E2E_BLOCK_THEME:-twentytwentyfive}" --path="$WP_ROOT"
 # Explicit activate rather than install --activate: on a reused environment
 # the install is a no-op skip, and the activation must still happen.
 wp theme activate "${E2E_BLOCK_THEME:-twentytwentyfive}" --path="$WP_ROOT"
-# Inactive on purpose — see the header note; the classic-theme e2e project
-# activates it and restores the block theme itself.
+# Inactive on purpose — see the header note. Nothing in the suite activates it.
 wp theme install storefront --path="$WP_ROOT"
 wp plugin install woocommerce --activate --path="$WP_ROOT"
 

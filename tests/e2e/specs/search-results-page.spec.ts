@@ -99,11 +99,9 @@ test.describe('search results page (Redis takeover)', () => {
 		}
 
 		// Copper narrows 48 results to a single page, so no pagination control
-		// may remain visible. On a block theme WooCommerce re-renders and
-		// drops the nav from the DOM; on classic markup the plugin's swap
-		// hides it — toBeHidden() accepts both (zero matches or display:none).
-		// The stricter classic-only `display` assertion lives in
-		// tests/e2e/classic-theme/classic.spec.ts.
+		// may remain visible. WooCommerce re-renders and drops the nav from the
+		// DOM; toBeHidden() accepts either shape (zero matches or display:none),
+		// which keeps this assertion honest against any template.
 		await expect(page.locator(SEL.pagination).first()).toBeHidden();
 	});
 
@@ -129,8 +127,8 @@ test.describe('search results page (Redis takeover)', () => {
 		}
 	});
 
-	// The plugin-owned AJAX pagination journey ("pagination swaps the grid via
-	// AJAX without reloading") lives in tests/e2e/classic-theme/ — it only
-	// exists on classic Woo markup. The block-theme pagination journeys live
-	// in tests/e2e/block-theme/.
+	// Pagination journeys live in tests/e2e/block-theme/, which encodes the
+	// ownership matrix from #20. There is no plugin-owned pagination journey any
+	// more: the AJAX grid swap that produced one was removed with the classic
+	// frontend.
 });

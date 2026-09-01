@@ -176,8 +176,9 @@ fi
 
 log "Ensure the block-theme header template part (both search blocks in the site header)"
 # Targets the active theme when it is a block theme, which the default
-# environment's Twenty Twenty-Five is. Template parts are theme-scoped, so the
-# header is simply absent while tests/e2e/classic-theme/ runs on Storefront.
+# environment's Twenty Twenty-Five is. Template parts are theme-scoped, so on a
+# classic theme the header is simply absent — which is the supported behaviour
+# now: the plugin places nothing in a theme it does not own.
 # See the script's own header for the full theme-resolution order.
 wpc eval-file "$SCRIPT_DIR/provision-block-theme-header.php"
 

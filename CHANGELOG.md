@@ -1,3 +1,10 @@
+# [0.21.0](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.20.2...v0.21.0) (2026-08-30)
+
+
+### Features
+
+* **frontend:** make the block theme the only supported storefront ([#100](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/100)) ([443dc58](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/443dc58bae46a34f4c82c9f4dd6b226c8312df9f))
+
 ## [0.20.2](https://github.com/mateusz-zadorozny/shift64-woo-search/compare/v0.20.1...v0.20.2) (2026-08-28)
 
 
@@ -124,6 +131,10 @@
 * **search:** honor WooCommerce catalog visibility ([#46](https://github.com/mateusz-zadorozny/shift64-woo-search/issues/46)) ([be1d8dc](https://github.com/mateusz-zadorozny/shift64-woo-search/commit/be1d8dc6c0a7148bfb429e9a2d5b718aa3a100b1))
 
 ## [Unreleased]
+
+### Breaking Changes
+
+* **frontend:** make the block theme the only supported storefront. The classic-theme shortcodes, injected archive controls, AJAX pagination swap, and their theme-selector settings are retired; WordPress 7.0 and WooCommerce 10.9 are now required. Follow the [block-theme migration guide](docs/block-theme-migration.md) before updating, export templates and purge caches for rollback, and note that retired settings remain stored but inert so a rollback can recover them.
 
 ### Features
 

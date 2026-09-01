@@ -7,9 +7,11 @@ Shift64 Woo Search is a WordPress plugin for WooCommerce. It uses Redis and Redi
 
 ## Required
 
-- WordPress 6.0 or later.
+- WordPress 7.0 or later.
 - PHP 8.3 or later.
-- An active WooCommerce installation.
+- WooCommerce 10.9 or later, active.
+- A block theme. The storefront is rendered by block templates and an inherited
+  WooCommerce Product Collection; the plugin injects nothing into a classic theme.
 - The PHP `redis` extension (phpredis).
 - A Redis deployment with the RediSearch module, such as Redis Stack.
 

@@ -2,7 +2,7 @@
 /**
  * Tests for Shift64_Woo_Search_Taxonomy_Archive::apply_clauses_for_block_query().
  *
- * Issue #17 — Kadence Woo Template Block creates its own WP_Query with
+ * Issue #17 — a block that builds its own WP_Query runs with
  * is_main_query()=false, bypassing our pre_get_posts interceptor. These
  * tests drive a separate hook (posts_clauses) that catches block / widget
  * queries on taxonomy archive pages and injects the same Redis-filtered
@@ -121,7 +121,7 @@ class Posts_Clauses_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The positive path: Kadence block query on a scoped category archive
+	 * The positive path: a block query on a scoped category archive
 	 * gets `WHERE posts.ID IN (ids...)` appended so the grid matches the
 	 * Redis-filtered set.
 	 */

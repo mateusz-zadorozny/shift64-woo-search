@@ -196,8 +196,7 @@
     Shift64WooSearch.prototype.createDropdown = function () {
         // Use the outer search wrapper as positioning context — .shift64-woo-search-field
         // has overflow:hidden (for border-radius) which clips the dropdown.
-        var wrapper = this.input.closest('.shift64-woo-search-main-header__search, .shift64-woo-search-header-search')
-            || this.input.closest('.shift64-woo-search-shortcode')
+        var wrapper = this.input.closest('.shift64-woo-search-shortcode')
             || this.input.closest('.shift64-woo-search-field')
             || this.input.parentElement;
         wrapper.style.position = 'relative';
@@ -267,23 +266,10 @@
             }
         });
 
-        // Search button — redirect to full search on click.
-        if (config.searchButtonSelector) {
-            var form = self.input.closest('form');
-            var scope = form || document;
-            var btn = scope.querySelector(config.searchButtonSelector);
-            if (btn) {
-                btn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    var query = self.input.value.trim();
-                    if (query.length >= (config.minQueryLength || 2)) {
-                        self.redirectToSearch(query);
-                    }
-                });
-            }
-        }
-
-        // Also prevent native form submit — use our redirect instead.
+        // Prevent native form submit — use our redirect instead. The submit
+        // button lives inside this form, so its click is covered here; the
+        // configurable theme-button selector that used to be bound separately
+        // was a classic-theme surface and is gone.
         var parentForm = self.input.closest('form');
         if (parentForm) {
             parentForm.addEventListener('submit', function (e) {
@@ -592,34 +578,16 @@
     // ── Show / Close ───────────────────────────────────────────
 
     /**
-     * Keep a configured-width tray inside the viewport.
+     * Reset any inline offset on the tray.
      *
-     * The tray is anchored to the left edge of the search field, so once its width is
-     * set independently of the field (see --s64ws-dropdown-width) a right-aligned
-     * search box pushes it off-screen and the page grows a horizontal scrollbar.
-     * Shift it back by however much it overruns, but never past the left edge — a tray
-     * wider than the viewport is capped by max-width in CSS instead.
-     *
-     * Below the mobile breakpoint the tray tracks the field again and the stylesheet
-     * owns both edges, so any inline offset from a wider viewport is cleared.
+     * The tray tracks the width of the search field, and the stylesheet owns both
+     * of its edges, so it can no longer overrun the viewport on its own. The
+     * viewport-overflow correction this used to perform existed only for the
+     * configurable custom tray width, which the block-theme-only cleanup replaced
+     * with the Search Panel block's own maxWidth control.
      */
     Shift64WooSearch.prototype.positionDropdown = function () {
         this.dropdown.style.left = '';
-
-        // Only a custom width can overrun; matching the field never does.
-        if (!parseInt(config.dropdownWidth, 10)) return;
-        // The modal keeps its original sizing, so it never needs correcting.
-        if (this.wrapper.classList.contains('shift64-woo-search-modal__search')) return;
-        if (window.innerWidth <= 1024) return;
-
-        var rect = this.dropdown.getBoundingClientRect();
-        var overflow = rect.right - (document.documentElement.clientWidth - 8);
-        if (overflow <= 0) return;
-
-        var shift = Math.min(overflow, Math.max(0, rect.left - 8));
-        if (shift > 0) {
-            this.dropdown.style.left = '-' + Math.round(shift) + 'px';
-        }
     };
 
     Shift64WooSearch.prototype.show = function () {
