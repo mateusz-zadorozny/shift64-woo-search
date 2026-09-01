@@ -112,6 +112,11 @@
 		<exclude-pattern>/tests/</exclude-pattern>
 	</rule>
 
+	<!-- A test double is only substitutable under the namespace it stands in for. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedNamespaceFound">
+		<exclude-pattern>/tests/fixtures/</exclude-pattern>
+	</rule>
+
 	<!-- Writing to an already-open STDOUT/STDERR stream, not to the filesystem. -->
 	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fwrite">
 		<exclude-pattern>/bin/</exclude-pattern>
