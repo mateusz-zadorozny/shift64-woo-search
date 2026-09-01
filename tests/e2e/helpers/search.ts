@@ -106,12 +106,30 @@ export function visibleTray(page: Page): Locator {
 	return page.locator(SEL.trayVisible);
 }
 
+export type TraySectionName = 'suggestions' | 'categories' | 'brands' | 'products';
+
+/**
+ * A dropdown section inside a specific tray. Instance-scoped journeys pass the
+ * instance's own listbox so the section resolves against the block under test
+ * rather than against whichever tray happens to be open.
+ */
+export function traySectionIn(tray: Locator, name: TraySectionName): Locator {
+	return tray.locator(`.shift64-woo-search-section--${name}`);
+}
+
 /** A dropdown section (`suggestions` | `categories` | `brands` | `products`) inside the open tray. */
-export function traySection(
-	page: Page,
-	name: 'suggestions' | 'categories' | 'brands' | 'products'
-): Locator {
-	return visibleTray(page).locator(`.shift64-woo-search-section--${name}`);
+export function traySection(page: Page, name: TraySectionName): Locator {
+	return traySectionIn(visibleTray(page), name);
+}
+
+/** The provisioned header's inline search input, addressed by instance id. */
+export function headerSearchInput(page: Page): Locator {
+	return page.locator(`#${E2E_HEADER_INLINE_INSTANCE}-input`);
+}
+
+/** The listbox paired with that header input (`<instanceId>-listbox`). */
+export function headerSearchListbox(page: Page): Locator {
+	return page.locator(`#${E2E_HEADER_INLINE_INSTANCE}-listbox`);
 }
 
 /**

@@ -27,7 +27,7 @@ and PRs.
 | [Block Theme-Only Legacy Surface Removal](2026-07-30-block-theme-only-legacy-removal.md) | ✅ implemented | PR #100; the classic frontend removed, baselines raised |
 | [One-Shot Isolated Worktree Test Environments](2026-07-31-one-shot-worktree-test-env.md) | ✅ implemented | PR #56 (issue #53) |
 | [Deprecate `logic = OR` and `fallback_trigger = no_results`](2026-08-27-deprecate-or-logic-and-no-results-trigger.md) | ✅ implemented | PR #87 (issue #85); deprecation window only, removal is a follow-up |
-| [Product Search Relevance Browser Test](2026-08-28-product-search-relevance-browser-test.md) | 🚧 draft | Follow-up to merged PR #90 |
+| [Product Search Relevance Browser Test](2026-08-28-product-search-relevance-browser-test.md) | ✅ implemented | PR #99 (follow-up to merged PR #90); ships the responsive fix for issue #101, so the mobile no-overflow assertion runs active |
 
 ## Recommended implementation flow
 

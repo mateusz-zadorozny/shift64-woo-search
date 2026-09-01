@@ -1,10 +1,16 @@
 .wp-block-shift64-woo-search-search-control {
 	box-sizing: border-box;
+	max-width: 100%;
+	min-width: 0;
 	position: relative;
 	z-index: calc(var(--s64ws-dropdown-z, 9999) + 1);
 
 	&.is-modal {
 		z-index: auto;
+	}
+
+	&.is-inline {
+		width: 100%;
 	}
 
 	// Split mode (default): input and button are independent — centered, so
@@ -18,6 +24,7 @@
 		// 1.618em) which collapses out of this wrapper and pushes the results
 		// panel away; spacing belongs to the blocks' own controls.
 		margin: 0;
+		min-width: 0;
 		width: 100%;
 	}
 
@@ -53,6 +60,12 @@
 		font-size: inherit;
 		font-style: inherit;
 		font-weight: inherit;
+	}
+
+	.shift64-woo-search-field__input {
+		flex: 1 1 0;
+		min-width: 0;
+		width: auto;
 	}
 
 	&.has-inline-input-color .shift64-woo-search-field__input {

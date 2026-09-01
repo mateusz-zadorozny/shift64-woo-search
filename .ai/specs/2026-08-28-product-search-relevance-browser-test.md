@@ -1,6 +1,6 @@
 # Product Search Relevance Browser Test
 
-> **Status:** draft
+> **Status:** implemented — PR #99, 2026-08-28
 
 ## 📝 TLDR
 
@@ -70,6 +70,18 @@ These values were observed in the deterministic QA catalog after PR #90. The
 test should fail clearly if the fixture generator changes them; the expected
 arrays and the generator comments must then be reviewed together.
 
+> **Implementation note (PR #99).** Both arrays were re-verified against a
+> freshly provisioned catalog and matched exactly — no fixture drift. They ship
+> as one flat `RANKED_LEADING` list of the first 20 ranked titles rather than as
+> a `PAGE_ONE` / `PAGE_TWO` pair, because the archive's page **size** turned out
+> not to be a constant: WooCommerce recomputes `woocommerce_catalog_columns`
+> from the incoming theme on every `after_switch_theme`, and the suite's
+> classic-theme project switches to Storefront (3 columns) without restoring the
+> option, so a page holds 16 products on a fresh site and 12 on a reused one
+> (tracked in #102). The test reads the rendered page size and indexes into the
+> ranked list, which keeps the assertions exactly as strict at either size —
+> `PAGE_TWO` above is `RANKED_LEADING[16..19]`, unchanged.
+
 ### Scenario A — archive and header autocomplete share relevance order
 
 1. Open `/?s=series&post_type=product`.
@@ -114,6 +126,26 @@ covered by `tests/e2e/block-theme/blockified.spec.ts`.
 This is a shell and responsiveness check, not a second complete ranking
 journey. It should reuse the same provisioned environment and leave all
 fixture/site state untouched.
+
+> **Implementation note (PR #99).** This spec assumed the current UI already
+> satisfied the no-overflow contract. It did not: at 390 px the provisioned
+> storefront rendered a 431 px document, and hiding just
+> `.shift64-woo-search-block--form` (the header search block) and
+> `.shift64-woo-search-product-sort` (the results sort pill) brought it back to
+> exactly 390 px. The implementation splits Scenario C in two — a
+> shell-visibility test and the overflow assertion. The overflow defect
+> (tracked as #101) was initially carried as a documented `test.fail()`
+> marker; PR #99 then shipped the responsive fix itself (max-width and
+> flex-shrink constraints on the plugin-owned search and product-sort
+> blocks), dropped the marker, and the assertion now runs active and
+> passing. The assertion was never weakened, because a relaxed version
+> would codify the overflow as acceptable. #101's open question — blocks'
+> CSS or the provisioned header layout — turned out to be answered "both":
+> the provisioned header's search row also needed a layout fix
+> (`bin/provision-block-theme-header.php`), because wrapping the search
+> block's constrained group in a single-child nowrap flex group made the
+> row size to its font-dependent max-content, which overflowed a 390px
+> viewport on Linux font metrics (CI) while fitting on macOS.
 
 ## 📝 Research
 

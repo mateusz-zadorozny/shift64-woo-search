@@ -1,4 +1,6 @@
 .wp-block-shift64-woo-search-search {
+	max-width: 100%;
+	min-width: 0;
 	position: relative;
 	// A local stacking context contains the dropdown's large internal
 	// z-indexes (--s64ws-dropdown-z and friends): inside the block they still

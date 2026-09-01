@@ -22,6 +22,25 @@
 	--s64ws-pill-options-max-height: min(28rem, 60vh);
 
 	display: inline-block;
+	max-width: 100%;
+	min-width: 0;
+
+	.shift64-woo-search-pill__trigger {
+		box-sizing: border-box;
+		max-width: 100%;
+		min-width: 0;
+	}
+
+	.shift64-woo-search-pill__label {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.shift64-woo-search-pill__chevron {
+		flex: 0 0 auto;
+	}
 
 	.shift64-woo-search-pill__panel[hidden] {
 		display: none;
