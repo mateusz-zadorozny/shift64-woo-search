@@ -45,6 +45,32 @@ function shift64_woo_search_woocommerce_inactive_notice() {
 	<?php
 }
 
+/**
+ * Declare compatibility with the WooCommerce features this plugin coexists with.
+ *
+ * WooCommerce treats a plugin that says nothing as *uncertain*, and lists it on
+ * the Plugins screen under "Incompatible with WooCommerce features" — the same
+ * bucket as a plugin that is genuinely broken by HPOS. Silence is the only
+ * reason this plugin appears there: it is a catalog search engine that never
+ * reads or writes an order, a cart or a checkout, so nothing in it can be
+ * affected by the order-storage or block-checkout switches.
+ *
+ * Declared on `before_woocommerce_init` because that is the only point at which
+ * the features controller accepts a declaration.
+ */
+add_action(
+	'before_woocommerce_init',
+	function () {
+		if ( ! class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			return;
+		}
+
+		foreach ( array( 'custom_order_tables', 'cart_checkout_blocks' ) as $feature ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( $feature, __FILE__, true );
+		}
+	}
+);
+
 // Include files.
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-requirements.php';
 require_once SHIFT64_WOO_SEARCH_PATH . 'includes/class-shift64-woo-search-legacy-shortcodes.php';

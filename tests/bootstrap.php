@@ -87,5 +87,13 @@ if ( ! function_exists( 'wc_get_attribute_taxonomies' ) ) {
 	}
 }
 
+/**
+ * Stand in for the WooCommerce features API the plugin declares against.
+ *
+ * Loaded here rather than from the test file so the double is in place before
+ * the plugin's `before_woocommerce_init` callback can ever run.
+ */
+require_once __DIR__ . '/fixtures/class-featuresutil.php';
+
 // Start up the WP testing environment.
 require "{$_tests_dir}/includes/bootstrap.php";
