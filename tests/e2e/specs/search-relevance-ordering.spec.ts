@@ -47,13 +47,13 @@ const LEADING = 4;
  * It is a flat ranked list rather than a PAGE_ONE / PAGE_TWO pair because the
  * archive's page SIZE is not a constant: WooCommerce recomputes
  * `woocommerce_catalog_columns` from the incoming theme on every
- * `after_switch_theme` (wc_reset_product_grid_settings), and this suite's
- * classic-theme project switches to Storefront (3 columns) and never restores
- * the option — so a page holds 16 products on a freshly provisioned site and 12
- * on one the suite has already run against. That non-idempotency is tracked in
- * #102; until it is fixed, the page-2 expectation is taken as an OFFSET into
- * this list using the page size actually rendered, which is correct at either
- * size. The list is long enough to reach past the larger one.
+ * `after_switch_theme` (wc_reset_product_grid_settings), so any theme switch
+ * against the target site can leave a different page size behind — the
+ * removed classic-theme project did exactly that (16 products on a freshly
+ * provisioned site, 12 after one run; tracked in #102). The page-2
+ * expectation is therefore taken as an OFFSET into this list using the page
+ * size actually rendered, which is correct at either size. The list is long
+ * enough to reach past the larger one.
  *
  * If the generator's names or ordering change, update this list AND the values
  * recorded in the design doc above, in the same PR.
